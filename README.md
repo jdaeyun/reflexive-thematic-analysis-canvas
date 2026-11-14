@@ -35,6 +35,10 @@
 
    Export the narrative and tables as rich copy, Markdown or **Word (`.docx`)**, tables as CSV, and all coded extracts as long-format CSV.
 
+## 🧭 Reporting: RTARG
+
+[`docs/rtarg-mapping.md`](docs/rtarg-mapping.md) ([日本語](docs/rtarg-mapping.ja.md)) maps the Reflexive Thematic Analysis Reporting Guidelines (Braun & Clarke, 2024) to what the app does: what it supports, what stays the researcher's writing, and what still needs work.
+
 ## 📂 Supported files
 
 | Format | Notes |

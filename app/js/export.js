@@ -341,7 +341,8 @@ function renderNarrativeEditor() {
 // The narrative as a list of blocks, shared by copy / Markdown / .docx
 function narrativeBlocks(opts) {
   const L = opts.lang;
-  const blocks = [{ type: 'h1', text: tr('narr.resultsTitle', {}, L) }];
+  // RTARG: the heading is "Analysis", not "Results" or "Findings" (statistics / themes "found")
+  const blocks = [{ type: 'h1', text: tr('narr.analysisTitle', {}, L) }];
   const paras = s => String(s || '').split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
   for (const p of paras(state.meta.storyline)) blocks.push({ type: 'p', text: p });
   for (const { t, depth } of narrativeThemes(opts)) {

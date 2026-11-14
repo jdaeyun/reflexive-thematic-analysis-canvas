@@ -24,6 +24,7 @@ app/js/journal.js      journal drawer (Ctrl/⌘+J), optional "Why?" decision pro
 app/js/export.js       Tab 4 (phase 6): analytic narrative editor (first view) + supporting table specs; copy / Markdown / CSV / .docx
 app/js/app.js          startup (DOMContentLoaded), tabs, project setup, backup / restore / reset, drag & drop, shortcuts
 samples/               fictional test files in every supported format
+docs/rtarg-mapping*.md how the app maps to the RTARG (Braun & Clarke 2024); update it when a change affects reporting
 ```
 
 ## Data model (IndexedDB `ThematicAnalysisCanvasDB`)
