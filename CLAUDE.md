@@ -1,0 +1,66 @@
+# Thematic Analysis Canvas — notes for AI assistants
+
+Browser-only app for thematic analysis of text data (Braun & Clarke). No server, no build step to run it,
+no AI features (a deliberate design choice: do not add LLM calls). Works online and offline: opening
+`ta_canvas.html` by double-click (file://) must keep working.
+Third-party libraries are bundled in `app/vendor/` (committed): Tailwind 3.4.17 (prebuilt CSS), Phosphor Icons
+2.1.1 (regular weight), docx 8.5.0, mammoth.js 1.13.0, Papa Parse 5.7.0. No CDN is used.
+Derived from Meta-Ethnography Canvas (github.com/jdaeyun/meta-ethnography-canvas); same conventions.
+
+## Layout
+
+```
+ta_canvas.html         markup only (4 tabs + modals); loads everything under app/
+app/version.js         release info (version, date) — the one place to edit per release
+app/css/ta_canvas.css  app-specific CSS (everything else is Tailwind classes)
+app/js/core.js         IndexedDB, `state`, lookups, participantsForRange(), coverage(), recordLog(), undo snapshots
+app/js/importers.js    .txt/.csv/.docx/.doc → fixed plain text + blocks; CSV column dialog; built-in .doc reader
+app/js/coding.js       Tab 1 (phases 1–2): documents, participants, viewer, selection, codebook, extract panel
+app/js/themes.js       Tab 2 (phases 3–5): code pool, theme board, status / review / definition
+app/js/audit.js        Tab 3: audit trail timeline, reflexive journal
+app/js/export.js       Tab 4 (phase 6): table specs + HTML / copy / Markdown / CSV / .docx renderers
+app/js/app.js          startup (DOMContentLoaded), tabs, project setup, backup / restore / reset, drag & drop, shortcuts
+samples/               fictional test files in every supported format
+```
+
+## Data model (IndexedDB `ThematicAnalysisCanvasDB`)
+
+- `docs`: `{ id, name, kind, encoding, text, blocks: [{ s, e, label }], defaultParticipantId, note }`.
+  `text` is fixed at import. Never change it afterwards: everything else points at character offsets in it.
+- `segments` (coded extracts): `{ docId, s, e, text, codeIds[], memo, key }`. Segments may overlap.
+  One segment per exact range; applying another code to the same range adds to `codeIds`.
+- `ptags` (speaker layer): `{ docId, s, e, participantId }`. One participant per character: tagging cuts
+  overlapping ranges. Untagged text falls back to `doc.defaultParticipantId`.
+- `participants`: `{ label, role: 'participant'|'interviewer', attributes }`. Interviewers are excluded from
+  counts (`countedParticipants()`, `coverage()`).
+- `codes`: `{ name, description, color, themeIds[] }` (a code may sit in several themes).
+- `themes`: `{ name, parentId, status: candidate|reviewed|defined|discarded, definition, reviewNote, checkedExtracts, checkedDataset, order }`.
+- `logs`: audit trail and journal `{ ts, category, action, detail, from, to, by }`. `meta`: project setup.
+
+## Rules
+
+- Classic `<script>` files sharing one global scope (not ES modules, so `file://` works). Keep the load order
+  in `ta_canvas.html` (version → core → importers → coding → themes → audit → export → app). Top-level code may
+  only call functions from earlier files; anything else runs inside handlers or DOMContentLoaded.
+- Log every interpretive change with `recordLog({ category, action, detail, from, to })`. Single coding
+  actions use category `coding` (omitted from the appendix by default).
+- Before destructive changes call `pushUndo(label, [collections])` (snapshots whole collections).
+- Update `state` and re-render first, then persist (`await dbPut…`). A render that lands after the user has
+  started a new text selection would wipe it.
+- Escape every user value interpolated into HTML with `escapeHtml()`.
+- Exports are built from `getTableSpec(id)`; change the spec, not the renderers separately.
+- UI text is English.
+
+## Building app/vendor (only when libraries or Tailwind classes change)
+
+Node.js LTS required. `npm install`, then `npm run build` (= `npm run vendor`: copy libraries + licences into
+app/vendor and write THIRD_PARTY_NOTICES.md; `npm run css`: Tailwind CLI scans ta_canvas.html + app/js/**/*.js).
+Re-run `npm run css` after using a Tailwind class that appears nowhere else. Write class names in full
+(no string concatenation) so the scanner can see them. `npm run serve` serves http://localhost:8080.
+Test both ways after changes: http and double-clicking ta_canvas.html (file://).
+
+## Releases
+
+Update `app/version.js` and `CITATION.cff` (same version and date), commit, then publish a GitHub release
+tagged `vX.Y.Z`. `.github/workflows/offline-zip.yml` checks the versions and attaches
+`thematic-analysis-canvas-offline.zip` (app + samples + README) to the release.

@@ -1,0 +1,42 @@
+# Builds the offline edition (a ZIP that runs by double-clicking ta_canvas.html) and attaches it to the release.
+# app/vendor/ is committed, so no npm step is needed here.
+name: Attach offline ZIP to release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write   # needed to upload a file to the release
+
+jobs:
+  offline-zip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check that version numbers agree (app/version.js, CITATION.cff, release tag)
+        run: |
+          JS_VER=$(grep -oP "version:\s*'\K[^']+" app/version.js)
+          JS_DATE=$(grep -oP "released:\s*'\K[^']+" app/version.js)
+          CFF_VER=$(grep -oP '^version:\s*"?\K[^"\s]+' CITATION.cff)
+          CFF_DATE=$(grep -oP '^date-released:\s*"?\K[^"\s]+' CITATION.cff)
+          echo "version.js: $JS_VER ($JS_DATE) | CITATION.cff: $CFF_VER ($CFF_DATE) | tag: $GITHUB_REF_NAME"
+          [ "$JS_VER" = "$CFF_VER" ] || { echo "::error::app/version.js ($JS_VER) and CITATION.cff ($CFF_VER) differ"; exit 1; }
+          [ "$JS_DATE" = "$CFF_DATE" ] || { echo "::error::release dates differ ($JS_DATE vs $CFF_DATE)"; exit 1; }
+          [ "${GITHUB_REF_NAME#v}" = "$JS_VER" ] || { echo "::error::release tag $GITHUB_REF_NAME does not match version $JS_VER"; exit 1; }
+
+      - name: Build the ZIP
+        run: |
+          # Same file name in every release, so a page can link to .../releases/latest/download/thematic-analysis-canvas-offline.zip
+          NAME="thematic-analysis-canvas-offline-${GITHUB_REF_NAME}"
+          mkdir -p "dist/$NAME"
+          cp -r ta_canvas.html app samples CITATION.cff LICENSE "dist/$NAME/"
+          cp tools/OFFLINE-README.txt "dist/$NAME/README.txt"
+          (cd dist && zip -qr thematic-analysis-canvas-offline.zip "$NAME")
+          echo "ZIP=dist/thematic-analysis-canvas-offline.zip" >> "$GITHUB_ENV"
+
+      - name: Upload to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$GITHUB_REF_NAME" "$ZIP" --clobber

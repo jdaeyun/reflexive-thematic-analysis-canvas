@@ -1,0 +1,40 @@
+/* Thematic Analysis Canvas (prototype) — app-specific styles (everything else is Tailwind classes) */
+
+/* Document viewer: one row per line / answer — participant gutter | text | coding stripes */
+.ta-block { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr) 11rem; gap: 0.75rem; padding: 0.3rem 0.5rem; border-radius: 6px; }
+.ta-block:hover { background: #f8fafc; }
+.ta-block.drop-target { background: #eef2ff; outline: 2px dashed #6366f1; }
+.ta-gutter, .ta-margin { user-select: none; -webkit-user-select: none; }
+.ta-gutter { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; padding-top: 2px; }
+.ta-block-label { font-size: 10px; color: #94a3b8; text-align: right; line-height: 1.2; word-break: break-word; }
+.ta-text { font-size: 15px; line-height: 1.85; color: #1e293b; white-space: pre-wrap; word-break: break-word; user-select: text; -webkit-user-select: text; }
+.ta-text ::selection { background: rgba(79, 70, 229, 0.28); }
+.ta-margin { display: flex; flex-wrap: wrap; align-content: flex-start; gap: 3px; padding-top: 3px; }
+.margin-chip { font-size: 10px; line-height: 1.3; padding: 1px 5px; border: 1px solid; border-radius: 4px; background: #fff; cursor: pointer; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.margin-chip:hover { background: #f1f5f9; }
+.par-chip { font-size: 10px; font-weight: 700; line-height: 1.3; padding: 1px 6px; border: 1px solid; border-radius: 999px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.par-chip-default { color: #94a3b8; border-color: #e2e8f0; border-style: dashed; background: #fff; }
+
+.seg { cursor: pointer; border-radius: 2px; padding-bottom: 1px; }
+.seg-active { outline: 2px solid #4f46e5; outline-offset: 1px; }
+@keyframes segFlash { 0%, 100% { outline-color: transparent; } 20%, 60% { outline: 3px solid #f59e0b; outline-offset: 2px; } }
+.seg-flash { animation: segFlash 1.6s ease-in-out; }
+
+.theme-drop-over { border-color: #6366f1 !important; background: #eef2ff; }
+
+/* Modals & drop overlay */
+.ta-modal { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.45); z-index: 60; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+.ta-modal.hidden { display: none; }
+#dropOverlay { display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(2px); z-index: 99999; justify-content: center; align-items: center; }
+#dropOverlay.active { display: flex; }
+
+/* Publication tables (same look as Meta-Ethnography Canvas) */
+.pub-table { width: 100%; border-collapse: collapse; font-family: Georgia, 'Times New Roman', serif; font-size: 13.5px; color: #1e293b; background: white; }
+.pub-table thead tr { border-top: 2px solid #0f172a; border-bottom: 1.5px solid #0f172a; background-color: #f8fafc; }
+.pub-table th { text-align: left; padding: 8px 10px; font-weight: bold; vertical-align: bottom; }
+.pub-table td { padding: 8px 10px; border-bottom: 1px solid #cbd5e1; vertical-align: top; line-height: 1.45; }
+.pub-table tbody tr:last-child td { border-bottom: 2px solid #0f172a; }
+
+/* Phase guide */
+.phase-step { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; font-size: 11px; border: 1px solid #e2e8f0; background: #fff; color: #94a3b8; white-space: nowrap; }
+.phase-step.on { background: #eef2ff; border-color: #c7d2fe; color: #3730a3; font-weight: 700; }
