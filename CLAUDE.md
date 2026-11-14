@@ -18,6 +18,7 @@ app/js/importers.js    .txt/.csv/.docx/.doc → fixed plain text + blocks; CSV c
 app/js/coding.js       Tab 1 (phases 1–2): documents, participants, viewer, selection, codebook, extract panel
 app/js/themes.js       Tab 2 (phases 3–5): code pool, theme board, status / review / definition
 app/js/audit.js        Tab 3: audit trail timeline, reflexive journal
+app/js/journal.js      journal drawer (Ctrl/⌘+J), optional "Why?" decision prompt, context capture, structure snapshots + diff
 app/js/export.js       Tab 4 (phase 6): table specs + HTML / copy / Markdown / CSV / .docx renderers
 app/js/app.js          startup (DOMContentLoaded), tabs, project setup, backup / restore / reset, drag & drop, shortcuts
 samples/               fictional test files in every supported format
@@ -35,15 +36,20 @@ samples/               fictional test files in every supported format
   counts (`countedParticipants()`, `coverage()`).
 - `codes`: `{ name, description, color, themeIds[] }` (a code may sit in several themes).
 - `themes`: `{ name, parentId, status: candidate|reviewed|defined|discarded, definition, reviewNote, checkedExtracts, checkedDataset, order }`.
-- `logs`: audit trail and journal `{ ts, category, action, detail, from, to, by }`. `meta`: project setup.
+- `logs`: audit trail and journal `{ ts, category, action, detail, from, to, by, reason?, ctx?, snapshot?, linkedLogId? }`.
+  `reason` = optional "why" for a decision; `ctx` = what was on screen (doc / extract / quote / theme);
+  `snapshot` = theme tree + code names and counts (no extract text), taken on journal notes and theme status
+  changes / deletes; `linkedLogId` = a note written about another entry. `meta`: project setup.
 
 ## Rules
 
 - Classic `<script>` files sharing one global scope (not ES modules, so `file://` works). Keep the load order
-  in `ta_canvas.html` (version → core → importers → coding → themes → audit → export → app). Top-level code may
+  in `ta_canvas.html` (version → core → importers → coding → themes → audit → journal → export → app). Top-level code may
   only call functions from earlier files; anything else runs inside handlers or DOMContentLoaded.
 - Log every interpretive change with `recordLog({ category, action, detail, from, to })`. Single coding
   actions use category `coding` (omitted from the appendix by default).
+- Reflexive notes are never required: no blocking dialogs asking for a note. Use `promptNote()` (small,
+  self-dismissing) after significant decisions only, never after single coding actions.
 - Before destructive changes call `pushUndo(label, [collections])` (snapshots whole collections).
 - Update `state` and re-render first, then persist (`await dbPut…`). A render that lands after the user has
   started a new text selection would wipe it.

@@ -141,6 +141,9 @@ function bindThemeCards(root) {
     // Only bind controls that belong to this card, not to nested subtheme cards
     const own = sel => [...card.querySelectorAll(sel)].filter(x => x.closest('.theme-card') === card);
     const one = sel => own(sel)[0];
+    const mark = (e) => { if (e.target.closest('.theme-card') === card && state.lastThemeId !== tid) { state.lastThemeId = tid; refreshJournalContext(); } };
+    card.addEventListener('pointerdown', mark);
+    card.addEventListener('focusin', mark);
 
     one('.theme-name').addEventListener('change', async (e) => {
       const v = e.target.value.trim();
@@ -154,8 +157,12 @@ function bindThemeCards(root) {
         alert('Write a definition (Phase 5) before marking the theme as defined.');
         e.target.value = t.status; return;
       }
-      await recordLog({ category: 'themes', action: `Changed status of “${t.name}”`, from: THEME_STATUS[t.status]?.label, to: THEME_STATUS[v]?.label });
-      t.status = v; await dbPut('themes', t); renderThemesView();
+      const from = THEME_STATUS[t.status]?.label, to = THEME_STATUS[v]?.label;
+      t.status = v;
+      renderThemesView();
+      await dbPut('themes', t);
+      const entry = await recordLog({ category: 'themes', action: `Changed status of “${t.name}”`, from, to, snapshot: takeSnapshot() });
+      promptNote({ title: `“${clip(t.name, 40)}”: ${from} → ${to}`, logEntry: entry });
     });
     one('.theme-up')?.addEventListener('click', () => moveTheme(tid, -1));
     one('.theme-down')?.addEventListener('click', () => moveTheme(tid, 1));
@@ -216,7 +223,11 @@ async function createTheme(name, parentId = null) {
   state.themes.push(t);
   await dbPut('themes', t);
   const parent = parentId ? themeById(parentId) : null;
-  await recordLog({ category: 'themes', action: parent ? `Created subtheme “${t.name}” under “${parent.name}”` : `Created candidate theme “${t.name}”` });
+  const entry = await recordLog({ category: 'themes', action: parent ? `Created subtheme “${t.name}” under “${parent.name}”` : `Created candidate theme “${t.name}”` });
+  state.lastThemeId = t.id;
+  if (!parent && state.themes.length === 1) {
+    promptNote({ title: 'Your first candidate theme. What are you noticing in the data right now?', placeholder: 'A sentence or two (optional — Enter to save)', mode: 'journal', logEntry: entry, ttl: 20000 });
+  }
   if (state.themeStatusFilter !== 'all' && state.themeStatusFilter !== 'candidate') state.themeStatusFilter = 'all';
   renderThemesView();
   const input = document.querySelector(`.theme-card[data-theme="${t.id}"] .theme-name`);
@@ -268,8 +279,9 @@ async function deleteTheme(themeId) {
   await dbPutMany('codes', changed);
   state.themes = state.themes.filter(x => x.id !== themeId);
   await dbDelete('themes', themeId);
-  await recordLog({ category: 'themes', action: `Deleted ${t.parentId ? 'subtheme' : 'theme'} “${t.name}”`, detail: `${changed.length} code(s) returned to the pool` });
   renderThemesView();
+  const entry = await recordLog({ category: 'themes', action: `Deleted ${t.parentId ? 'subtheme' : 'theme'} “${t.name}”`, detail: `${changed.length} code(s) returned to the pool`, snapshot: takeSnapshot() });
+  promptNote({ title: `Deleted “${clip(t.name, 40)}”`, logEntry: entry });
 }
 
 function setupThemeEvents() {

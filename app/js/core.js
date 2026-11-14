@@ -32,11 +32,11 @@ function flashSaveStatus(status = 'saved') {
   if (!badge) return;
   badge.classList.remove('hidden');
   if (status === 'error') {
-    badge.className = 'inline-flex items-center space-x-1 px-2 py-1 rounded-md text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200';
+    badge.className = 'inline-flex items-center space-x-1 px-2 py-1 rounded-md text-[11px] font-bold whitespace-nowrap bg-rose-50 text-rose-700 border border-rose-200';
     badge.innerHTML = '<i class="ph ph-warning-circle"></i><span>Save error</span>';
   } else {
-    const t = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    badge.className = 'inline-flex items-center space-x-1 px-2 py-1 rounded-md text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200';
+    const t = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    badge.className = 'inline-flex items-center space-x-1 px-2 py-1 rounded-md text-[11px] font-bold whitespace-nowrap bg-emerald-50 text-emerald-700 border border-emerald-200';
     badge.innerHTML = `<i class="ph ph-check-circle"></i><span>Saved ${t}</span>`;
   }
 }
@@ -124,7 +124,8 @@ const state = {
   openThemeExtracts: new Set(),
   openCodeExtracts: new Set(),
   exportTable: 'themes',
-  auditFilter: 'all',
+  auditFilter: 'decisions', // single coding actions are hidden by default so journal notes stay visible
+  lastThemeId: null,        // theme card the user last worked on (journal context)
   undoStack: []
 };
 
@@ -252,8 +253,14 @@ function coverage(segments) {
 // ========================================================
 // AUDIT LOG
 // ========================================================
-async function recordLog({ category, action, detail = '', from = '', to = '' }) {
+// Optional: reason (why, from the decision prompt), ctx (what was on screen), snapshot (code/theme structure
+// at that moment, see takeSnapshot in journal.js), linkedLogId (a journal note written about another entry)
+async function recordLog({ category, action, detail = '', from = '', to = '', reason = '', ctx = null, snapshot = null, linkedLogId = null }) {
   const entry = { id: uid('log'), ts: Date.now(), category, action, detail, from, to, by: state.researcherId || '' };
+  if (reason) entry.reason = reason;
+  if (ctx && Object.keys(ctx).length) entry.ctx = ctx;
+  if (snapshot) entry.snapshot = snapshot;
+  if (linkedLogId) entry.linkedLogId = linkedLogId;
   state.logs.push(entry);
   updateAuditBadge();
   await dbPut('logs', entry);
