@@ -4,7 +4,7 @@
 // show a small, self-dismissing "Why?" prompt; journal notes and theme status changes keep a lightweight
 // snapshot of the code/theme structure so the audit trail can show "what the analysis looked like then".
 
-const JOURNAL_DEFAULT_TYPE = 'Reflexive memo';
+const JOURNAL_DEFAULT_TYPE = 'memo'; // id from JOURNAL_TYPES (audit.js)
 
 // ========================================================
 // SNAPSHOTS (structure only: theme tree + code names and counts; no extract text)
@@ -36,7 +36,7 @@ function diffSnapshot(snap) {
     const n = nowThemes.get(id);
     if (!n) { out.removed.push(t.name); continue; }
     if (n.name !== t.name) out.renamed.push(`${t.name} → ${n.name}`);
-    if (n.status !== t.status) out.status.push(`${n.name}: ${THEME_STATUS[t.status]?.label} → ${THEME_STATUS[n.status]?.label}`);
+    if (n.status !== t.status) out.status.push(`${n.name}: ${statusLabel(t.status)} → ${statusLabel(n.status)}`);
   }
   const placement = s => {
     const m = new Map();
@@ -59,33 +59,33 @@ function openSnapshot(logId) {
   const snap = log.snapshot;
   const d = diffSnapshot(snap);
   const changes = [
-    d.added.length ? `${d.added.length} theme(s) added: ${d.added.join(', ')}` : '',
-    d.removed.length ? `${d.removed.length} theme(s) removed: ${d.removed.join(', ')}` : '',
-    d.renamed.length ? `Renamed: ${d.renamed.join('; ')}` : '',
-    d.status.length ? `Status: ${d.status.join('; ')}` : '',
-    d.moved ? `${d.moved} code(s) moved between themes` : '',
-    d.codesAdded ? `${d.codesAdded} new code(s)` : '',
-    d.codesRemoved ? `${d.codesRemoved} code(s) merged or deleted` : ''
+    d.added.length ? tr('snap.added', { n: d.added.length, list: d.added.join(', ') }) : '',
+    d.removed.length ? tr('snap.removed', { n: d.removed.length, list: d.removed.join(', ') }) : '',
+    d.renamed.length ? tr('snap.renamed', { list: d.renamed.join('; ') }) : '',
+    d.status.length ? tr('snap.status', { list: d.status.join('; ') }) : '',
+    d.moved ? tr('snap.moved', { n: d.moved }) : '',
+    d.codesAdded ? tr('snap.codesAdded', { n: d.codesAdded }) : '',
+    d.codesRemoved ? tr('snap.codesRemoved', { n: d.codesRemoved }) : ''
   ].filter(Boolean);
   const themeHtml = t => {
     const st = THEME_STATUS[t.status] || THEME_STATUS.candidate;
     return `<div class="${t.parentId ? 'ml-5 mt-1.5' : 'mt-3'}">
       <div class="flex items-center gap-1.5"><i class="ph ${t.parentId ? 'ph-arrow-elbow-down-right' : 'ph-shapes'} text-slate-400"></i>
         <span class="text-xs font-bold text-slate-800">${escapeHtml(t.name)}</span>
-        <span class="text-[10px] font-bold border rounded px-1 ${st.cls}">${st.label}</span></div>
+        <span class="text-[10px] font-bold border rounded px-1 ${st.cls}">${escapeHtml(statusLabel(t.status))}</span></div>
       ${t.definition ? `<div class="text-[11px] text-slate-500 ml-5 italic">${escapeHtml(clip(t.definition, 200))}</div>` : ''}
-      <div class="flex flex-wrap gap-1 ml-5 mt-1">${t.codes.map(c => `<span class="text-[10px] bg-slate-100 border border-slate-200 rounded px-1.5 py-0.5">${escapeHtml(c.name)} <span class="text-slate-400">${c.n}</span></span>`).join('') || '<span class="text-[10px] text-slate-400">no codes</span>'}</div>
+      <div class="flex flex-wrap gap-1 ml-5 mt-1">${t.codes.map(c => `<span class="text-[10px] bg-slate-100 border border-slate-200 rounded px-1.5 py-0.5">${escapeHtml(c.name)} <span class="text-slate-400">${c.n}</span></span>`).join('') || `<span class="text-[10px] text-slate-400">${escapeHtml(tr('snap.noCodes'))}</span>`}</div>
     </div>`;
   };
-  document.getElementById('snapshotTitle').textContent = `Structure at ${fmtTime(log.ts)}`;
-  document.getElementById('snapshotEntry').textContent = log.category === 'journal' ? `${log.action}: ${clip(log.detail, 160)}` : log.action;
+  document.getElementById('snapshotTitle').textContent = tr('snap.title', { time: fmtTime(log.ts) });
+  document.getElementById('snapshotEntry').textContent = log.category === 'journal' ? `${logAction(log)}: ${clip(logDetail(log), 160)}` : logAction(log);
   document.getElementById('snapshotChanges').innerHTML = changes.length
-    ? `<div class="text-[11px] font-bold text-slate-600 mb-1">Since then</div><ul class="list-disc ml-4 text-[11px] text-slate-600 space-y-0.5">${changes.map(c => `<li>${escapeHtml(c)}</li>`).join('')}</ul>`
-    : `<div class="text-[11px] text-slate-500">The theme structure has not changed since then.</div>`;
+    ? `<div class="text-[11px] font-bold text-slate-600 mb-1">${escapeHtml(tr('snap.since'))}</div><ul class="list-disc ml-4 text-[11px] text-slate-600 space-y-0.5">${changes.map(c => `<li>${escapeHtml(c)}</li>`).join('')}</ul>`
+    : `<div class="text-[11px] text-slate-500">${escapeHtml(tr('snap.unchanged'))}</div>`;
   document.getElementById('snapshotBody').innerHTML =
-    `<div class="text-[10px] text-slate-400">${snap.counts.docs} documents · ${snap.counts.segments} coded extracts · ${snap.counts.codes} codes · ${snap.counts.themes} themes</div>` +
-    (snap.themes.length ? snap.themes.map(themeHtml).join('') : '<div class="text-xs text-slate-400 mt-3">No themes yet.</div>') +
-    (snap.unassigned.length ? `<div class="mt-4 text-[11px] font-bold text-slate-500">Codes not in a theme (${snap.unassigned.length})</div><div class="flex flex-wrap gap-1 mt-1">${snap.unassigned.map(c => `<span class="text-[10px] bg-white border border-slate-200 rounded px-1.5 py-0.5">${escapeHtml(c.name)}</span>`).join('')}</div>` : '');
+    `<div class="text-[10px] text-slate-400">${escapeHtml(tr('snap.counts', snap.counts))}</div>` +
+    (snap.themes.length ? snap.themes.map(themeHtml).join('') : `<div class="text-xs text-slate-400 mt-3">${escapeHtml(tr('snap.noThemes'))}</div>`) +
+    (snap.unassigned.length ? `<div class="mt-4 text-[11px] font-bold text-slate-500">${escapeHtml(tr('snap.unassigned', { n: snap.unassigned.length }))}</div><div class="flex flex-wrap gap-1 mt-1">${snap.unassigned.map(c => `<span class="text-[10px] bg-white border border-slate-200 rounded px-1.5 py-0.5">${escapeHtml(c.name)}</span>`).join('')}</div>` : '');
   document.getElementById('snapshotModal').classList.remove('hidden');
 }
 
@@ -111,7 +111,7 @@ function contextChipsHtml(ctx, { removable = false } = {}) {
   if (!ctx) return '';
   const chip = (key, icon, label, title) => `<span class="ctx-chip inline-flex items-center gap-1 text-[10px] bg-slate-50 border border-slate-200 text-slate-600 rounded px-1.5 py-0.5 max-w-full" data-key="${key}" title="${escapeHtml(title || label)}">
     <i class="ph ${icon}"></i><button type="button" class="ctx-go truncate max-w-[16rem] text-left hover:underline cursor-pointer">${escapeHtml(label)}</button>
-    ${removable ? `<button type="button" class="ctx-remove text-slate-400 hover:text-rose-600 cursor-pointer" title="Do not attach"><i class="ph ph-x"></i></button>` : ''}</span>`;
+    ${removable ? `<button type="button" class="ctx-remove text-slate-400 hover:text-rose-600 cursor-pointer" title="${escapeHtml(tr('jd.detach'))}"><i class="ph ph-x"></i></button>` : ''}</span>`;
   const out = [];
   if (ctx.doc) out.push(chip('doc', 'ph-file-text', ctx.doc.name));
   if (ctx.extract) out.push(chip('extract', 'ph-highlighter', `“${clip(ctx.extract.text, 50)}”`, `${ctx.extract.text}\n${(ctx.extract.codes || []).join(', ')}`));
@@ -126,7 +126,7 @@ function goToContext(ctx, key) {
   if (key === 'doc' && ctx.doc && docById(ctx.doc.id)) { switchTab('code'); openDocument(ctx.doc.id); }
   if (key === 'extract' && ctx.extract) {
     const seg = state.segments.find(s => s.id === ctx.extract.id);
-    if (seg) { switchTab('code'); openDocument(seg.docId, seg.id); } else showToast('That extract no longer exists');
+    if (seg) { switchTab('code'); openDocument(seg.docId, seg.id); } else showToast(tr('ctx.extractGone'));
   }
   if (key === 'quote' && ctx.quote && docById(ctx.quote.docId)) {
     switchTab('code'); openDocument(ctx.quote.docId);
@@ -134,7 +134,7 @@ function goToContext(ctx, key) {
     if (el) { el.scrollIntoView({ block: 'center' }); el.classList.remove('seg-flash'); void el.offsetWidth; el.classList.add('seg-flash'); }
   }
   if (key === 'theme' && ctx.theme) {
-    if (!themeById(ctx.theme.id)) { showToast('That theme no longer exists'); return; }
+    if (!themeById(ctx.theme.id)) { showToast(tr('ctx.themeGone')); return; }
     state.themeStatusFilter = 'all';
     switchTab('themes');
     const card = document.querySelector(`.theme-card[data-theme="${ctx.theme.id}"]`);
@@ -183,7 +183,7 @@ function updateJournalDraftIndicators() {
   const handle = document.getElementById('journalHandle');
   handle.classList.toggle('hidden', open || !(NARROW_JOURNAL.matches || hasDraft));
   handle.classList.toggle('journal-handle-draft', hasDraft);
-  handle.title = hasDraft ? 'Unsaved journal note — click to continue (Ctrl+J)' : 'Open the reflexive journal (Ctrl+J)';
+  handle.title = tr(hasDraft ? 'jd.handleDraft' : 'jd.handle');
 }
 // While the drawer stays open and nothing is typed yet, follow what the researcher is looking at
 function refreshJournalContext() {
@@ -201,21 +201,21 @@ function renderJournalDrawer() {
   const linked = journalDraft.linkedLogId ? state.logs.find(l => l.id === journalDraft.linkedLogId) : null;
   const linkEl = document.getElementById('jdLinked');
   linkEl.classList.toggle('hidden', !linked);
-  if (linked) linkEl.innerHTML = `<i class="ph ph-link-simple"></i> About: <b>${escapeHtml(clip(linked.action, 90))}</b> <button type="button" id="jdUnlink" class="ml-auto text-slate-400 hover:text-rose-600 cursor-pointer" title="Do not link"><i class="ph ph-x"></i></button>`;
+  if (linked) linkEl.innerHTML = `<i class="ph ph-link-simple"></i> ${escapeHtml(tr('audit.about'))}: <b>${escapeHtml(clip(logAction(linked), 90))}</b> <button type="button" id="jdUnlink" class="ml-auto text-slate-400 hover:text-rose-600 cursor-pointer" title="${escapeHtml(tr('jd.unlink'))}"><i class="ph ph-x"></i></button>`;
   linkEl.querySelector('#jdUnlink')?.addEventListener('click', () => { journalDraft.linkedLogId = null; renderJournalDrawer(); });
 
   const ctxEl = document.getElementById('jdContext');
   const chips = contextChipsHtml(journalDraft.ctx, { removable: true });
-  ctxEl.innerHTML = chips ? `<span class="text-[10px] text-slate-400 mr-1">Attached:</span>${chips}` : `<span class="text-[10px] text-slate-400">No context attached (open the journal while reading a document or working on a theme to attach it).</span>`;
+  ctxEl.innerHTML = chips ? `<span class="text-[10px] text-slate-400 mr-1">${escapeHtml(tr('jd.attached'))}</span>${chips}` : `<span class="text-[10px] text-slate-400">${escapeHtml(tr('jd.noContext'))}</span>`;
   ctxEl.querySelectorAll('.ctx-remove').forEach(b => b.onclick = () => { delete journalDraft.ctx[b.closest('.ctx-chip').dataset.key]; renderJournalDrawer(); });
   ctxEl.querySelectorAll('.ctx-go').forEach(b => b.onclick = () => goToContext(journalDraft.ctx, b.closest('.ctx-chip').dataset.key));
 
   const recent = state.logs.filter(l => l.category === 'journal').slice(-6).reverse();
   document.getElementById('jdRecent').innerHTML = recent.length ? recent.map(l => `
     <div class="border-l-2 border-purple-300 pl-2">
-      <div class="text-[10px] text-slate-400">${fmtTime(l.ts)} · ${escapeHtml(l.action)}</div>
-      <div class="text-[11px] text-slate-700 whitespace-pre-wrap">${escapeHtml(clip(l.detail, 220))}</div>
-    </div>`).join('') : `<div class="text-[11px] text-slate-400">No entries yet. Write whenever a thought occurs — nothing here is required.</div>`;
+      <div class="text-[10px] text-slate-400">${fmtTime(l.ts)} · ${escapeHtml(logAction(l))}</div>
+      <div class="text-[11px] text-slate-700 whitespace-pre-wrap">${escapeHtml(clip(logDetail(l), 220))}</div>
+    </div>`).join('') : `<div class="text-[11px] text-slate-400">${escapeHtml(tr('jd.noEntries'))}</div>`;
 }
 
 async function saveJournalFromDrawer() {
@@ -224,7 +224,7 @@ async function saveJournalFromDrawer() {
   if (!text) { ta.focus(); return; }
   await recordLog({
     category: 'journal',
-    action: document.getElementById('jdType').value || JOURNAL_DEFAULT_TYPE,
+    ak: `jt.${document.getElementById('jdType').value || JOURNAL_DEFAULT_TYPE}`,
     detail: text,
     ctx: journalDraft.ctx,
     snapshot: takeSnapshot(),
@@ -236,7 +236,7 @@ async function saveJournalFromDrawer() {
   renderJournalDrawer();
   updateJournalDraftIndicators();
   if (state.activeTab === 'audit') renderAuditView();
-  showToast('Saved to the journal', 'success');
+  showToast(tr('toast.journalSaved'), 'success');
 }
 
 // ========================================================
@@ -246,7 +246,7 @@ let notePromptTimer = null;
 
 // mode 'reason': the text is stored as `reason` on logEntry.
 // mode 'journal': the text becomes its own journal entry (with a snapshot), e.g. session notes.
-function promptNote({ title, placeholder = 'Why? (optional — press Enter to save)', mode = 'reason', logEntry = null, journalType = JOURNAL_DEFAULT_TYPE, ttl = 12000 }) {
+function promptNote({ title, placeholder = tr('prompt.whyPh'), mode = 'reason', logEntry = null, journalType = JOURNAL_DEFAULT_TYPE, ttl = 12000 }) {
   const box = document.getElementById('notePrompt');
   const input = document.getElementById('notePromptInput');
   document.getElementById('notePromptTitle').textContent = title;
@@ -267,10 +267,10 @@ function promptNote({ title, placeholder = 'Why? (optional — press Enter to sa
       logEntry.reason = text;
       await dbPut('logs', logEntry);
     } else {
-      await recordLog({ category: 'journal', action: journalType, detail: text, ctx: captureContext(), snapshot: takeSnapshot(), linkedLogId: logEntry?.id || null });
+      await recordLog({ category: 'journal', ak: `jt.${journalType}`, detail: text, ctx: captureContext(), snapshot: takeSnapshot(), linkedLogId: logEntry?.id || null });
     }
     if (state.activeTab === 'audit') renderAuditView();
-    showToast(mode === 'reason' ? 'Reason saved with the decision' : 'Saved to the journal', 'success');
+    showToast(tr(mode === 'reason' ? 'toast.reasonSaved' : 'toast.journalSaved'), 'success');
   };
   input.onkeydown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); save(); }
@@ -286,7 +286,7 @@ function promptNote({ title, placeholder = 'Why? (optional — press Enter to sa
 }
 
 function setupJournalEvents() {
-  document.getElementById('jdType').innerHTML = JOURNAL_TYPES.map(t => `<option>${t}</option>`).join('');
+  document.getElementById('jdType').innerHTML = journalTypeOptions();
   document.getElementById('journalOpenBtn').onclick = (e) => { e.stopPropagation(); toggleJournal(); };
   document.getElementById('jdClose').onclick = closeJournal;
   document.getElementById('jdSave').onclick = saveJournalFromDrawer;

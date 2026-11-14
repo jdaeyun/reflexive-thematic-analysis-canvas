@@ -11,7 +11,7 @@
 function renderDocList() {
   const el = document.getElementById('docList');
   if (!state.docs.length) {
-    el.innerHTML = `<div class="text-[11px] text-slate-400 px-2 py-3 leading-relaxed">No documents yet. Import .txt, .csv, .docx or .doc files, or drop them on the window.</div>`;
+    el.innerHTML = `<div class="text-[11px] text-slate-400 px-2 py-3 leading-relaxed">${escapeHtml(tr('docs.empty'))}</div>`;
     return;
   }
   const icon = { txt: 'ph-file-text', csv: 'ph-file-csv', docx: 'ph-file-doc', doc: 'ph-file-doc' };
@@ -21,7 +21,7 @@ function renderDocList() {
     return `<button data-doc="${d.id}" class="doc-item w-full text-left px-2 py-1.5 rounded-md flex items-center space-x-2 text-xs cursor-pointer ${active ? 'bg-indigo-50 text-indigo-800 font-semibold border border-indigo-200' : 'hover:bg-slate-50 text-slate-700 border border-transparent'}">
       <i class="ph ${icon[d.kind] || 'ph-file'} text-sm shrink-0"></i>
       <span class="truncate flex-1" title="${escapeHtml(d.name)}">${escapeHtml(d.name)}</span>
-      <span class="text-[10px] text-slate-400 shrink-0" title="Coded extracts">${n}</span>
+      <span class="text-[10px] text-slate-400 shrink-0" title="${escapeHtml(tr('docs.codedExtracts'))}">${n}</span>
     </button>`;
   }).join('');
   el.querySelectorAll('.doc-item').forEach(b => b.onclick = () => openDocument(b.dataset.doc));
@@ -52,19 +52,19 @@ function openDocument(docId, flashSegId = null) {
 function renderParticipantList() {
   const el = document.getElementById('participantList');
   if (!state.participants.length) {
-    el.innerHTML = `<div class="text-[11px] text-slate-400 px-2 py-2 leading-relaxed">Add participants, or use “Detect speakers” on a transcript. CSV imports create them from the ID column.</div>`;
+    el.innerHTML = `<div class="text-[11px] text-slate-400 px-2 py-2 leading-relaxed">${escapeHtml(tr('par.empty'))}</div>`;
     return;
   }
   const hasSel = !!state.pendingSel;
   el.innerHTML = [...state.participants].sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true })).map(p => {
     const nDocs = new Set(state.ptags.filter(t => t.participantId === p.id).map(t => t.docId).concat(state.docs.filter(d => d.defaultParticipantId === p.id).map(d => d.id))).size;
     const attrs = Object.entries(p.attributes || {}).map(([k, v]) => `${k}: ${v}`).join(' · ');
-    return `<div class="par-item group flex items-center space-x-1.5 px-2 py-1 rounded-md hover:bg-slate-50 text-xs" draggable="true" data-par="${p.id}" title="${escapeHtml(attrs || 'Drag onto a line, or select text and press Tag')}">
+    return `<div class="par-item group flex items-center space-x-1.5 px-2 py-1 rounded-md hover:bg-slate-50 text-xs" draggable="true" data-par="${p.id}" title="${escapeHtml(attrs || tr('par.dragHint'))}">
       <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background:${p.color}"></span>
-      <span class="truncate flex-1 font-medium ${p.role === 'interviewer' ? 'text-slate-400' : 'text-slate-700'}">${escapeHtml(p.label)}${p.role === 'interviewer' ? ' <span class="text-[9px] font-bold uppercase text-slate-400 border border-slate-200 rounded px-1">interviewer</span>' : ''}</span>
+      <span class="truncate flex-1 font-medium ${p.role === 'interviewer' ? 'text-slate-400' : 'text-slate-700'}">${escapeHtml(p.label)}${p.role === 'interviewer' ? ` <span class="text-[9px] font-bold uppercase text-slate-400 border border-slate-200 rounded px-1">${escapeHtml(tr('par.interviewer'))}</span>` : ''}</span>
       <span class="text-[10px] text-slate-400">${nDocs}</span>
-      ${hasSel ? `<button class="par-tag px-1.5 py-0.5 text-[10px] font-bold rounded bg-teal-600 text-white cursor-pointer" title="Tag the selected text as spoken by ${escapeHtml(p.label)}">Tag</button>` : ''}
-      <button class="par-edit opacity-0 group-hover:opacity-100 text-slate-400 hover:text-slate-700 cursor-pointer" title="Edit participant"><i class="ph ph-pencil-simple"></i></button>
+      ${hasSel ? `<button class="par-tag px-1.5 py-0.5 text-[10px] font-bold rounded bg-teal-600 text-white cursor-pointer" title="${escapeHtml(tr('par.tagTitle', { label: p.label }))}">${escapeHtml(tr('par.tag'))}</button>` : ''}
+      <button class="par-edit opacity-0 group-hover:opacity-100 text-slate-400 hover:text-slate-700 cursor-pointer" title="${escapeHtml(tr('par.edit'))}"><i class="ph ph-pencil-simple"></i></button>
     </div>`;
   }).join('');
   el.querySelectorAll('.par-item').forEach(row => {
@@ -79,9 +79,9 @@ async function addParticipantFromInput() {
   const inp = document.getElementById('newParticipantInput');
   const label = inp.value.trim();
   if (!label) return;
-  if (state.participants.some(p => p.label === label)) { showToast(`${label} already exists`); return; }
+  if (state.participants.some(p => p.label === label)) { showToast(tr('par.exists', { label })); return; }
   const p = await ensureParticipant(label);
-  await recordLog({ category: 'participants', action: `Added participant ${p.label}` });
+  await recordLog({ category: 'participants', ak: 'log.parAdded', ap: { label: p.label } });
   inp.value = '';
   renderParticipantList();
   renderDocHeader();
@@ -97,15 +97,15 @@ function openParticipantEditor(pid) {
   modal.classList.remove('hidden');
   document.getElementById('parEditSave').onclick = async () => {
     const label = document.getElementById('parEditLabel').value.trim() || p.label;
-    if (label !== p.label && state.participants.some(x => x.label === label)) { alert(`${label} already exists.`); return; }
+    if (label !== p.label && state.participants.some(x => x.label === label)) { alert(tr('par.exists', { label })); return; }
     const attrs = {};
     for (const line of document.getElementById('parEditAttrs').value.split('\n')) {
       const m = line.match(/^\s*([^:：]+?)\s*[:：]\s*(.*)$/);
       if (m && m[1]) attrs[m[1]] = m[2].trim();
     }
-    if (label !== p.label) await recordLog({ category: 'participants', action: 'Renamed participant', from: p.label, to: label });
+    if (label !== p.label) await recordLog({ category: 'participants', ak: 'log.parRenamed', from: p.label, to: label });
     const role = document.getElementById('parEditInterviewer').checked ? 'interviewer' : 'participant';
-    if (role !== (p.role || 'participant')) await recordLog({ category: 'participants', action: `${label} marked as ${role}` });
+    if (role !== (p.role || 'participant')) await recordLog({ category: 'participants', ak: role === 'interviewer' ? 'log.parMarkedInterviewer' : 'log.parMarkedParticipant', ap: { label } });
     p.label = label;
     p.attributes = attrs;
     p.role = role;
@@ -114,15 +114,15 @@ function openParticipantEditor(pid) {
     renderAll();
   };
   document.getElementById('parEditDelete').onclick = async () => {
-    if (!confirm(`Delete participant ${p.label}? Their speaker tags are removed; coded extracts stay.`)) return;
-    pushUndo(`Delete participant ${p.label}`, ['participants', 'ptags', 'docs']);
+    if (!confirm(tr('par.confirmDelete', { label: p.label }))) return;
+    pushUndo(['undo.deleteParticipant', { label: p.label }], ['participants', 'ptags', 'docs']);
     const gone = state.ptags.filter(t => t.participantId === pid).map(t => t.id);
     state.ptags = state.ptags.filter(t => t.participantId !== pid);
     await dbDeleteMany('ptags', gone);
     for (const d of state.docs) if (d.defaultParticipantId === pid) { d.defaultParticipantId = null; await dbPut('docs', d); }
     state.participants = state.participants.filter(x => x.id !== pid);
     await dbDelete('participants', pid);
-    await recordLog({ category: 'participants', action: `Deleted participant ${p.label}` });
+    await recordLog({ category: 'participants', ak: 'log.parDeleted', ap: { label: p.label } });
     modal.classList.add('hidden');
     renderAll();
   };
@@ -138,9 +138,9 @@ function renderDocHeader() {
   if (!doc) { hdr.classList.add('hidden'); empty.classList.remove('hidden'); return; }
   hdr.classList.remove('hidden'); empty.classList.add('hidden');
   document.getElementById('docTitle').textContent = doc.name;
-  document.getElementById('docMeta').textContent = `${doc.kind.toUpperCase()} · ${doc.encoding} · ${doc.text.length.toLocaleString()} chars · ${doc.blocks.length} ${doc.kind === 'csv' ? 'answers' : 'lines'}`;
+  document.getElementById('docMeta').textContent = tr(doc.kind === 'csv' ? 'doc.metaCsv' : 'doc.meta', { kind: doc.kind.toUpperCase(), enc: encodingLabel(doc.encoding), chars: doc.text.length.toLocaleString(localeOf()), n: doc.blocks.length });
   const sel = document.getElementById('docDefaultParticipant');
-  sel.innerHTML = `<option value="">— none —</option>` + state.participants.map(p => `<option value="${p.id}" ${doc.defaultParticipantId === p.id ? 'selected' : ''}>${escapeHtml(p.label)}</option>`).join('');
+  sel.innerHTML = `<option value="">${escapeHtml(tr('doc.noneOption'))}</option>` + state.participants.map(p => `<option value="${p.id}" ${doc.defaultParticipantId === p.id ? 'selected' : ''}>${escapeHtml(p.label)}</option>`).join('');
   const note = document.getElementById('docNote');
   if (document.activeElement !== note) note.value = doc.note || '';
   document.getElementById('docNoteDot').classList.toggle('hidden', !doc.note);
@@ -196,7 +196,7 @@ function renderBlock(doc, b, bi, segs, pts, showLabels) {
   const starting = inBlock.filter(s => s.s >= b.s && s.s < b.e || (bi === 0 && s.s < b.s));
   const margin = starting.map(s => s.codeIds.map(cid => {
     const c = codeById(cid);
-    return c ? `<button class="margin-chip${s.id === state.activeSegId ? ' ring-2 ring-indigo-400' : ''}" data-seg="${s.id}" style="border-color:${c.color};color:${c.color}" title="${escapeHtml(c.name)}${s.key ? ' (key extract)' : ''}">${s.key ? '★ ' : ''}${escapeHtml(clip(c.name, 22))}</button>` : '';
+    return c ? `<button class="margin-chip${s.id === state.activeSegId ? ' ring-2 ring-indigo-400' : ''}" data-seg="${s.id}" style="border-color:${c.color};color:${c.color}" title="${escapeHtml(c.name)}${s.key ? ` (${escapeHtml(tr('seg.keyExtract'))})` : ''}">${s.key ? '★ ' : ''}${escapeHtml(clip(c.name, 22))}</button>` : '';
   }).join('')).join('');
 
   return `<div class="ta-block" data-bi="${bi}" data-bs="${b.s}" data-be="${b.e}">
@@ -323,7 +323,7 @@ async function applyCodeToRange(codeId, range) {
   const doc = docById(range.docId);
   if (!code || !doc) return;
   let seg = state.segments.find(x => x.docId === doc.id && x.s === range.s && x.e === range.e);
-  if (seg && seg.codeIds.includes(codeId)) { showToast(`Already coded with “${code.name}”`); return; }
+  if (seg && seg.codeIds.includes(codeId)) { showToast(tr('code.alreadyCoded', { code: code.name })); return; }
   if (seg) seg.codeIds.push(codeId);
   else {
     seg = { id: uid('seg'), docId: doc.id, s: range.s, e: range.e, text: doc.text.slice(range.s, range.e), codeIds: [codeId], memo: '', key: false, createdBy: state.researcherId || '', createdAt: Date.now() };
@@ -337,7 +337,7 @@ async function applyCodeToRange(codeId, range) {
   renderCodebook();
   renderSegmentPanel();
   await dbPut('segments', seg);
-  await recordLog({ category: 'coding', action: `Coded extract with “${code.name}”`, detail: `${doc.name} · “${clip(seg.text, 120)}”` });
+  await recordLog({ category: 'coding', ak: 'log.coded', ap: { code: code.name }, detail: `${doc.name} · “${clip(seg.text, 120)}”` });
 }
 
 // Adds the code to state at once (so it can be applied and rendered in the same tick); `saved` persists it
@@ -348,7 +348,7 @@ function makeCode(name) {
   if (existing) return { code: existing, saved: Promise.resolve() };
   const code = { id: uid('code'), name: clean, description: '', color: nextCodeColor(), themeIds: [], createdAt: Date.now(), order: state.codes.length };
   state.codes.push(code);
-  const saved = dbPut('codes', code).then(() => recordLog({ category: 'codebook', action: `Created code “${code.name}”` }));
+  const saved = dbPut('codes', code).then(() => recordLog({ category: 'codebook', ak: 'log.codeCreated', ap: { code: code.name } }));
   return { code, saved };
 }
 
@@ -361,13 +361,13 @@ async function quickCode() {
   let applied = null;
   if (state.pendingSel) applied = applyCodeToRange(code.id, state.pendingSel);
   else if (active) applied = applyCodeToRange(code.id, active); // add another code to the extract just coded
-  else { renderCodebook(); showToast(`Code “${code.name}” ready — select text, then click it`); }
+  else { renderCodebook(); showToast(tr('code.ready', { code: code.name })); }
   await saved;
   await applied;
 }
 
 async function inVivoCode() {
-  if (!state.pendingSel) { showToast('Select a short phrase in the text first'); return; }
+  if (!state.pendingSel) { showToast(tr('code.selectFirst')); return; }
   const { code, saved } = makeCode(clip(state.pendingSel.text, 60));
   const applied = applyCodeToRange(code.id, state.pendingSel);
   await saved;
@@ -397,7 +397,7 @@ async function tagParticipant(participantId, range) {
   renderSegmentPanel();
   await dbDeleteMany('ptags', removed);
   await dbPutMany('ptags', fresh);
-  await recordLog({ category: 'participants', action: `Tagged text as ${p.label}`, detail: `${doc.name} · “${clip(doc.text.slice(s, e), 100)}”` });
+  await recordLog({ category: 'participants', ak: 'log.tagged', ap: { label: p.label }, detail: `${doc.name} · “${clip(doc.text.slice(s, e), 100)}”` });
 }
 
 async function clearParticipantInSelection() {
@@ -429,10 +429,10 @@ async function detectSpeakers() {
     const m = doc.text.slice(b.s, b.e).match(re);
     if (m) { const k = m[1]; if (!found.has(k)) found.set(k, []); found.get(k).push(i); }
   });
-  if (!found.size) { alert('No speaker labels found. Lines need to start like “A: …”, “P01：…” or “インタビュアー：…”.'); return; }
-  const list = [...found.entries()].map(([k, v]) => `• ${k} — ${v.length} line${v.length > 1 ? 's' : ''}`).join('\n');
-  if (!confirm(`Speakers found in “${doc.name}”:\n\n${list}\n\nTag each line with its speaker? Existing speaker tags on those lines are replaced. Labels such as I, Interviewer or インタビュアー are marked as interviewer and are not counted as participants (change this in Edit participant).`)) return;
-  pushUndo(`Detect speakers in ${doc.name}`, ['ptags', 'participants']);
+  if (!found.size) { alert(tr('spk.none')); return; }
+  const list = [...found.entries()].map(([k, v]) => `• ${k} — ${tr('spk.lines', { n: v.length })}`).join('\n');
+  if (!confirm(tr('spk.confirm', { doc: doc.name, list }))) return;
+  pushUndo(['undo.detectSpeakers', { doc: doc.name }], ['ptags', 'participants']);
   const lineIdx = new Set([...found.values()].flat());
   const keep = state.ptags.filter(t => t.docId !== doc.id || !doc.blocks.some((b, i) => lineIdx.has(i) && t.s < b.e && t.e > b.s));
   const removed = state.ptags.filter(t => !keep.includes(t)).map(t => t.id);
@@ -444,7 +444,7 @@ async function detectSpeakers() {
   state.ptags = keep.concat(add);
   await dbDeleteMany('ptags', removed);
   await dbPutMany('ptags', add);
-  await recordLog({ category: 'participants', action: `Detected speakers in “${doc.name}”`, detail: [...found.keys()].join(', ') });
+  await recordLog({ category: 'participants', ak: 'log.speakersDetected', ap: { doc: doc.name }, detail: [...found.keys()].join(', ') });
   renderAll();
 }
 
@@ -452,8 +452,8 @@ async function deleteActiveDocument() {
   const doc = docById(state.activeDocId);
   if (!doc) return;
   const n = state.segments.filter(s => s.docId === doc.id).length;
-  if (!confirm(`Remove “${doc.name}” from the project?${n ? ` Its ${n} coded extract(s) are removed too.` : ''} (You can undo.)`)) return;
-  pushUndo(`Remove document ${doc.name}`, ['docs', 'segments', 'ptags']);
+  if (!confirm(tr('doc.confirmRemove', { doc: doc.name, n }))) return;
+  pushUndo(['undo.removeDoc', { doc: doc.name }], ['docs', 'segments', 'ptags']);
   const segIds = state.segments.filter(s => s.docId === doc.id).map(s => s.id);
   const ptIds = state.ptags.filter(t => t.docId === doc.id).map(t => t.id);
   state.segments = state.segments.filter(s => s.docId !== doc.id);
@@ -462,7 +462,7 @@ async function deleteActiveDocument() {
   await dbDeleteMany('segments', segIds);
   await dbDeleteMany('ptags', ptIds);
   await dbDelete('docs', doc.id);
-  await recordLog({ category: 'import', action: `Removed document “${doc.name}”`, detail: `${n} coded extract(s) removed` });
+  await recordLog({ category: 'import', ak: 'log.docRemoved', ap: { doc: doc.name }, dk: 'log.d.extractsRemoved', dp: { n } });
   state.activeDocId = state.docs[0]?.id || null;
   state.activeSegId = null;
   renderAll();
@@ -476,19 +476,19 @@ function renderSelectionPanel() {
   const el = document.getElementById('selectionPanel');
   const ps = state.pendingSel;
   if (!ps) {
-    el.innerHTML = `<div class="text-[11px] text-slate-500 leading-relaxed"><b>How to code:</b> select text, then click a code (or type a new one and press Enter). You can also drag a code onto a line. Click highlighted text to see its codes.</div>`;
+    el.innerHTML = `<div class="text-[11px] text-slate-500 leading-relaxed">${tr('sel.howTo')}</div>`; // trusted dictionary HTML
     return;
   }
   el.innerHTML = `
     <div class="flex items-center justify-between mb-1">
-      <span class="text-[11px] font-bold text-indigo-700 uppercase tracking-wide">Selected text</span>
-      <button id="selClear" class="text-[11px] text-slate-400 hover:text-slate-700 cursor-pointer">Clear (Esc)</button>
+      <span class="text-[11px] font-bold text-indigo-700 uppercase tracking-wide">${escapeHtml(tr('sel.title'))}</span>
+      <button id="selClear" class="text-[11px] text-slate-400 hover:text-slate-700 cursor-pointer">${escapeHtml(tr('sel.clear'))}</button>
     </div>
     <div class="text-xs text-slate-700 bg-white border border-indigo-200 rounded p-2 max-h-24 overflow-y-auto leading-relaxed">“${escapeHtml(clip(ps.text, 400))}”</div>
     <div class="flex items-center gap-1.5 mt-1.5 flex-wrap">
-      <button id="selInVivo" class="px-2 py-1 text-[11px] font-bold rounded bg-white border border-slate-300 hover:bg-slate-50 cursor-pointer" title="Create a code named with these exact words">In-vivo code</button>
-      <button id="selClearPar" class="px-2 py-1 text-[11px] rounded bg-white border border-slate-300 hover:bg-slate-50 cursor-pointer" title="Remove speaker tags inside the selection">Clear speaker</button>
-      <span class="text-[10px] text-slate-400">Speaker: press “Tag” in the participant list</span>
+      <button id="selInVivo" class="px-2 py-1 text-[11px] font-bold rounded bg-white border border-slate-300 hover:bg-slate-50 cursor-pointer" title="${escapeHtml(tr('sel.inVivoTitle'))}">${escapeHtml(tr('sel.inVivo'))}</button>
+      <button id="selClearPar" class="px-2 py-1 text-[11px] rounded bg-white border border-slate-300 hover:bg-slate-50 cursor-pointer" title="${escapeHtml(tr('sel.clearSpeakerTitle'))}">${escapeHtml(tr('sel.clearSpeaker'))}</button>
+      <span class="text-[10px] text-slate-400">${escapeHtml(tr('sel.speakerHint'))}</span>
     </div>`;
   el.querySelector('#selClear').onclick = clearPendingSelection;
   el.querySelector('#selInVivo').onclick = inVivoCode;
@@ -501,7 +501,7 @@ function renderCodebook() {
   const codes = sortedCodes().filter(c => !q || c.name.toLowerCase().includes(q) || (c.description || '').toLowerCase().includes(q));
   document.getElementById('codeCount').textContent = String(state.codes.length);
   if (!state.codes.length) {
-    el.innerHTML = `<div class="text-[11px] text-slate-400 px-1 py-2">No codes yet. Type one above and press Enter.</div>`;
+    el.innerHTML = `<div class="text-[11px] text-slate-400 px-1 py-2">${escapeHtml(tr('code.empty'))}</div>`;
     return;
   }
   const hasSel = !!state.pendingSel;
@@ -511,14 +511,14 @@ function renderCodebook() {
     const open = state.openCodeExtracts.has(c.id);
     const themes = c.themeIds.map(t => themeById(t)?.name).filter(Boolean);
     return `<div class="code-item rounded-md border ${hasSel ? 'border-indigo-200 hover:bg-indigo-50' : 'border-transparent hover:bg-slate-50'}" data-code="${c.id}">
-      <div class="code-row flex items-center space-x-1.5 px-1.5 py-1 cursor-pointer" draggable="true" title="${escapeHtml(c.description || (hasSel ? 'Click to code the selection' : 'Click to list extracts; drag onto a line to code it'))}">
+      <div class="code-row flex items-center space-x-1.5 px-1.5 py-1 cursor-pointer" draggable="true" title="${escapeHtml(c.description || tr(hasSel ? 'code.clickToCode' : 'code.clickToList'))}">
         <span class="w-2.5 h-2.5 rounded-sm shrink-0" style="background:${c.color}"></span>
         <span class="flex-1 text-xs text-slate-800 truncate">${escapeHtml(c.name)}</span>
-        ${themes.length ? `<i class="ph ph-shapes text-[11px] text-slate-400" title="In theme: ${escapeHtml(themes.join(', '))}"></i>` : ''}
-        <span class="text-[10px] text-slate-400 shrink-0" title="${segs.length} extracts · ${cov.participants.size} participants">${segs.length}<span class="text-slate-300">/</span>${cov.participants.size}</span>
-        <button class="code-edit text-slate-300 hover:text-slate-700 cursor-pointer" title="Edit, merge or delete"><i class="ph ph-dots-three-vertical"></i></button>
+        ${themes.length ? `<i class="ph ph-shapes text-[11px] text-slate-400" title="${escapeHtml(tr('code.inTheme', { themes: themes.join(', ') }))}"></i>` : ''}
+        <span class="text-[10px] text-slate-400 shrink-0" title="${escapeHtml(tr('code.countsTitle', { n: segs.length, p: cov.participants.size }))}">${segs.length}<span class="text-slate-300">/</span>${cov.participants.size}</span>
+        <button class="code-edit text-slate-300 hover:text-slate-700 cursor-pointer" title="${escapeHtml(tr('code.editTitle'))}"><i class="ph ph-dots-three-vertical"></i></button>
       </div>
-      ${open ? `<div class="px-2 pb-2 space-y-1">${segs.length ? segs.map(s => extractLinkHtml(s)).join('') : '<div class="text-[11px] text-slate-400">No extracts yet.</div>'}</div>` : ''}
+      ${open ? `<div class="px-2 pb-2 space-y-1">${segs.length ? segs.map(s => extractLinkHtml(s)).join('') : `<div class="text-[11px] text-slate-400">${escapeHtml(tr('code.noExtracts'))}</div>`}</div>` : ''}
     </div>`;
   }).join('');
   el.querySelectorAll('.code-item').forEach(item => {
@@ -542,7 +542,7 @@ function extractLinkHtml(seg) {
   const parts = participantLabels(participantsForRange(seg.docId, seg.s, seg.e));
   return `<button class="extract-link block w-full text-left text-[11px] leading-snug bg-white border border-slate-200 hover:border-indigo-300 rounded px-2 py-1 cursor-pointer" data-seg="${seg.id}">
     <span class="text-slate-700">${seg.key ? '<span class="text-amber-500">★</span> ' : ''}“${escapeHtml(clip(seg.text, 160))}”</span>
-    <span class="block text-[10px] text-slate-400 mt-0.5">${escapeHtml(parts || 'no participant')} · ${escapeHtml(doc?.name || '')}</span>
+    <span class="block text-[10px] text-slate-400 mt-0.5">${escapeHtml(parts || tr('seg.noParticipant'))} · ${escapeHtml(doc?.name || '')}</span>
   </button>`;
 }
 function bindExtractLinks(root) {
@@ -563,8 +563,8 @@ function openCodeEditor(codeId) {
   document.getElementById('codeEditDesc').value = c.description || '';
   document.getElementById('codeEditColor').value = c.color;
   const merge = document.getElementById('codeEditMerge');
-  merge.innerHTML = `<option value="">— merge into another code —</option>` + sortedCodes().filter(x => x.id !== c.id).map(x => `<option value="${x.id}">${escapeHtml(x.name)}</option>`).join('');
-  document.getElementById('codeEditUsage').textContent = `${segmentsForCode(c.id).length} extracts`;
+  merge.innerHTML = `<option value="">${escapeHtml(tr('codeEdit.mergeNone'))}</option>` + sortedCodes().filter(x => x.id !== c.id).map(x => `<option value="${x.id}">${escapeHtml(x.name)}</option>`).join('');
+  document.getElementById('codeEditUsage').textContent = tr('n.extracts', { n: segmentsForCode(c.id).length });
   document.getElementById('codeEditReason').value = '';
   modal.classList.remove('hidden');
 
@@ -572,14 +572,14 @@ function openCodeEditor(codeId) {
     const name = document.getElementById('codeEditName').value.replace(/\s+/g, ' ').trim();
     const desc = document.getElementById('codeEditDesc').value.trim();
     const color = document.getElementById('codeEditColor').value;
-    if (!name) { alert('A code needs a name.'); return; }
+    if (!name) { alert(tr('codeEdit.needName')); return; }
     if (name.toLowerCase() !== c.name.toLowerCase() && state.codes.some(x => x.id !== c.id && x.name.toLowerCase() === name.toLowerCase())) {
-      alert(`A code called “${name}” already exists. Use “Merge” instead.`); return;
+      alert(tr('codeEdit.exists', { name })); return;
     }
     const reason = document.getElementById('codeEditReason').value.trim();
     const target = merge.value;
-    if (name !== c.name) await recordLog({ category: 'codebook', action: 'Renamed code', from: c.name, to: name, reason: target ? '' : reason });
-    if (desc !== (c.description || '')) await recordLog({ category: 'codebook', action: `Updated description of “${name}”`, from: c.description || '', to: desc });
+    if (name !== c.name) await recordLog({ category: 'codebook', ak: 'log.codeRenamed', from: c.name, to: name, reason: target ? '' : reason });
+    if (desc !== (c.description || '')) await recordLog({ category: 'codebook', ak: 'log.codeDesc', ap: { code: name }, from: c.description || '', to: desc });
     c.name = name; c.description = desc; c.color = color;
     await dbPut('codes', c);
     modal.classList.add('hidden');
@@ -588,7 +588,7 @@ function openCodeEditor(codeId) {
   };
   document.getElementById('codeEditDelete').onclick = async () => {
     const n = segmentsForCode(c.id).length;
-    if (!confirm(`Delete code “${c.name}”?${n ? ` It is removed from ${n} extract(s); extracts with no other code are removed.` : ''} (You can undo.)`)) return;
+    if (!confirm(tr('codeEdit.confirmDelete', { code: c.name, n }))) return;
     modal.classList.add('hidden');
     await deleteCode(c.id, document.getElementById('codeEditReason').value.trim());
   };
@@ -597,7 +597,7 @@ function openCodeEditor(codeId) {
 async function mergeCodes(sourceId, targetId, reason = '') {
   const src = codeById(sourceId), tgt = codeById(targetId);
   if (!src || !tgt) return;
-  pushUndo(`Merge “${src.name}” into “${tgt.name}”`, ['codes', 'segments']);
+  pushUndo(['undo.merge', { src: src.name, tgt: tgt.name }], ['codes', 'segments']);
   const changed = [];
   for (const s of state.segments) {
     if (!s.codeIds.includes(sourceId)) continue;
@@ -611,15 +611,15 @@ async function mergeCodes(sourceId, targetId, reason = '') {
   await dbPutMany('segments', changed);
   await dbPut('codes', tgt);
   await dbDelete('codes', sourceId);
-  await recordLog({ category: 'codebook', action: `Merged code “${src.name}” into “${tgt.name}”`, detail: `${changed.length} extract(s) recoded`, from: src.name, to: tgt.name, reason });
-  showToast(`Merged into “${tgt.name}”`, 'success');
+  await recordLog({ category: 'codebook', ak: 'log.merged', ap: { src: src.name, tgt: tgt.name }, dk: 'log.d.recoded', dp: { n: changed.length }, from: src.name, to: tgt.name, reason });
+  showToast(tr('toast.merged', { tgt: tgt.name }), 'success');
   renderAll();
 }
 
 async function deleteCode(codeId, reason = '') {
   const c = codeById(codeId);
   if (!c) return;
-  pushUndo(`Delete code “${c.name}”`, ['codes', 'segments']);
+  pushUndo(['undo.deleteCode', { code: c.name }], ['codes', 'segments']);
   const changed = [], removed = [];
   for (const s of state.segments) {
     if (!s.codeIds.includes(codeId)) continue;
@@ -631,7 +631,7 @@ async function deleteCode(codeId, reason = '') {
   await dbPutMany('segments', changed);
   await dbDeleteMany('segments', removed.map(s => s.id));
   await dbDelete('codes', codeId);
-  await recordLog({ category: 'codebook', action: `Deleted code “${c.name}”`, detail: `${changed.length + removed.length} extract(s) affected`, reason });
+  await recordLog({ category: 'codebook', ak: 'log.codeDeleted', ap: { code: c.name }, dk: 'log.d.affected', dp: { n: changed.length + removed.length }, reason });
   if (removed.some(s => s.id === state.activeSegId)) state.activeSegId = null;
   renderAll();
 }
@@ -646,20 +646,20 @@ function renderSegmentPanel() {
   const others = sortedCodes().filter(c => !seg.codeIds.includes(c.id));
   el.innerHTML = `
     <div class="flex items-center justify-between mb-1.5">
-      <span class="text-[11px] font-bold text-slate-600 uppercase tracking-wide">Coded extract</span>
+      <span class="text-[11px] font-bold text-slate-600 uppercase tracking-wide">${escapeHtml(tr('seg.title'))}</span>
       <div class="flex items-center gap-1">
-        <button id="segKey" class="px-1.5 py-0.5 text-[11px] rounded border cursor-pointer ${seg.key ? 'bg-amber-50 border-amber-300 text-amber-700' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}" title="Mark as a key extract for the write-up (used first in the theme table)">${seg.key ? '★ Key extract' : '☆ Key extract'}</button>
-        <button id="segClose" class="text-slate-400 hover:text-slate-700 cursor-pointer px-1" title="Close"><i class="ph ph-x"></i></button>
+        <button id="segKey" class="px-1.5 py-0.5 text-[11px] rounded border cursor-pointer ${seg.key ? 'bg-amber-50 border-amber-300 text-amber-700' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}" title="${escapeHtml(tr('seg.keyTitle'))}">${seg.key ? '★' : '☆'} ${escapeHtml(tr('seg.keyExtract'))}</button>
+        <button id="segClose" class="text-slate-400 hover:text-slate-700 cursor-pointer px-1" title="${escapeHtml(tr('common.close'))}"><i class="ph ph-x"></i></button>
       </div>
     </div>
     <div class="text-xs text-slate-700 bg-slate-50 border border-slate-200 rounded p-2 max-h-28 overflow-y-auto leading-relaxed">“${escapeHtml(seg.text)}”</div>
-    <div class="text-[10px] text-slate-500 mt-1">Participant: <b>${escapeHtml(participantLabels(parts) || '—')}</b>${seg.createdBy ? ` · coded by ${escapeHtml(seg.createdBy)}` : ''}</div>
+    <div class="text-[10px] text-slate-500 mt-1">${escapeHtml(tr('seg.participant'))}: <b>${escapeHtml(participantLabels(parts) || '—')}</b>${seg.createdBy ? ` · ${escapeHtml(tr('seg.codedBy', { by: seg.createdBy }))}` : ''}</div>
     <div class="flex flex-wrap gap-1 mt-2">
-      ${seg.codeIds.map(cid => { const c = codeById(cid); return c ? `<span class="inline-flex items-center gap-1 text-[11px] pl-1.5 pr-1 py-0.5 rounded border" style="border-color:${c.color};background:${hexAlpha(c.color, 0.12)}">${escapeHtml(c.name)}<button class="seg-uncode text-slate-400 hover:text-rose-600 cursor-pointer" data-code="${cid}" title="Remove this code from the extract"><i class="ph ph-x text-[10px]"></i></button></span>` : ''; }).join('')}
+      ${seg.codeIds.map(cid => { const c = codeById(cid); return c ? `<span class="inline-flex items-center gap-1 text-[11px] pl-1.5 pr-1 py-0.5 rounded border" style="border-color:${c.color};background:${hexAlpha(c.color, 0.12)}">${escapeHtml(c.name)}<button class="seg-uncode text-slate-400 hover:text-rose-600 cursor-pointer" data-code="${cid}" title="${escapeHtml(tr('seg.uncodeTitle'))}"><i class="ph ph-x text-[10px]"></i></button></span>` : ''; }).join('')}
     </div>
-    ${others.length ? `<select id="segAddCode" class="mt-2 w-full text-[11px] border border-slate-300 rounded px-1.5 py-1 bg-white"><option value="">+ Add another code to this extract…</option>${others.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('')}</select>` : ''}
-    <textarea id="segMemo" rows="2" placeholder="Analytic memo on this extract…" class="mt-2 w-full text-[11px] border border-slate-300 rounded px-2 py-1 resize-y focus:outline-none focus:border-indigo-500">${escapeHtml(seg.memo || '')}</textarea>
-    <button id="segDelete" class="mt-1 text-[11px] text-rose-600 hover:underline cursor-pointer">Remove extract (all codes)</button>`;
+    ${others.length ? `<select id="segAddCode" class="mt-2 w-full text-[11px] border border-slate-300 rounded px-1.5 py-1 bg-white"><option value="">${escapeHtml(tr('seg.addCode'))}</option>${others.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('')}</select>` : ''}
+    <textarea id="segMemo" rows="2" placeholder="${escapeHtml(tr('seg.memoPh'))}" class="mt-2 w-full text-[11px] border border-slate-300 rounded px-2 py-1 resize-y focus:outline-none focus:border-indigo-500">${escapeHtml(seg.memo || '')}</textarea>
+    <button id="segDelete" class="mt-1 text-[11px] text-rose-600 hover:underline cursor-pointer">${escapeHtml(tr('seg.remove'))}</button>`;
   el.querySelector('#segClose').onclick = () => { state.activeSegId = null; renderViewer(); renderSegmentPanel(); };
   el.querySelector('#segKey').onclick = async () => {
     seg.key = !seg.key;
@@ -671,7 +671,7 @@ function renderSegmentPanel() {
     if (seg.codeIds.length === 1) { await deleteSegment(seg); return; }
     seg.codeIds = seg.codeIds.filter(x => x !== b.dataset.code);
     await dbPut('segments', seg);
-    await recordLog({ category: 'coding', action: `Removed code “${c?.name}” from extract`, detail: `“${clip(seg.text, 120)}”` });
+    await recordLog({ category: 'coding', ak: 'log.uncoded', ap: { code: c?.name || '' }, detail: `“${clip(seg.text, 120)}”` });
     renderViewer(); renderCodebook(); renderSegmentPanel();
   });
   const add = el.querySelector('#segAddCode');
@@ -682,10 +682,10 @@ function renderSegmentPanel() {
 }
 
 async function deleteSegment(seg) {
-  pushUndo('Remove coded extract', ['segments']);
+  pushUndo(['undo.removeExtract', {}], ['segments']);
   state.segments = state.segments.filter(s => s.id !== seg.id);
   await dbDelete('segments', seg.id);
-  await recordLog({ category: 'coding', action: 'Removed coded extract', detail: `${seg.codeIds.map(c => codeById(c)?.name).filter(Boolean).join(', ')} · “${clip(seg.text, 120)}”` });
+  await recordLog({ category: 'coding', ak: 'log.extractRemoved', detail: `${seg.codeIds.map(c => codeById(c)?.name).filter(Boolean).join(', ')} · “${clip(seg.text, 120)}”` });
   state.activeSegId = null;
   renderViewer(); renderDocList(); renderCodebook(); renderSegmentPanel();
 }
@@ -704,7 +704,7 @@ function setupCodingEvents() {
     if (!doc) return;
     doc.defaultParticipantId = e.target.value || null;
     await dbPut('docs', doc);
-    await recordLog({ category: 'participants', action: `Set default participant of “${doc.name}”`, to: participantById(doc.defaultParticipantId)?.label || '—' });
+    await recordLog({ category: 'participants', ak: 'log.defaultPar', ap: { doc: doc.name }, to: participantById(doc.defaultParticipantId)?.label || '—' });
     renderViewer(); renderParticipantList();
   };
   document.getElementById('docNoteToggle').onclick = () => document.getElementById('docNotePanel').classList.toggle('hidden');
@@ -714,7 +714,7 @@ function setupCodingEvents() {
     const had = !!doc.note;
     doc.note = e.target.value.trim();
     await dbPut('docs', doc);
-    if (!had && doc.note) await recordLog({ category: 'familiarisation', action: `Added familiarisation notes for “${doc.name}”` });
+    if (!had && doc.note) await recordLog({ category: 'familiarisation', ak: 'log.famNotes', ap: { doc: doc.name } });
     renderDocHeader();
   });
   setupViewerEvents();

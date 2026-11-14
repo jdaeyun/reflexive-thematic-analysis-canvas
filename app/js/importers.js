@@ -50,7 +50,7 @@ function readCompoundFile(buf) {
   const dv = new DataView(buf);
   const u8 = new Uint8Array(buf);
   const sig = [0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1];
-  if (!sig.every((v, i) => u8[i] === v)) throw new Error('Not a Word 97–2003 file (no OLE signature).');
+  if (!sig.every((v, i) => u8[i] === v)) throw new Error(tr('imp.notDoc'));
   const secSize = 1 << dv.getUint16(0x1E, true);
   const miniSize = 1 << dv.getUint16(0x20, true);
   const numFat = dv.getUint32(0x2C, true);
@@ -132,13 +132,13 @@ function readCompoundFile(buf) {
 function parseDocBinary(buf) {
   const cf = readCompoundFile(buf);
   const wd = cf.getStream('WordDocument');
-  if (!wd) throw new Error('No WordDocument stream: this is not a Word document.');
+  if (!wd) throw new Error(tr('imp.notWord'));
   const w = new DataView(wd.buffer, wd.byteOffset, wd.byteLength);
-  if (w.getUint16(0, true) !== 0xA5EC) throw new Error('Unsupported Word format (Word 6/95 or older). Please re-save as .docx.');
+  if (w.getUint16(0, true) !== 0xA5EC) throw new Error(tr('imp.oldWord'));
   const flags = w.getUint16(0x0A, true);
-  if (flags & 0x0100) throw new Error('This .doc is password-protected (encrypted). Remove the password in Word first.');
+  if (flags & 0x0100) throw new Error(tr('imp.encrypted'));
   const table = cf.getStream((flags & 0x0200) ? '1Table' : '0Table');
-  if (!table) throw new Error('Word table stream is missing.');
+  if (!table) throw new Error(tr('imp.broken'));
 
   // FIB: FibBase (32) · csw + fibRgW · cslw + fibRgLw · cbRgFcLcb + fibRgFcLcb
   let p = 32;
@@ -150,13 +150,13 @@ function parseDocBinary(buf) {
   p += 2; // cbRgFcLcb
   const fcClx = w.getUint32(p + 33 * 8, true);
   const lcbClx = w.getUint32(p + 33 * 8 + 4, true);
-  if (!lcbClx) throw new Error('This .doc has no text table (Clx).');
+  if (!lcbClx) throw new Error(tr('imp.broken'));
 
   const t = new DataView(table.buffer, table.byteOffset, table.byteLength);
   let q = fcClx;
   const end = fcClx + lcbClx;
   while (q < end && t.getUint8(q) === 0x01) q += 3 + t.getInt16(q + 1, true); // skip Prc entries
-  if (t.getUint8(q) !== 0x02) throw new Error('Could not read the Word piece table.');
+  if (t.getUint8(q) !== 0x02) throw new Error(tr('imp.broken'));
   const lcb = t.getUint32(q + 1, true);
   const plc = q + 5;
   const n = (lcb - 4) / 12;
@@ -211,9 +211,9 @@ async function importFiles(fileList) {
   let added = 0;
   for (const f of files) {
     const kind = fileKind(f.name);
-    if (!kind) { showToast(`Skipped ${f.name}: use .txt, .csv, .docx or .doc`, 'error'); continue; }
+    if (!kind) { showToast(tr('imp.skipped', { file: f.name }), 'error'); continue; }
     if (state.docs.some(d => d.name === f.name)) {
-      if (!confirm(`"${f.name}" is already in the project. Import it again as a separate document?`)) continue;
+      if (!confirm(tr('imp.duplicate', { file: f.name }))) continue;
     }
     try {
       const buf = await f.arrayBuffer();
@@ -225,22 +225,22 @@ async function importFiles(fileList) {
       let raw = '', encoding = '';
       if (kind === 'txt') ({ text: raw, encoding } = decodeTextBytes(buf));
       else if (kind === 'docx') {
-        if (typeof mammoth === 'undefined') throw new Error('mammoth.js not loaded');
+        if (typeof mammoth === 'undefined') throw new Error(tr('err.mammoth'));
         const res = await mammoth.extractRawText({ arrayBuffer: buf });
         raw = res.value; encoding = 'Word (.docx)';
       } else if (kind === 'doc') {
         raw = parseDocBinary(buf); encoding = 'Word 97–2003 (.doc)';
       }
       const { text, blocks } = textToDoc(raw);
-      if (!text) throw new Error('No text found in the file.');
+      if (!text) throw new Error(tr('imp.noText'));
       await addDocument({ name: f.name, kind, encoding, text, blocks });
       added++;
     } catch (e) {
       console.error(e);
-      showToast(`Could not import ${f.name}: ${e.message}`, 'error');
+      showToast(tr('imp.failed', { file: f.name, msg: e.message }), 'error');
     }
   }
-  if (added) showToast(`Imported ${added} document${added > 1 ? 's' : ''}`, 'success');
+  if (added) showToast(tr('imp.done', { n: added }), 'success');
 }
 
 async function addDocument({ name, kind, encoding, text, blocks, ptags = [] }) {
@@ -250,7 +250,7 @@ async function addDocument({ name, kind, encoding, text, blocks, ptags = [] }) {
   for (const p of ptags) p.docId = doc.id;
   state.ptags.push(...ptags);
   await dbPutMany('ptags', ptags);
-  await recordLog({ category: 'import', action: `Imported document "${name}"`, detail: `${kind.toUpperCase()} · ${encoding} · ${text.length.toLocaleString()} characters · ${blocks.length} blocks` });
+  await recordLog({ category: 'import', ak: 'log.imported', ap: { doc: name }, dk: 'log.d.imported', dp: { kind: kind.toUpperCase(), enc: encoding, chars: text.length, n: blocks.length } });
   state.activeDocId = doc.id;
   renderAll();
   return doc;
@@ -276,8 +276,8 @@ function openCsvImportDialog(filename, text, encoding) {
   return new Promise((resolve) => {
     const parsed = Papa.parse(text.replace(/^﻿/, ''), { skipEmptyLines: 'greedy' });
     const rows = parsed.data;
-    if (!rows.length || rows.length < 2) { showToast(`${filename}: needs a header row and at least one data row`, 'error'); resolve(); return; }
-    const header = rows[0].map((h, i) => String(h || '').trim() || `Column ${i + 1}`);
+    if (!rows.length || rows.length < 2) { showToast(tr('csv.needRows', { file: filename }), 'error'); resolve(); return; }
+    const header = rows[0].map((h, i) => String(h || '').trim() || tr('csv.column', { n: i + 1 }));
     const data = rows.slice(1);
     // Guess: the longest average column is free text; a column named like ID is the participant
     const avgLen = header.map((_, ci) => data.reduce((a, r) => a + String(r[ci] || '').length, 0) / data.length);
@@ -286,7 +286,7 @@ function openCsvImportDialog(filename, text, encoding) {
 
     const modal = document.getElementById('csvModal');
     document.getElementById('csvModalTitle').textContent = filename;
-    document.getElementById('csvModalInfo').textContent = `${data.length} rows · ${header.length} columns · ${encoding}`;
+    document.getElementById('csvModalInfo').textContent = tr('csv.info', { rows: data.length, cols: header.length, enc: encodingLabel(encoding) });
     const tbody = document.getElementById('csvColumnRows');
     tbody.innerHTML = header.map((h, i) => `
       <tr class="border-b border-slate-100">
@@ -296,7 +296,7 @@ function openCsvImportDialog(filename, text, encoding) {
         <td class="py-1.5 text-center"><input type="checkbox" class="csv-text" value="${i}" ${textGuess.includes(i) ? 'checked' : ''}></td>
         <td class="py-1.5 text-center"><input type="checkbox" class="csv-attr" value="${i}" ${!textGuess.includes(i) && i !== idGuess ? 'checked' : ''}></td>
       </tr>`).join('') + `
-      <tr><td class="py-1.5 text-[11px] text-slate-500" colspan="2">No participant ID column (use the row number)</td>
+      <tr><td class="py-1.5 text-[11px] text-slate-500" colspan="2">${escapeHtml(tr('csv.noIdCol'))}</td>
         <td class="py-1.5 text-center"><input type="radio" name="csvIdCol" value="-1" ${idGuess < 0 ? 'checked' : ''}></td><td></td><td></td></tr>`;
     modal.classList.remove('hidden');
 
@@ -308,12 +308,12 @@ function openCsvImportDialog(filename, text, encoding) {
       const idCol = Number((modal.querySelector('input[name="csvIdCol"]:checked') || {}).value ?? -1);
       const textCols = [...modal.querySelectorAll('.csv-text:checked')].map(x => Number(x.value));
       const attrCols = [...modal.querySelectorAll('.csv-attr:checked')].map(x => Number(x.value)).filter(i => i !== idCol && !textCols.includes(i));
-      if (!textCols.length) { alert('Choose at least one column to code (free-text answers).'); return; }
+      if (!textCols.length) { alert(tr('csv.needTextCol')); return; }
       let fullText = '';
       const blocks = [], ptags = [];
       for (let r = 0; r < data.length; r++) {
         const row = data[r];
-        const label = idCol >= 0 && String(row[idCol] || '').trim() ? String(row[idCol]).trim() : `Row ${r + 1}`;
+        const label = idCol >= 0 && String(row[idCol] || '').trim() ? String(row[idCol]).trim() : tr('csv.row', { n: r + 1 });
         const attrs = {};
         for (const ci of attrCols) attrs[header[ci]] = String(row[ci] ?? '').trim();
         const cells = textCols.map(ci => ({ ci, v: String(row[ci] ?? '').replace(/\r\n?/g, '\n').replace(/\n+/g, ' ').trim() })).filter(x => x.v);
@@ -327,10 +327,10 @@ function openCsvImportDialog(filename, text, encoding) {
           ptags.push({ id: uid('pt'), docId: null, s, e: fullText.length, participantId: part.id });
         }
       }
-      if (!fullText) { alert('The chosen columns are empty.'); return; }
+      if (!fullText) { alert(tr('csv.empty')); return; }
       modal.classList.add('hidden');
       await addDocument({ name: filename, kind: 'csv', encoding, text: fullText, blocks, ptags });
-      showToast(`Imported ${filename}: ${blocks.length} answers`, 'success');
+      showToast(tr('csv.done', { file: filename, n: blocks.length }), 'success');
       okBtn.onclick = null; cancelBtn.onclick = null;
       resolve();
     };

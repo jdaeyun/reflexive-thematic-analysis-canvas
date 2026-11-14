@@ -9,6 +9,7 @@
 * **Nothing to install, no account, no server.** Open `ta_canvas.html` in a desktop browser. Double-clicking the file works offline too.
 * **Your data stays on your computer.** Documents are read and stored only in this browser (IndexedDB). Nothing is uploaded.
 * **No AI.** No language model reads, codes or summarises your data.
+* **English and Japanese (日本語).** The interface follows your browser language automatically, or choose it in Settings. Write-up tables can be exported in either language.
 
 > 📌 **Status:** early prototype. Feedback from qualitative researchers is very welcome in [Issues](https://github.com/jdaeyun/thematic-analysis-canvas/issues). Keep a JSON backup of real projects.
 

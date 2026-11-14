@@ -13,6 +13,7 @@ Derived from Meta-Ethnography Canvas (github.com/jdaeyun/meta-ethnography-canvas
 ```
 ta_canvas.html         markup only (4 tabs + modals); loads everything under app/
 app/version.js         release info (version, date) — the one place to edit per release
+app/js/i18n.js         tr(), applyI18n(), setLanguage(); English + Japanese dictionaries (auto = browser language)
 app/css/ta_canvas.css  app-specific CSS (everything else is Tailwind classes)
 app/js/core.js         IndexedDB, `state`, lookups, participantsForRange(), coverage(), recordLog(), undo snapshots
 app/js/importers.js    .txt/.csv/.docx/.doc → fixed plain text + blocks; CSV column dialog; built-in .doc reader
@@ -45,7 +46,7 @@ samples/               fictional test files in every supported format
 ## Rules
 
 - Classic `<script>` files sharing one global scope (not ES modules, so `file://` works). Keep the load order
-  in `ta_canvas.html` (version → core → importers → coding → themes → audit → journal → export → app). Top-level code may
+  in `ta_canvas.html` (version → i18n → core → importers → coding → themes → audit → journal → export → app). Top-level code may
   only call functions from earlier files; anything else runs inside handlers or DOMContentLoaded.
 - Log every interpretive change with `recordLog({ category, action, detail, from, to })`. Single coding
   actions use category `coding` (omitted from the appendix by default).
@@ -58,7 +59,11 @@ samples/               fictional test files in every supported format
   started a new text selection would wipe it.
 - Escape every user value interpolated into HTML with `escapeHtml()`.
 - Exports are built from `getTableSpec(id)`; change the spec, not the renderers separately.
-- UI text is English.
+- Every UI string goes through `tr(key, params)` with the message in BOTH `I18N.en` and `I18N.ja` (app/js/i18n.js);
+  static HTML uses data-i18n / data-i18n-html / data-i18n-ph / data-i18n-title. Do not name a local variable `tr`.
+  Audit log entries store message keys (`ak`/`ap`, `dk`/`dp`, `ft: 'status'`) and are rendered with logAction() /
+  logDetail() / logFromTo() in the chosen language; user-written text stays as typed. Undo labels are
+  `[key, params]`. Write-up tables take their own language (`optTableLang`, default = interface language).
 
 ## Building app/vendor (only when libraries or Tailwind classes change)
 

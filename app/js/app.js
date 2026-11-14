@@ -32,7 +32,8 @@ function renderAll() {
 }
 
 function renderHeader() {
-  document.getElementById('projectNameLabel').textContent = state.meta.name || 'Untitled project';
+  document.getElementById('projectNameLabel').textContent = state.meta.name || tr('hdr.untitled');
+  document.getElementById('projectBtnCompact').title = `${tr('hdr.projectSetup')}: ${state.meta.name || tr('hdr.untitled')}`;
   const rid = document.getElementById('researcherIdInput');
   if (document.activeElement !== rid) rid.value = state.researcherId;
 }
@@ -43,6 +44,7 @@ function renderHeader() {
 function openProjectModal() {
   document.getElementById('projName').value = state.meta.name || '';
   document.getElementById('projQuestion').value = state.meta.question || '';
+  document.getElementById('projLang').value = langSetting();
   document.getElementById('projectModal').classList.remove('hidden');
 }
 async function saveProjectModal() {
@@ -50,7 +52,7 @@ async function saveProjectModal() {
   const question = document.getElementById('projQuestion').value.trim();
   const approach = 'reflexive'; // the only approach supported for now
   if (name !== state.meta.name || question !== state.meta.question) {
-    await recordLog({ category: 'system', action: 'Updated project setup', detail: [name, question].filter(Boolean).join(' — ') });
+    await recordLog({ category: 'system', ak: 'log.setup', detail: [name, question].filter(Boolean).join(' — ') });
   }
   Object.assign(state.meta, { name, question, approach });
   await saveMeta();
@@ -65,26 +67,26 @@ function backupProject() {
   const payload = { app: 'thematic-analysis-canvas', schema: 1, appVersion: window.TA_CANVAS?.version || '', exportedAt: new Date().toISOString(), exportedBy: state.researcherId || '', meta: state.meta };
   for (const c of COLLECTIONS) payload[c] = state[c];
   downloadBlob(new Blob([JSON.stringify(payload, null, 1)], { type: 'application/json' }), `${safeFileStem()}_${new Date().toISOString().slice(0, 10)}.json`);
-  promptNote({ title: 'Backup saved (it contains the full text of your documents — store it like raw data). A note on this session?', placeholder: 'What did you work on, what is still open? (optional — Enter to save)', mode: 'journal', journalType: 'Session note', ttl: 15000 });
+  promptNote({ title: tr('prompt.backup'), placeholder: tr('prompt.backupPh'), mode: 'journal', journalType: 'session', ttl: 15000 });
 }
 async function restoreProject(file) {
   let data;
-  try { data = JSON.parse(await file.text()); } catch (e) { alert('This is not a valid JSON file.'); return; }
-  if (data.app !== 'thematic-analysis-canvas') { alert('This file is not a Thematic Analysis Canvas backup.'); return; }
-  if (!confirm(`Replace the current project with “${data.meta?.name || file.name}”? The current project in this browser is overwritten.`)) return;
+  try { data = JSON.parse(await file.text()); } catch (e) { alert(tr('restore.invalidJson')); return; }
+  if (data.app !== 'thematic-analysis-canvas') { alert(tr('restore.notBackup')); return; }
+  if (!confirm(tr('restore.confirm', { name: data.meta?.name || file.name }))) return;
   for (const c of COLLECTIONS) { state[c] = Array.isArray(data[c]) ? data[c] : []; await dbReplaceAll(c, state[c]); }
   state.meta = { ...state.meta, ...(data.meta || {}), id: 'project' };
   await saveMeta();
-  await recordLog({ category: 'system', action: `Restored project from ${file.name}` });
+  await recordLog({ category: 'system', ak: 'log.restored', ap: { file: file.name } });
   state.undoStack = [];
   state.activeDocId = state.docs[0]?.id || null;
   state.activeSegId = null;
   renderAll();
-  showToast('Project restored', 'success');
+  showToast(tr('toast.restored'), 'success');
 }
 async function resetProject() {
-  if (!confirm('Start a new, empty project? Everything in this browser is deleted. Make a backup first if you need it.')) return;
-  if (!confirm('Really delete all documents, codes, themes and the audit trail?')) return;
+  if (!confirm(tr('reset.confirm1'))) return;
+  if (!confirm(tr('reset.confirm2'))) return;
   for (const c of COLLECTIONS) { state[c] = []; await dbReplaceAll(c, []); }
   state.meta = { id: 'project', name: '', question: '', approach: 'reflexive', createdAt: Date.now() };
   await saveMeta();
@@ -100,6 +102,13 @@ async function resetProject() {
 function setupShellEvents() {
   for (const [k, t] of Object.entries(TABS)) document.getElementById(t.btn).onclick = () => switchTab(k);
   document.getElementById('projectBtn').onclick = openProjectModal;
+  document.getElementById('projectBtnCompact').onclick = openProjectModal;
+  // Language: gear menu and project setup share one setting (auto = browser language)
+  const menuLang = document.getElementById('menuLang');
+  menuLang.value = langSetting();
+  menuLang.addEventListener('click', e => e.stopPropagation());
+  menuLang.onchange = () => { setLanguage(menuLang.value); document.getElementById('projLang').value = menuLang.value; };
+  document.getElementById('projLang').onchange = (e) => { setLanguage(e.target.value); menuLang.value = e.target.value; };
   document.getElementById('projSave').onclick = saveProjectModal;
   document.getElementById('projCancel').onclick = () => document.getElementById('projectModal').classList.add('hidden');
   const rid = document.getElementById('researcherIdInput');
@@ -148,6 +157,7 @@ function setupShellEvents() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+  applyI18n();
   const ver = document.getElementById('appVersionLabel');
   if (ver && window.TA_CANVAS) ver.textContent = `v${window.TA_CANVAS.version}`;
   setupShellEvents();
@@ -160,7 +170,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadAll();
   } catch (e) {
     console.error(e);
-    alert('Could not open browser storage (IndexedDB). Private windows or blocked site data can cause this.');
+    alert(tr('err.storage'));
   }
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
   state.activeDocId = state.docs[0]?.id || null;
