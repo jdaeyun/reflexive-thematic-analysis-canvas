@@ -24,6 +24,25 @@ function journalTypeOptions(selected = 'memo') {
   return JOURNAL_TYPES.map(id => `<option value="${id}" ${id === selected ? 'selected' : ''}>${escapeHtml(tr(`jt.${id}`))}</option>`).join('');
 }
 
+// Team discussion entries start from a fill-in outline (RTARG item 21: who was involved and how differences
+// in interpretation were handled). The outline only fills an empty box, is removed again when the type changes,
+// and an untouched outline counts as empty, so nothing is saved by accident.
+function isUntouchedTemplate(text) {
+  const v = String(text || '').trim();
+  return !!v && SUPPORTED_LANGS.some(l => v === tr('jt.meetingTemplate', {}, l).trim());
+}
+function journalHasText(ta) {
+  const v = ta.value.trim();
+  return !!v && !isUntouchedTemplate(v);
+}
+function applyJournalTemplate(sel, ta) {
+  if (sel.value === 'meeting') {
+    if (!ta.value.trim()) ta.value = tr('jt.meetingTemplate');
+  } else if (isUntouchedTemplate(ta.value)) {
+    ta.value = '';
+  }
+}
+
 // Text of a log entry in a language (entries from older versions only have English `action` / `detail`)
 function logAction(l, lang = LANG) {
   return l.ak ? tr(l.ak, l.ap || {}, lang) : (l.action || '');
@@ -103,7 +122,7 @@ async function addJournalEntry() {
   const type = document.getElementById('journalType').value || 'memo';
   const ta = document.getElementById('journalText');
   const text = ta.value.trim();
-  if (!text) return;
+  if (!journalHasText(ta)) { ta.focus(); return; }
   await recordLog({ category: 'journal', ak: `jt.${type}`, detail: text, snapshot: takeSnapshot() });
   ta.value = '';
   renderAuditView();
@@ -112,6 +131,7 @@ async function addJournalEntry() {
 
 function setupAuditEvents() {
   document.getElementById('journalType').innerHTML = journalTypeOptions();
+  document.getElementById('journalType').addEventListener('change', (e) => applyJournalTemplate(e.target, document.getElementById('journalText')));
   document.getElementById('journalAddBtn').onclick = addJournalEntry;
   document.getElementById('journalText').addEventListener('keydown', e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) addJournalEntry(); });
   document.getElementById('auditFilter').onchange = (e) => { state.auditFilter = e.target.value; renderAuditView(); };

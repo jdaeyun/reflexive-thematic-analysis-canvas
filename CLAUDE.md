@@ -55,6 +55,9 @@ docs/rtarg-mapping*.md how the app maps to the RTARG (Braun & Clarke 2024); upda
   only call functions from earlier files; anything else runs inside handlers or DOMContentLoaded.
 - Log every interpretive change with `recordLog({ category, action, detail, from, to })`. Single coding
   actions use category `coding` (omitted from the appendix by default).
+- Layout: every tab is [left column `.left-col` (shared, resizable width `--left-w`, saved as `ta_left_w`)]
+  [centre column: phase strip on top, content in `.center-col` (centred, one max width)] [+ right column in tab 1].
+  Keep new tabs and views to this shape so switching tabs does not move the page.
 - Journal drawer: docked beside the workspace on wide screens; at ≤1100px it overlays and closes on an
   outside click (light dismiss). Closing never discards the draft (dot on the Journal button + edge handle).
 - Reflexive notes are never required: no blocking dialogs asking for a note. Use `promptNote()` (small,

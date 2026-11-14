@@ -287,7 +287,9 @@ I18N.en = {
   'log.conclusions': 'Wrote the general discussion',
   'hint.themeName': 'This name may only name a topic. A theme name can tell its story — a short quote from the data can work.',
   'hint.subthemes': '{n} subthemes: use them only where they show an important facet of the theme\'s central concept, to avoid a fragmented structure.',
-  'hint.manyThemes': '{n} themes: many themes for one report can leave each one thin. Could some be combined, or set aside?'
+  'hint.manyThemes': '{n} themes: many themes for one report can leave each one thin. Could some be combined, or set aside?',
+  'layout.resize': 'Drag to resize this column (all tabs share the width; double-click to reset)',
+  'jt.meetingTemplate': 'Who took part:\n\nWhere our readings of the data differed:\n\nWhat each reading rested on (extracts, perspectives, theory):\n\nHow we handled it (kept both / chose one, and why / set aside / still open):\n\nWhat changed in the analysis (codes, themes, definitions, the map):\n'
 };
 
 I18N.ja = {
@@ -553,7 +555,9 @@ I18N.ja = {
   'log.conclusions': '総合考察を書いた',
   'hint.themeName': 'この名前は話題を示すだけかもしれません。テーマ名はその物語を伝えられます。データからの短い引用も使えます。',
   'hint.subthemes': 'サブテーマが {n} 個あります。構造が細切れにならないよう、テーマの中心となる考えの重要な側面を示す場合にだけ使いましょう。',
-  'hint.manyThemes': 'テーマが {n} 個あります。1本の論文にテーマが多いと、一つひとつが薄くなりがちです。まとめられるもの、保留にできるものはありませんか？'
+  'hint.manyThemes': 'テーマが {n} 個あります。1本の論文にテーマが多いと、一つひとつが薄くなりがちです。まとめられるもの、保留にできるものはありませんか？',
+  'layout.resize': 'ドラッグで列の幅を変更（全タブ共通。ダブルクリックで元に戻す）',
+  'jt.meetingTemplate': '参加者：\n\nデータの読みが分かれたところ：\n\nそれぞれの読みの根拠（抜粋、視点、理論）：\n\nどう扱ったか（両方を活かした／一方を採った、その理由／保留した／まだ結論が出ていない）：\n\n分析の何が変わったか（コード、テーマ、定義、関係図）：\n'
 };
 
 const SUPPORTED_LANGS = Object.keys(I18N);
@@ -603,6 +607,11 @@ function setLanguage(setting) {
   const jt = document.getElementById('journalType'), jd = document.getElementById('jdType');
   if (jt) { const v = jt.value; jt.innerHTML = journalTypeOptions(v); }
   if (jd) { const v = jd.value; jd.innerHTML = journalTypeOptions(v); }
+  // An untouched team-discussion outline follows the language too
+  for (const id of ['journalText', 'jdText']) {
+    const ta = document.getElementById(id);
+    if (ta && typeof isUntouchedTemplate === 'function' && isUntouchedTemplate(ta.value)) ta.value = tr('jt.meetingTemplate');
+  }
   if (typeof renderAll === 'function') renderAll();
   if (typeof updateJournalDraftIndicators === 'function') updateJournalDraftIndicators();
   if (typeof journalIsOpen === 'function' && journalIsOpen()) renderJournalDrawer();

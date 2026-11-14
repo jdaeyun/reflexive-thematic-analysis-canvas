@@ -39,6 +39,16 @@
 
 [`docs/rtarg-mapping.md`](docs/rtarg-mapping.md) ([日本語](docs/rtarg-mapping.ja.md)) maps the Reflexive Thematic Analysis Reporting Guidelines (Braun & Clarke, 2024) to what the app does: what it supports, what stays the researcher's writing, and what still needs work.
 
+## 👥 Working with more than one analyst
+
+In reflexive TA, a second person is there to **enrich the interpretation, not to check it**. The app therefore has no agreement statistics and no "merge" of two projects. Rich discussion between analysts happens in conversation; the app makes each reading easy to share and keeps a record of the discussion.
+
+* **Supervisor or co-author as critical friend** (the most common set-up): the main analyst codes and develops themes. Before a meeting, export the write-up (`.docx`: analytic narrative, thematic map, themes and definitions; tick *Include the code list* if useful) or send the backup `.json`.
+* **Analysts coding in parallel**: each analyst works in their own project and exports their write-up. Compare *interpretations* — themes, definitions, the map, the narrative — rather than code-by-code matches, which pull towards agreement checking.
+* **Analysts working in turn**: pass one project on with *Backup* / *Restore backup*. Enter your name in *Researcher*; every action and journal entry records who made it.
+
+After a discussion, add a journal entry of the type **Supervisor / team meeting** (Ctrl/⌘+J from anywhere). It starts with an outline: who took part, where your readings differed, what each reading rested on, how you handled it, and what changed in the analysis. The entry also stores a snapshot of the theme structure, so you can later see what the discussion changed. Together these give what the RTARG asks you to report about analysts' roles and how differences in interpretation were handled (item 21).
+
 ## 📂 Supported files
 
 | Format | Notes |

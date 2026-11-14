@@ -153,13 +153,14 @@ function openJournal({ linkedLogId = null, type = null, text = '' } = {}) {
   const drawer = document.getElementById('journalDrawer');
   const ta = document.getElementById('jdText');
   // Reopening with a kept draft: keep what it was attached to. Otherwise attach what is on screen now.
-  const resumingDraft = ta.value.trim() && !linkedLogId && !text;
+  const resumingDraft = journalHasText(ta) && !linkedLogId && !text;
   if (!resumingDraft) {
     journalDraft.ctx = captureContext();
     journalDraft.linkedLogId = linkedLogId;
   }
   if (type) document.getElementById('jdType').value = type;
   if (text) ta.value = text;
+  applyJournalTemplate(document.getElementById('jdType'), ta);
   renderJournalDrawer();
   drawer.classList.remove('hidden');
   document.body.classList.add('journal-open'); // wide screens: the workspace narrows instead of being covered
@@ -176,7 +177,7 @@ function journalIsOpen() {
   return !document.getElementById('journalDrawer').classList.contains('hidden');
 }
 function updateJournalDraftIndicators() {
-  const hasDraft = !!document.getElementById('jdText').value.trim();
+  const hasDraft = journalHasText(document.getElementById('jdText'));
   const open = journalIsOpen();
   document.getElementById('journalDraftDot').classList.toggle('hidden', !hasDraft || open);
   // Edge handle: on narrow screens (the drawer is light-dismissed there), or whenever a draft is waiting
@@ -189,7 +190,7 @@ function updateJournalDraftIndicators() {
 function refreshJournalContext() {
   const drawer = document.getElementById('journalDrawer');
   if (!drawer || drawer.classList.contains('hidden')) return;
-  if (document.getElementById('jdText').value.trim() || journalDraft.linkedLogId) return;
+  if (journalHasText(document.getElementById('jdText')) || journalDraft.linkedLogId) return;
   journalDraft.ctx = captureContext();
   renderJournalDrawer();
 }
@@ -221,7 +222,7 @@ function renderJournalDrawer() {
 async function saveJournalFromDrawer() {
   const ta = document.getElementById('jdText');
   const text = ta.value.trim();
-  if (!text) { ta.focus(); return; }
+  if (!journalHasText(ta)) { ta.focus(); return; }
   await recordLog({
     category: 'journal',
     ak: `jt.${document.getElementById('jdType').value || JOURNAL_DEFAULT_TYPE}`,
@@ -287,6 +288,7 @@ function promptNote({ title, placeholder = tr('prompt.whyPh'), mode = 'reason', 
 
 function setupJournalEvents() {
   document.getElementById('jdType').innerHTML = journalTypeOptions();
+  document.getElementById('jdType').addEventListener('change', (e) => { applyJournalTemplate(e.target, document.getElementById('jdText')); updateJournalDraftIndicators(); });
   document.getElementById('journalOpenBtn').onclick = (e) => { e.stopPropagation(); toggleJournal(); };
   document.getElementById('jdClose').onclick = closeJournal;
   document.getElementById('jdSave').onclick = saveJournalFromDrawer;
