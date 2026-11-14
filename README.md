@@ -47,6 +47,8 @@ The app reads and writes the [REFI-QDA](https://www.qdasoftware.org) project exc
 * **Import** (*Import*, or drop the file): everything is **added** to the current project. Codes and participants with the same name are joined. Code folders from other software and sets of codes become **candidate** themes, for you to review. Memos not attached to a document or extract go into the reflexive journal, marked as imported. One click on Undo removes the whole import.
 * **Not included:** the audit trail, theme status and review notes, and the thematic map have no place in the standard. Keep using **Backup** (`.json`) for a complete copy of the project.
 
+> ⚠️ **Not yet tested with ATLAS.ti, MAXQDA or NVivo.** The export validates against the official schema and the import was tested with hand-made files, but each program interprets the standard a little differently (for example how it counts text positions, or which parts of a project it exports). Check the result after moving a project, keep a backup, and please report what works and what does not in [Issues](https://github.com/jdaeyun/thematic-analysis-canvas/issues), naming the program and its version.
+
 ## 🧭 Reporting: RTARG
 
 [`docs/rtarg-mapping.md`](docs/rtarg-mapping.md) ([日本語](docs/rtarg-mapping.ja.md)) maps the Reflexive Thematic Analysis Reporting Guidelines (Braun & Clarke, 2024) to what the app does: what it supports, what stays the researcher's writing, and what still needs work.
@@ -79,7 +81,7 @@ On import, every file is turned into fixed plain text, one block per line or ans
 * Or serve the folder: `npm run serve` (after `npm install`), then open http://localhost:8080/ta_canvas.html.
 * Try it with the fictional files in [`samples/`](samples/).
 
-**Backups:** use **Backup** in the top bar regularly. Clearing the browser's site data deletes the project. The backup `.json` contains the full text of your documents, so store it like raw data.
+**Backups:** use **Backup** in the top bar regularly (the top bar quietly shows when you last did). Clearing the browser's site data deletes the project. The backup `.json` contains the full text of your documents, so store it like raw data.
 
 ## 🏗️ Architecture
 
