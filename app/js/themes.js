@@ -23,6 +23,17 @@ function renderCountsToggles() {
 function renderThemesView() {
   renderCountsToggles();
   renderThemeToolbar();
+  const isMap = state.themeView === 'map';
+  document.getElementById('themeBoardPane').classList.toggle('hidden', isMap);
+  document.getElementById('themePoolPane').classList.toggle('hidden', isMap);
+  document.getElementById('themeMapPane').classList.toggle('hidden', !isMap);
+  document.getElementById('themeStatusFilter').classList.toggle('hidden', isMap);
+  for (const [id, on] of [['viewBoardBtn', !isMap], ['viewMapBtn', isMap]]) {
+    document.getElementById(id).className = on
+      ? 'px-2 py-1 text-[11px] font-bold rounded bg-white text-indigo-700 shadow-sm cursor-pointer flex items-center gap-1'
+      : 'px-2 py-1 text-[11px] rounded text-slate-500 hover:text-slate-800 cursor-pointer flex items-center gap-1';
+  }
+  if (isMap) { renderThemeMap(); return; }
   renderCodePool();
   renderThemeBoard();
 }
@@ -95,9 +106,24 @@ function renderThemeBoard() {
     </div>`;
     return;
   }
-  el.innerHTML = top.map((t, i) => themeCardHtml(t, 0, i, top.length)).join('') || `<div class="col-span-full text-xs text-slate-400 p-6 text-center">${escapeHtml(tr('board.noneWithStatus'))}</div>`;
+  const liveTop = sortedThemes(null).filter(t => t.status !== 'discarded').length;
+  const many = liveTop > 8 ? `<div class="col-span-full text-[11px] text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2"><i class="ph ph-lightbulb"></i> ${escapeHtml(tr('hint.manyThemes', { n: liveTop }))}</div>` : '';
+  el.innerHTML = many + top.map((t, i) => themeCardHtml(t, 0, i, top.length)).join('') || `<div class="col-span-full text-xs text-slate-400 p-6 text-center">${escapeHtml(tr('board.noneWithStatus'))}</div>`;
   bindThemeCards(el);
   bindExtractLinks(el);
+}
+
+// Gentle writing hints from the RTARG (never blocking): names that tell the story, judicious subthemes
+function looksLikeTopicLabel(name) {
+  const s = String(name || '').trim();
+  if (/[\u3040-\u30ff\u3400-\u9fff]/.test(s)) return s.replace(/\s/g, '').length <= 4; // Japanese / CJK
+  return s.split(/\s+/).filter(Boolean).length <= 2;
+}
+function themeHintsHtml(t, depth, subs) {
+  const hints = [];
+  if ((t.status === 'reviewed' || t.status === 'defined') && looksLikeTopicLabel(t.name)) hints.push(tr('hint.themeName'));
+  if (depth === 0 && subs.length > 3) hints.push(tr('hint.subthemes', { n: subs.length }));
+  return hints.map(h => `<div class="mx-3 mt-1 text-[10px] text-amber-800 bg-amber-50 border border-amber-100 rounded px-2 py-1 leading-snug"><i class="ph ph-lightbulb"></i> ${escapeHtml(h)}</div>`).join('');
 }
 
 function themeCardHtml(t, depth, idx, total) {
@@ -121,6 +147,7 @@ function themeCardHtml(t, depth, idx, total) {
       <button class="theme-delete text-slate-300 hover:text-rose-600 cursor-pointer" title="${escapeHtml(tr(depth ? 'theme.deleteSub' : 'theme.delete'))}"><i class="ph ph-trash"></i></button>
     </div>
     <div class="px-3 text-[10px] text-slate-500 mt-0.5">${escapeHtml(tr('n.codes', { n: ownCodes.length }))}${subs.length ? ` + ${escapeHtml(tr('n.subthemes', { n: subs.length }))}` : ''}${state.showCounts ? ` · ${escapeHtml(tr('n.extracts', { n: segs.length }))} · <b>${escapeHtml(tr('n.participantsOf', { n: cov.participants.size, of: nPart }))}</b> · ${escapeHtml(tr('n.documents', { n: cov.docs.size }))}` : ''}</div>
+    ${themeHintsHtml(t, depth, subs)}
 
     <div class="theme-drop mx-3 mt-2 min-h-[38px] rounded-lg border-2 border-dashed border-slate-200 p-1.5 flex flex-wrap gap-1 content-start" title="${escapeHtml(tr('theme.dropHere'))}">
       ${ownCodes.length ? ownCodes.map(c => `<span class="theme-code inline-flex items-center gap-1 text-[11px] pl-1.5 pr-1 py-0.5 rounded border bg-white cursor-grab" draggable="true" data-code="${c.id}" style="border-color:${c.color}" title="${escapeHtml(c.description || tr('theme.dragToMove'))}">

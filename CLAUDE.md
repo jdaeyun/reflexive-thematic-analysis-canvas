@@ -18,7 +18,8 @@ app/css/ta_canvas.css  app-specific CSS (everything else is Tailwind classes)
 app/js/core.js         IndexedDB, `state`, lookups, participantsForRange(), coverage(), recordLog(), undo snapshots
 app/js/importers.js    .txt/.csv/.docx/.doc → fixed plain text + blocks; CSV column dialog; built-in .doc reader
 app/js/coding.js       Tab 1 (phases 1–2): documents, participants, viewer, selection, codebook, extract panel
-app/js/themes.js       Tab 2 (phases 3–5): code pool, theme board, status / review / definition
+app/js/themes.js       Tab 2 (phases 3–5): code pool, theme board, status / review / definition, gentle RTARG hints
+app/js/thematic-map.js Tab 2 "Map" view: draggable themes, named links between themes, SVG / PNG for exports
 app/js/audit.js        Tab 3: audit trail timeline, reflexive journal
 app/js/journal.js      journal drawer (Ctrl/⌘+J), optional "Why?" decision prompt, context capture, structure snapshots + diff
 app/js/export.js       Tab 4 (phase 6): analytic narrative editor (first view) + supporting table specs; copy / Markdown / CSV / .docx
@@ -39,7 +40,9 @@ docs/rtarg-mapping*.md how the app maps to the RTARG (Braun & Clarke 2024); upda
   counts (`countedParticipants()`, `coverage()`).
 - `codes`: `{ name, description, color, themeIds[] }` (a code may sit in several themes).
 - `themes`: `{ name, parentId, status: candidate|reviewed|defined|discarded, definition, reviewNote, checkedExtracts, checkedDataset, order, narrative }`.
-  `narrative` = the phase 6 analytic write-up for the theme; `meta.storyline` = the overview across themes.
+  `narrative` = the phase 6 analytic write-up for the theme; `mapX`/`mapY` = position on the thematic map (layout only).
+- `meta` (project setup): `{ name, question, approach: 'reflexive', theory, orientInductive, orientLatent, dataPrep,
+  storyline (overview), conclusions (general discussion), mapLinks: [{ id, from, to, label }] }`.
 - `logs`: audit trail and journal `{ ts, category, action, detail, from, to, by, reason?, ctx?, snapshot?, linkedLogId? }`.
   `reason` = optional "why" for a decision; `ctx` = what was on screen (doc / extract / quote / theme);
   `snapshot` = theme tree + code names and counts (no extract text), taken on journal notes and theme status
@@ -48,7 +51,7 @@ docs/rtarg-mapping*.md how the app maps to the RTARG (Braun & Clarke 2024); upda
 ## Rules
 
 - Classic `<script>` files sharing one global scope (not ES modules, so `file://` works). Keep the load order
-  in `ta_canvas.html` (version → i18n → core → importers → coding → themes → audit → journal → export → app). Top-level code may
+  in `ta_canvas.html` (version → i18n → core → importers → coding → themes → thematic-map → audit → journal → export → app). Top-level code may
   only call functions from earlier files; anything else runs inside handlers or DOMContentLoaded.
 - Log every interpretive change with `recordLog({ category, action, detail, from, to })`. Single coding
   actions use category `coding` (omitted from the appendix by default).
@@ -63,7 +66,8 @@ docs/rtarg-mapping*.md how the app maps to the RTARG (Braun & Clarke 2024); upda
 - Exports are built from `getTableSpec(id)`; change the spec, not the renderers separately.
 - Stay coherent with reflexive TA: prevalence counts are hidden by default (`state.showCounts`, counts toggle) and
   left out of exports unless `optCounts`; the code list is a record, not a codebook (`optCodeList`, off by default);
-  phase 6 is the analytic narrative first, tables second. Do not add features that treat frequency, agreement
+  phase 6 is the analytic narrative first, tables second; the participant table summarises the group unless
+  `optParticipantRows` (RTARG: no line-by-line demographics). Hints are gentle and never block. Do not add features that treat frequency, agreement
   or a fixed codebook as markers of quality.
 - Every UI string goes through `tr(key, params)` with the message in BOTH `I18N.en` and `I18N.ja` (app/js/i18n.js);
   static HTML uses data-i18n / data-i18n-html / data-i18n-ph / data-i18n-title. Do not name a local variable `tr`.

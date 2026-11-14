@@ -32,7 +32,10 @@ function logDetail(l, lang = LANG) {
   return l.dk ? tr(l.dk, l.dp || {}, lang) : (l.detail || '');
 }
 function logFromTo(l, value, lang = LANG) {
-  return l.ft === 'status' ? statusLabel(value, lang) : value;
+  if (l.ft === 'status') return statusLabel(value, lang);
+  if (l.ft === 'orientInd' && value) return tr(`orient.ind.${value}`, {}, lang);
+  if (l.ft === 'orientLat' && value) return tr(`orient.lat.${value}`, {}, lang);
+  return value;
 }
 
 function renderAuditView() {

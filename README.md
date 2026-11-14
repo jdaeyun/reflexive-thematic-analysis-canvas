@@ -24,7 +24,7 @@
    * **Speakers are a separate layer.** “Detect speakers” tags lines that start with `P01：`, `A:` and so on. Interviewers and moderators are tagged but not counted as participants. CSV rows become participants, and other columns become their attributes.
    * Familiarisation notes for each document.
 2. **Themes (Phases 3–5)**
-   One board for generating, reviewing and defining themes. Drag codes into candidate themes and subthemes. Each theme moves through **Candidate → Reviewed → Defined** (or *Set aside*), with review checks against the coded extracts and the full dataset, review notes and a definition. It also shows how many participants each theme draws on.
+   One board for generating, reviewing and defining themes, plus a **thematic map** where you arrange themes and name the relationships between them (exported as .svg and as a figure in the Word write-up). Drag codes into candidate themes and subthemes. Each theme moves through **Candidate → Reviewed → Defined** (or *Set aside*), with review checks against the coded extracts and the full dataset, review notes and a definition. It also shows how many participants each theme draws on.
 3. **Audit & Journal**
    Every interpretive change (codes created, renamed, merged or deleted; theme changes; status, definitions) is logged automatically, next to a timestamped reflexive journal.
 4. **Writing up (Phase 6)**

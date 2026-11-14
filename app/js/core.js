@@ -122,6 +122,7 @@ const state = {
   activeSegId: null,
   codeFilter: '',
   themeStatusFilter: 'all',
+  themeView: (() => { try { return localStorage.getItem('ta_theme_view') === 'map' ? 'map' : 'board'; } catch (e) { return 'board'; } })(),
   openThemeExtracts: new Set(),
   openCodeExtracts: new Set(),
   exportTable: 'narrative',

@@ -41,10 +41,14 @@ function renderHeader() {
 // ========================================================
 // PROJECT SETUP
 // ========================================================
+// Optional reporting fields (RTARG: own your perspectives, orientation to RTA, data preparation)
+const PROJECT_FIELDS = [['projTheory', 'theory'], ['projOrientInd', 'orientInductive'], ['projOrientLat', 'orientLatent'], ['projDataPrep', 'dataPrep']];
+
 function openProjectModal() {
   document.getElementById('projName').value = state.meta.name || '';
   document.getElementById('projQuestion').value = state.meta.question || '';
   document.getElementById('projLang').value = langSetting();
+  for (const [id, key] of PROJECT_FIELDS) document.getElementById(id).value = state.meta[key] || '';
   document.getElementById('projectModal').classList.remove('hidden');
 }
 async function saveProjectModal() {
@@ -53,6 +57,14 @@ async function saveProjectModal() {
   const approach = 'reflexive'; // the only approach supported for now
   if (name !== state.meta.name || question !== state.meta.question) {
     await recordLog({ category: 'system', ak: 'log.setup', detail: [name, question].filter(Boolean).join(' — ') });
+  }
+  // Positioning fields are interpretive choices: log each change with before / after
+  for (const [id, key] of PROJECT_FIELDS) {
+    const v = document.getElementById(id).value.trim();
+    if (v === (state.meta[key] || '')) continue;
+    const ft = key === 'orientInductive' ? 'orientInd' : key === 'orientLatent' ? 'orientLat' : null;
+    await recordLog({ category: 'familiarisation', ak: `log.meta.${key}`, from: state.meta[key] || '', to: v, ft });
+    state.meta[key] = v;
   }
   Object.assign(state.meta, { name, question, approach });
   await saveMeta();
@@ -164,6 +176,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupShellEvents();
   setupCodingEvents();
   setupThemeEvents();
+  setupMapEvents();
   setupAuditEvents();
   setupExportEvents();
   setupJournalEvents();

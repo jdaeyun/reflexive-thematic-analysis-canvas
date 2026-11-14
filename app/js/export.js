@@ -33,6 +33,7 @@ function exportOptions() {
     includeSetAside: !!document.getElementById('optIncludeSetAside')?.checked,
     includeCounts: !!document.getElementById('optCounts')?.checked,
     includeCodeList: !!document.getElementById('optCodeList')?.checked,
+    participantRows: !!document.getElementById('optParticipantRows')?.checked,
     lang: tableLang()
   };
 }
@@ -89,7 +90,11 @@ function getTableSpec(id, opts = exportOptions()) {
         [T('exp.r.project'), state.meta.name || '—'],
         [T('exp.r.question'), state.meta.question || '—'],
         [T('exp.r.approach'), T('approach.reflexive')],
+        [T('exp.r.theory'), state.meta.theory || '—'],
+        [T('exp.r.orientation'), orientationText(L)],
         [T('exp.r.dataset'), T('exp.v.dataset', { n: state.docs.length, kinds: Object.entries(kinds).map(([k, v]) => `${v} ${k.toUpperCase()}`).join(', ') || '—' })],
+        [T('exp.r.length'), datasetLengthText(L)],
+        [T('exp.r.dataPrep'), state.meta.dataPrep || '—'],
         [T('exp.r.participants'), String(nPart)],
         [T('exp.r.extracts'), String(state.segments.length)],
         [T('exp.r.codes'), String(state.codes.length)],
@@ -104,9 +109,24 @@ function getTableSpec(id, opts = exportOptions()) {
     const keys = [];
     for (const p of countedParticipants()) for (const k of Object.keys(p.attributes || {})) if (!keys.includes(k)) keys.push(k);
     const parts = countedParticipants().sort(byLabel);
+    // RTARG: situate the participant group without compromising anonymity — aggregate by default
+    if (!opts.participantRows) {
+      const rows = keys.map(k => {
+        const tally = new Map();
+        for (const p of parts) { const v = String((p.attributes || {})[k] || '').trim() || T('exp.v.notStated'); tally.set(v, (tally.get(v) || 0) + 1); }
+        const vals = [...tally.entries()].sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true }));
+        return [k, vals.map(([v, n]) => T('exp.v.tally', { v, n })).join(L === 'ja' ? '、' : ', ')];
+      });
+      return {
+        title: numbered('exp.participants.titleAgg'),
+        note: T('exp.participants.noteAgg'),
+        headers: [T('exp.h.characteristic'), T('exp.h.groupN', { n: parts.length })],
+        rows: rows.length ? rows : [[T('exp.r.participants'), String(parts.length)]]
+      };
+    }
     return {
       title: numbered('exp.participants.title'),
-      note: T('exp.participants.note'),
+      note: T('exp.participants.noteRows'),
       headers: [T('exp.h.participant'), ...keys, T('exp.h.documents'), T('exp.h.extracts')],
       rows: parts.map(p => {
         const segs = state.segments.filter(s => participantsForRange(s.docId, s.s, s.e).includes(p.id));
@@ -300,7 +320,19 @@ function renderNarrativeEditor() {
           </details>
         </section>`;
       }).join('') : `<div class="mt-6 text-xs text-slate-400">${escapeHtml(tr('narr.noThemes'))}</div>`}
+      <label class="block text-xs font-bold text-slate-700 mt-8 mb-1">${escapeHtml(tr('narr.conclusions'))}</label>
+      <div class="text-[11px] text-slate-500 mb-1">${escapeHtml(tr('narr.conclusionsHelp'))}</div>
+      <textarea id="narrConclusions" rows="6" class="w-full text-sm leading-relaxed border border-slate-300 rounded-lg px-3 py-2 resize-y focus:outline-none focus:border-emerald-500" placeholder="${escapeHtml(tr('narr.conclusionsPh'))}">${escapeHtml(state.meta.conclusions || '')}</textarea>
     </div>`;
+
+  const cc = el.querySelector('#narrConclusions');
+  const ccStart = state.meta.conclusions || '';
+  cc.addEventListener('input', () => { state.meta.conclusions = cc.value; saveNarrativeSoon('meta', saveMeta); });
+  cc.addEventListener('change', async () => {
+    if ((state.meta.conclusions || '') === ccStart) return;
+    await saveMeta();
+    await recordLog({ category: 'themes', ak: 'log.conclusions', dk: 'log.d.chars', dp: { n: (state.meta.conclusions || '').length } });
+  });
 
   const ov = el.querySelector('#narrOverview');
   const ovStart = state.meta.storyline || '';
@@ -338,6 +370,34 @@ function renderNarrativeEditor() {
   bindExtractLinks(el);
 }
 
+// "Mostly inductive · Mostly latent" from the Project setup (RTARG: specific orientation to RTA)
+function orientationText(L = LANG) {
+  const parts = [];
+  if (state.meta.orientInductive) parts.push(tr(`orient.ind.${state.meta.orientInductive}`, {}, L));
+  if (state.meta.orientLatent) parts.push(tr(`orient.lat.${state.meta.orientLatent}`, {}, L));
+  return parts.join(' · ') || '—';
+}
+
+// RTARG: size and scope of the dataset, e.g. range and mean length. Descriptive only — not a marker of quality.
+function datasetLengthText(L = LANG) {
+  const fmt = n => Math.round(n).toLocaleString(localeOf(L));
+  const spaced = s => (s.match(/\s/g) || []).length / Math.max(1, s.length) > 0.08; // space-delimited script → words make sense
+  const words = s => s.trim().split(/\s+/).filter(Boolean).length;
+  const describe = (texts, key) => {
+    if (!texts.length) return '';
+    const chars = texts.map(t => t.replace(/\n/g, '').length);
+    let out = tr(key, { n: texts.length, min: fmt(Math.min(...chars)), max: fmt(Math.max(...chars)), mean: fmt(chars.reduce((a, b) => a + b, 0) / chars.length) }, L);
+    if (texts.every(spaced)) {
+      const w = texts.map(words);
+      out += tr('exp.v.lenWords', { min: fmt(Math.min(...w)), max: fmt(Math.max(...w)), mean: fmt(w.reduce((a, b) => a + b, 0) / w.length) }, L);
+    }
+    return out;
+  };
+  const docs = state.docs.filter(d => d.kind !== 'csv').map(d => d.text);
+  const answers = state.docs.filter(d => d.kind === 'csv').flatMap(d => d.blocks.map(b => d.text.slice(b.s, b.e)));
+  return [describe(docs, 'exp.v.lenDocs'), describe(answers, 'exp.v.lenAnswers')].filter(Boolean).join('\n') || '—';
+}
+
 // The narrative as a list of blocks, shared by copy / Markdown / .docx
 function narrativeBlocks(opts) {
   const L = opts.lang;
@@ -345,11 +405,19 @@ function narrativeBlocks(opts) {
   const blocks = [{ type: 'h1', text: tr('narr.analysisTitle', {}, L) }];
   const paras = s => String(s || '').split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
   for (const p of paras(state.meta.storyline)) blocks.push({ type: 'p', text: p });
+  // RTARG: an overview of the thematic structure (list, map or table) previews the analysis
+  if (typeof mapThemes === 'function' && mapThemes().length) blocks.push({ type: 'figure', text: tr('narr.figureMap', {}, L) });
   for (const { t, depth } of narrativeThemes(opts)) {
     blocks.push({ type: depth ? 'h3' : 'h2', text: t.name });
     const ps = paras(t.narrative);
     if (ps.length) ps.forEach(p => blocks.push({ type: 'p', text: p }));
     else blocks.push({ type: 'p', text: tr('narr.notWritten', {}, L), muted: true });
+  }
+  // Final section: conclusions across themes (RTARG has no preferred heading; "General discussion" avoids false certainty)
+  const concl = paras(state.meta.conclusions);
+  if (concl.length) {
+    blocks.push({ type: 'h1', text: tr('narr.conclusionsTitle', {}, L) });
+    concl.forEach(p => blocks.push({ type: 'p', text: p }));
   }
   return blocks;
 }
@@ -357,8 +425,8 @@ function narrativeBlocks(opts) {
 async function copyCurrentTable() {
   if (state.exportTable === 'narrative') {
     const blocks = narrativeBlocks(exportOptions());
-    const html = blocks.map(b => b.type === 'p' ? `<p>${escapeHtml(b.text).replace(/\n/g, '<br>')}</p>` : `<${b.type}>${escapeHtml(b.text)}</${b.type}>`).join('');
-    const text = blocks.map(b => b.text).join('\n\n');
+    const html = blocks.filter(b => b.type !== 'figure').map(b => b.type === 'p' ? `<p>${escapeHtml(b.text).replace(/\n/g, '<br>')}</p>` : `<${b.type}>${escapeHtml(b.text)}</${b.type}>`).join('');
+    const text = blocks.filter(b => b.type !== 'figure').map(b => b.text).join('\n\n');
     try {
       await navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([html], { type: 'text/html' }), 'text/plain': new Blob([text], { type: 'text/plain' }) })]);
     } catch (e) {
@@ -385,7 +453,7 @@ async function copyCurrentTable() {
 
 function downloadMarkdown() {
   const opts = exportOptions();
-  const narr = narrativeBlocks(opts).map(b => b.type === 'h1' ? `## ${b.text}` : b.type === 'h2' ? `### ${b.text}` : b.type === 'h3' ? `#### ${b.text}` : (b.muted ? `*${b.text}*` : b.text)).join('\n\n');
+  const narr = narrativeBlocks(opts).map(b => b.type === 'figure' ? `*${b.text} — ${tr('narr.figureMd', {}, opts.lang)}*` : b.type === 'h1' ? `## ${b.text}` : b.type === 'h2' ? `### ${b.text}` : b.type === 'h3' ? `#### ${b.text}` : (b.muted ? `*${b.text}*` : b.text)).join('\n\n');
   const md = `# ${state.meta.name || tr('exp.docTitle', {}, opts.lang)}\n\n${narr}\n\n## ${tr('exp.supporting', {}, opts.lang)}\n\n` + includedTables(opts).map(id => specToMarkdown(getTableSpec(id, opts), opts.lang)).join('');
   downloadBlob(new Blob([md], { type: 'text/markdown;charset=utf-8' }), `${safeFileStem()}_writeup.md`);
 }
@@ -427,7 +495,17 @@ async function downloadDocx() {
   });
   const title = new Paragraph({ children: [run(state.meta.name || tr('exp.docTitle', {}, L), { bold: true, size: 32 })], spacing: { after: 240 } });
   // Section 1 (portrait): the analytic narrative
-  const narrative = narrativeBlocks(opts).map(b => {
+  const { ImageRun, AlignmentType } = docx;
+  const png = await mapPng(L);
+  const narrative = narrativeBlocks(opts).flatMap(b => {
+    if (b.type === 'figure') {
+      if (!png) return [];
+      const w = Math.min(600, png.w), h = Math.round(png.h * (w / png.w));
+      return [
+        new Paragraph({ alignment: AlignmentType.CENTER, children: [new ImageRun({ data: png.data, transformation: { width: w, height: h } })], spacing: { before: 200 } }),
+        new Paragraph({ alignment: AlignmentType.CENTER, children: [run(b.text, { italics: true, size: 18 })], spacing: { after: 240 } })
+      ];
+    }
     if (b.type === 'p') return new Paragraph({ children: [run(b.text, { size: 22, ...(b.muted ? { italics: true, color: '94A3B8' } : {}) })], spacing: { after: 160, line: 360 } });
     const size = b.type === 'h1' ? 28 : b.type === 'h2' ? 24 : 22;
     return new Paragraph({ heading: b.type === 'h1' ? HeadingLevel.HEADING_1 : b.type === 'h2' ? HeadingLevel.HEADING_2 : HeadingLevel.HEADING_3, children: [run(b.text, { bold: true, size, color: '0F172A' })], spacing: { before: 280, after: 120 } });
@@ -462,5 +540,5 @@ function setupExportEvents() {
   document.getElementById('csvBtn').onclick = downloadCurrentCsv;
   document.getElementById('extractsCsvBtn').onclick = downloadExtractsCsv;
   document.getElementById('docxBtn').onclick = downloadDocx;
-  ['optMaxExtracts', 'optIncludeCoding', 'optIncludeSetAside', 'optTableLang', 'optCounts', 'optCodeList'].forEach(id => document.getElementById(id).addEventListener('change', renderExportView));
+  ['optMaxExtracts', 'optIncludeCoding', 'optIncludeSetAside', 'optTableLang', 'optCounts', 'optCodeList', 'optParticipantRows'].forEach(id => document.getElementById(id).addEventListener('change', renderExportView));
 }
