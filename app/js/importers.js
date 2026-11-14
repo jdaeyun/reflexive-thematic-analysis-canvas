@@ -6,6 +6,7 @@
 //   .csv  — Papa Parse; the user picks text columns, the participant ID column and attribute columns
 //   .docx — mammoth.js (raw text)
 //   .doc  — Word 97–2003 binary: small built-in reader (OLE compound file + piece table), no library
+//   .qdpx — REFI-QDA project from other QDA software: see refi-qda.js (added to the current project)
 
 // ========================================================
 // TEXT DECODING
@@ -202,7 +203,7 @@ function cleanWordSpecialChars(s) {
 // ========================================================
 function fileKind(name) {
   const ext = (name.split('.').pop() || '').toLowerCase();
-  return ['txt', 'csv', 'docx', 'doc'].includes(ext) ? ext : null;
+  return ['txt', 'csv', 'docx', 'doc', 'qdpx'].includes(ext) ? ext : null;
 }
 
 async function importFiles(fileList) {
@@ -212,6 +213,10 @@ async function importFiles(fileList) {
   for (const f of files) {
     const kind = fileKind(f.name);
     if (!kind) { showToast(tr('imp.skipped', { file: f.name }), 'error'); continue; }
+    if (kind === 'qdpx') {
+      try { await importQdpx(f); } catch (e) { console.error(e); showToast(tr('imp.failed', { file: f.name, msg: e.message }), 'error'); }
+      continue;
+    }
     if (state.docs.some(d => d.name === f.name)) {
       if (!confirm(tr('imp.duplicate', { file: f.name }))) continue;
     }

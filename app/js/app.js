@@ -3,7 +3,7 @@
 // Startup, tab switching, project setup, backup / restore / reset, file drag & drop, keyboard shortcuts.
 
 const TABS = {
-  code:   { btn: 'tabCodeBtn', view: 'viewCode', render: () => { renderCountsToggles(); renderDocList(); renderParticipantList(); renderViewer(); renderSelectionPanel(); renderCodebook(); renderSegmentPanel(); } },
+  code:   { btn: 'tabCodeBtn', view: 'viewCode', render: () => { renderCountsToggles(); if (state.textQuery.trim()) computeSearchHits(); renderSearchResults(); renderDocList(); renderParticipantList(); renderViewer(); renderSelectionPanel(); renderCodebook(); renderSegmentPanel(); } },
   themes: { btn: 'tabThemesBtn', view: 'viewThemes', render: () => renderThemesView() },
   audit:  { btn: 'tabAuditBtn', view: 'viewAudit', render: () => renderAuditView() },
   export: { btn: 'tabExportBtn', view: 'viewExport', render: () => renderExportView() }
@@ -217,6 +217,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupMapEvents();
   setupAuditEvents();
   setupExportEvents();
+  setupRefiEvents();
   setupJournalEvents();
   try {
     await loadAll();

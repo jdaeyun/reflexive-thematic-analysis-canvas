@@ -49,6 +49,7 @@ function renderThemeToolbar() {
 }
 
 function renderCodePool() {
+  renderExtractFilters();
   const el = document.getElementById('codePool');
   const onlyFree = document.getElementById('poolUnassignedOnly').checked;
   const q = (document.getElementById('poolSearch').value || '').toLowerCase();
@@ -79,7 +80,7 @@ function renderCodePool() {
         </div>
         ${state.showCounts ? `<span class="text-[10px] text-slate-400 shrink-0" title="${escapeHtml(tr('code.countsHeader'))}">${segs.length}/${cov.participants.size}</span>` : ''}
       </div>
-      ${open ? `<div class="px-2 pb-2 space-y-1">${segs.map(s => extractLinkHtml(s)).join('') || `<div class="text-[11px] text-slate-400">${escapeHtml(tr('code.noExtracts'))}</div>`}</div>` : ''}
+      ${open ? `<div class="px-2 pb-2 space-y-1">${extractListHtml(segs)}</div>` : ''}
     </div>`;
   }).join('');
   el.querySelectorAll('.pool-code').forEach(card => {
@@ -133,7 +134,8 @@ function themeCardHtml(t, depth, idx, total) {
   const nPart = countedParticipants().length;
   const subs = depth === 0 ? sortedThemes(t.id) : [];
   const open = state.openThemeExtracts.has(t.id);
-  const keyFirst = [...segs].sort((a, b) => (b.key ? 1 : 0) - (a.key ? 1 : 0));
+  const shown = filterSegments(segs); // the extract filter (tab 2 code pool) narrows what is read, not the counts
+  const keyFirst = [...shown].sort((a, b) => (b.key ? 1 : 0) - (a.key ? 1 : 0));
   return `<div class="theme-card ${depth ? 'bg-slate-50 border-slate-200 mt-2' : 'bg-white border-slate-300 shadow-sm'} border rounded-xl ${t.status === 'discarded' ? 'opacity-60' : ''}" data-theme="${t.id}">
     <div class="flex items-center gap-1.5 px-3 pt-2.5">
       <i class="ph ${depth ? 'ph-arrow-elbow-down-right' : 'ph-shapes'} text-slate-400"></i>
@@ -168,7 +170,7 @@ function themeCardHtml(t, depth, idx, total) {
     </details>
 
     <div class="mx-3 mt-1.5 mb-2.5 flex items-center gap-3">
-      <button class="theme-toggle-extracts text-[11px] font-semibold text-indigo-700 hover:underline cursor-pointer" ${segs.length ? '' : 'disabled'}>${escapeHtml(tr(open ? 'theme.hideExtracts' : 'theme.showExtracts', { n: segs.length }))}</button>
+      <button class="theme-toggle-extracts text-[11px] font-semibold text-indigo-700 hover:underline cursor-pointer" ${shown.length ? '' : 'disabled'}>${escapeHtml(tr(open ? 'theme.hideExtracts' : 'theme.showExtracts', { n: shown.length }))}${state.extractFilter ? ` · ${escapeHtml(extractFilterLabel())}` : ''}</button>
       ${depth === 0 ? `<button class="theme-add-sub text-[11px] text-slate-500 hover:text-slate-800 cursor-pointer">${escapeHtml(tr('theme.addSub'))}</button>` : ''}
     </div>
     ${open ? `<div class="mx-3 mb-3 space-y-1 max-h-72 overflow-y-auto">${keyFirst.map(s => extractLinkHtml(s)).join('')}</div>` : ''}

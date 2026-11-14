@@ -156,14 +156,18 @@ function renderViewer(resetScroll = false) {
   const segs = state.segments.filter(s => s.docId === doc.id);
   const pts = state.ptags.filter(p => p.docId === doc.id);
   const showLabels = doc.kind === 'csv';
-  body.innerHTML = doc.blocks.map((b, bi) => renderBlock(doc, b, bi, segs, pts, showLabels)).join('');
+  const hits = [];
+  state.searchHits.forEach((h, i) => { if (h.docId === doc.id) hits.push({ s: h.s, e: h.e, i }); });
+  body.innerHTML = doc.blocks.map((b, bi) => renderBlock(doc, b, bi, segs, pts, showLabels, hits)).join('');
   scroller.scrollTop = resetScroll ? 0 : top;
 }
 
-function renderBlock(doc, b, bi, segs, pts, showLabels) {
+function renderBlock(doc, b, bi, segs, pts, showLabels, hits = []) {
   const inBlock = segs.filter(s => s.s < b.e && s.e > b.s);
+  const blockHits = hits.filter(h => h.s < b.e && h.e > b.s);
   const cuts = new Set([b.s, b.e]);
   for (const s of inBlock) { cuts.add(Math.max(s.s, b.s)); cuts.add(Math.min(s.e, b.e)); }
+  for (const h of blockHits) { cuts.add(Math.max(h.s, b.s)); cuts.add(Math.min(h.e, b.e)); }
   const pos = [...cuts].sort((x, y) => x - y);
   let html = '';
   for (let i = 0; i < pos.length - 1; i++) {
@@ -171,7 +175,11 @@ function renderBlock(doc, b, bi, segs, pts, showLabels) {
     if (z <= a) continue;
     const txt = escapeHtml(doc.text.slice(a, z));
     const cover = inBlock.filter(s => s.s <= a && s.e >= z);
-    if (!cover.length) { html += `<span data-s="${a}">${txt}</span>`; continue; }
+    // Search hits: one hit at most per piece (hits never overlap)
+    const hit = blockHits.find(h => h.s <= a && h.e >= z);
+    const hitAttr = hit ? ` data-hit="${hit.i}"` : '';
+    const hitCls = hit ? (hit.i === state.searchIdx ? ' search-hit search-hit-current' : ' search-hit') : '';
+    if (!cover.length) { html += `<span data-s="${a}"${hitAttr}${hitCls ? ` class="${hitCls.trim()}"` : ''}>${txt}</span>`; continue; }
     const codeIds = [];
     for (const s of cover) for (const c of s.codeIds) if (!codeIds.includes(c)) codeIds.push(c);
     const colors = codeIds.map(id => codeById(id)?.color).filter(Boolean);
@@ -179,7 +187,7 @@ function renderBlock(doc, b, bi, segs, pts, showLabels) {
     const shadows = colors.slice(0, 4).map((c, k) => `inset 0 -${(k + 1) * 3}px 0 ${c}`).join(',');
     const active = cover.some(s => s.id === state.activeSegId) ? ' seg-active' : '';
     const title = codeIds.map(id => codeById(id)?.name).filter(Boolean).join(' · ');
-    html += `<span class="seg${active}" data-s="${a}" data-segs="${cover.map(s => s.id).join(' ')}" style="background:${bg};box-shadow:${shadows}" title="${escapeHtml(title)}">${txt}</span>`;
+    html += `<span class="seg${active}${hitCls}" data-s="${a}"${hitAttr} data-segs="${cover.map(s => s.id).join(' ')}" style="background:${bg};box-shadow:${shadows}" title="${escapeHtml(title)}">${txt}</span>`;
   }
 
   // Gutter: participant(s) of this line (explicit tag, else document default in grey)
@@ -313,6 +321,7 @@ function selectSegment(segId) {
   state.activeSegId = segId;
   renderViewer();
   renderSegmentPanel();
+  if (state.pendingSel) renderSelectionPanel(); // offers "use the selection as this extract's range"
 }
 
 // ========================================================
@@ -479,6 +488,8 @@ function renderSelectionPanel() {
     el.innerHTML = `<div class="text-[11px] text-slate-500 leading-relaxed">${tr('sel.howTo')}</div>`; // trusted dictionary HTML
     return;
   }
+  const open = activeSegment();
+  const resizable = open && open.docId === ps.docId && !(open.s === ps.s && open.e === ps.e);
   el.innerHTML = `
     <div class="flex items-center justify-between mb-1">
       <span class="text-[11px] font-bold text-indigo-700 uppercase tracking-wide">${escapeHtml(tr('sel.title'))}</span>
@@ -489,13 +500,16 @@ function renderSelectionPanel() {
       <button id="selInVivo" class="px-2 py-1 text-[11px] font-bold rounded bg-white border border-slate-300 hover:bg-slate-50 cursor-pointer" title="${escapeHtml(tr('sel.inVivoTitle'))}">${escapeHtml(tr('sel.inVivo'))}</button>
       <button id="selClearPar" class="px-2 py-1 text-[11px] rounded bg-white border border-slate-300 hover:bg-slate-50 cursor-pointer" title="${escapeHtml(tr('sel.clearSpeakerTitle'))}">${escapeHtml(tr('sel.clearSpeaker'))}</button>
       <span class="text-[10px] text-slate-400">${escapeHtml(tr('sel.speakerHint'))}</span>
-    </div>`;
+    </div>
+    ${resizable ? `<button id="selResize" class="mt-1.5 w-full px-2 py-1 text-[11px] font-bold rounded bg-white border border-indigo-300 text-indigo-700 hover:bg-indigo-50 cursor-pointer flex items-center justify-center gap-1" title="${escapeHtml(tr('sel.resizeTitle'))}"><i class="ph ph-arrows-out-line-horizontal"></i>${escapeHtml(tr('sel.resize'))}</button>` : ''}`;
+  el.querySelector('#selResize')?.addEventListener('click', () => { const seg = activeSegment(); if (seg) resizeSegment(seg, ps.s, ps.e); });
   el.querySelector('#selClear').onclick = clearPendingSelection;
   el.querySelector('#selInVivo').onclick = inVivoCode;
   el.querySelector('#selClearPar').onclick = clearParticipantInSelection;
 }
 
 function renderCodebook() {
+  renderExtractFilters();
   const el = document.getElementById('codeList');
   const q = state.codeFilter.toLowerCase();
   const codes = sortedCodes().filter(c => !q || c.name.toLowerCase().includes(q) || (c.description || '').toLowerCase().includes(q));
@@ -518,7 +532,7 @@ function renderCodebook() {
         ${state.showCounts ? `<span class="text-[10px] text-slate-400 shrink-0" title="${escapeHtml(tr('code.countsTitle', { n: segs.length, p: cov.participants.size }))}">${segs.length}<span class="text-slate-300">/</span>${cov.participants.size}</span>` : ''}
         <button class="code-edit text-slate-300 hover:text-slate-700 cursor-pointer" title="${escapeHtml(tr('code.editTitle'))}"><i class="ph ph-dots-three-vertical"></i></button>
       </div>
-      ${open ? `<div class="px-2 pb-2 space-y-1">${segs.length ? segs.map(s => extractLinkHtml(s)).join('') : `<div class="text-[11px] text-slate-400">${escapeHtml(tr('code.noExtracts'))}</div>`}</div>` : ''}
+      ${open ? `<div class="px-2 pb-2 space-y-1">${extractListHtml(segs)}</div>` : ''}
     </div>`;
   }).join('');
   el.querySelectorAll('.code-item').forEach(item => {
@@ -586,6 +600,9 @@ function openCodeEditor(codeId) {
     if (target) await mergeCodes(c.id, target, reason);
     renderAll();
   };
+  const splitBtn = document.getElementById('codeEditSplit');
+  splitBtn.disabled = segmentsForCode(c.id).length < 1;
+  splitBtn.onclick = () => { modal.classList.add('hidden'); openSplitModal(c.id); };
   document.getElementById('codeEditDelete').onclick = async () => {
     const n = segmentsForCode(c.id).length;
     if (!confirm(tr('codeEdit.confirmDelete', { code: c.name, n }))) return;
@@ -658,9 +675,13 @@ function renderSegmentPanel() {
       ${seg.codeIds.map(cid => { const c = codeById(cid); return c ? `<span class="inline-flex items-center gap-1 text-[11px] pl-1.5 pr-1 py-0.5 rounded border" style="border-color:${c.color};background:${hexAlpha(c.color, 0.12)}">${escapeHtml(c.name)}<button class="seg-uncode text-slate-400 hover:text-rose-600 cursor-pointer" data-code="${cid}" title="${escapeHtml(tr('seg.uncodeTitle'))}"><i class="ph ph-x text-[10px]"></i></button></span>` : ''; }).join('')}
     </div>
     ${others.length ? `<select id="segAddCode" class="mt-2 w-full text-[11px] border border-slate-300 rounded px-1.5 py-1 bg-white"><option value="">${escapeHtml(tr('seg.addCode'))}</option>${others.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('')}</select>` : ''}
+    <div class="flex items-center gap-1.5 mt-2">
+      <button id="segWholeLine" class="px-1.5 py-0.5 text-[10px] rounded border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 cursor-pointer whitespace-nowrap" title="${escapeHtml(tr('seg.wholeLineTitle'))}"><i class="ph ph-text-align-justify"></i> ${escapeHtml(tr('seg.wholeLine'))}</button>
+      <span class="text-[10px] text-slate-400 leading-tight">${escapeHtml(tr('seg.resizeHint'))}</span>
+    </div>
     <textarea id="segMemo" rows="2" placeholder="${escapeHtml(tr('seg.memoPh'))}" class="mt-2 w-full text-[11px] border border-slate-300 rounded px-2 py-1 resize-y focus:outline-none focus:border-indigo-500">${escapeHtml(seg.memo || '')}</textarea>
     <button id="segDelete" class="mt-1 text-[11px] text-rose-600 hover:underline cursor-pointer">${escapeHtml(tr('seg.remove'))}</button>`;
-  el.querySelector('#segClose').onclick = () => { state.activeSegId = null; renderViewer(); renderSegmentPanel(); };
+  el.querySelector('#segClose').onclick = () => { state.activeSegId = null; renderViewer(); renderSegmentPanel(); if (state.pendingSel) renderSelectionPanel(); };
   el.querySelector('#segKey').onclick = async () => {
     seg.key = !seg.key;
     await dbPut('segments', seg);
@@ -679,6 +700,10 @@ function renderSegmentPanel() {
   const memo = el.querySelector('#segMemo');
   memo.onchange = async () => { seg.memo = memo.value.trim(); await dbPut('segments', seg); };
   el.querySelector('#segDelete').onclick = () => deleteSegment(seg);
+  const whole = wholeLineRange(seg);
+  const wl = el.querySelector('#segWholeLine');
+  if (whole.s === seg.s && whole.e === seg.e) wl.disabled = true, wl.classList.add('opacity-40');
+  else wl.onclick = () => resizeSegment(seg, whole.s, whole.e);
 }
 
 async function deleteSegment(seg) {
@@ -697,6 +722,7 @@ function setupCodingEvents() {
   document.getElementById('addParticipantBtn').onclick = addParticipantFromInput;
   document.getElementById('quickCodeInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); quickCode(); } });
   document.getElementById('codeSearch').addEventListener('input', e => { state.codeFilter = e.target.value; renderCodebook(); });
+  setupTextSearchEvents();
   document.getElementById('detectSpeakersBtn').onclick = detectSpeakers;
   document.getElementById('deleteDocBtn').onclick = deleteActiveDocument;
   document.getElementById('docDefaultParticipant').onchange = async (e) => {
@@ -718,4 +744,325 @@ function setupCodingEvents() {
     renderDocHeader();
   });
   setupViewerEvents();
+}
+
+// ========================================================
+// EXTRACT RANGE (widen / narrow a coded extract)
+// ========================================================
+function activeSegment() {
+  return state.segments.find(s => s.id === state.activeSegId) || null;
+}
+// The full line(s) / answer(s) an extract sits in
+function wholeLineRange(seg) {
+  const doc = docById(seg.docId);
+  if (!doc) return { s: seg.s, e: seg.e };
+  const first = doc.blocks.find(b => b.e > seg.s) || doc.blocks[0];
+  const last = [...doc.blocks].reverse().find(b => b.s < seg.e) || first;
+  return { s: Math.min(first.s, seg.s), e: Math.max(last.e, seg.e) };
+}
+// Codes, memo and key mark stay with the extract; if another extract already has exactly this range, the two
+// become one (one segment per exact range)
+async function resizeSegment(seg, s, e) {
+  const doc = docById(seg.docId);
+  if (!doc || e <= s || (s === seg.s && e === seg.e)) return;
+  pushUndo(['undo.resizeExtract', {}], ['segments']);
+  const oldText = seg.text;
+  const twin = state.segments.find(x => x !== seg && x.docId === seg.docId && x.s === s && x.e === e);
+  let keep = seg;
+  if (twin) {
+    for (const c of seg.codeIds) if (!twin.codeIds.includes(c)) twin.codeIds.push(c);
+    twin.memo = [twin.memo, seg.memo].filter(Boolean).join('\n');
+    twin.key = !!(twin.key || seg.key);
+    state.segments = state.segments.filter(x => x !== seg);
+    keep = twin;
+  } else {
+    seg.s = s; seg.e = e; seg.text = doc.text.slice(s, e);
+  }
+  state.activeSegId = keep.id;
+  clearPendingSelection();
+  renderViewer(); renderDocList(); renderCodebook(); renderSegmentPanel();
+  if (twin) await dbDelete('segments', seg.id);
+  await dbPut('segments', keep);
+  await recordLog({ category: 'coding', ak: 'log.extractResized', ap: { codes: keep.codeIds.map(c => codeById(c)?.name).filter(Boolean).join(', ') }, detail: doc.name, from: clip(oldText, 160), to: clip(keep.text, 160) });
+  showToast(tr(twin ? 'toast.resizedMerged' : 'toast.resized'), 'success');
+}
+
+// ========================================================
+// FULL-TEXT SEARCH (all documents)
+// ========================================================
+// Case-insensitive; full-width and half-width letters, digits and spaces match each other.
+// The folded text keeps the length of the original, so positions carry over unchanged.
+function foldForSearch(str) {
+  let out = '';
+  for (let i = 0; i < str.length; i++) {
+    let code = str.charCodeAt(i);
+    if (code >= 0xFF01 && code <= 0xFF5E) code -= 0xFEE0;
+    else if (code === 0x3000) code = 0x20;
+    const ch = String.fromCharCode(code);
+    const low = ch.toLowerCase();
+    out += low.length === 1 ? low : ch;
+  }
+  return out;
+}
+const foldedDocCache = new Map(); // docId → { text, folded } (document text never changes)
+function foldedDocText(doc) {
+  const c = foldedDocCache.get(doc.id);
+  if (c && c.text === doc.text) return c.folded;
+  const folded = foldForSearch(doc.text);
+  foldedDocCache.set(doc.id, { text: doc.text, folded });
+  return folded;
+}
+const SEARCH_MAX_HITS = 2000;
+function computeSearchHits() {
+  const prev = state.searchHits[state.searchIdx];
+  const q = foldForSearch(state.textQuery.replace(/\s+/g, ' ').trim());
+  const hits = [];
+  if (q) {
+    const allowed = extractFilterParticipants();
+    for (const doc of state.docs) {
+      const hay = foldedDocText(doc);
+      let i = hay.indexOf(q);
+      while (i >= 0 && hits.length < SEARCH_MAX_HITS) {
+        if (matchesExtractFilter(doc.id, i, i + q.length, allowed)) hits.push({ docId: doc.id, s: i, e: i + q.length });
+        i = hay.indexOf(q, i + q.length);
+      }
+      if (hits.length >= SEARCH_MAX_HITS) break;
+    }
+  }
+  state.searchHits = hits;
+  // Keep the current hit when the list is rebuilt (e.g. after an import)
+  state.searchIdx = prev ? hits.findIndex(h => h.docId === prev.docId && h.s === prev.s && h.e === prev.e) : -1;
+}
+
+function renderSearchResults() {
+  const active = !!state.textQuery.trim();
+  document.querySelectorAll('#viewCode .browse-pane').forEach(x => x.classList.toggle('hidden', active));
+  const el = document.getElementById('searchResults');
+  el.classList.toggle('hidden', !active);
+  document.getElementById('textSearchClear').classList.toggle('hidden', !state.textQuery);
+  if (!active) { el.innerHTML = ''; return; }
+  const hits = state.searchHits;
+  const nDocs = new Set(hits.map(h => h.docId)).size;
+  const group = extractFilterLabel();
+  let html = `<div class="px-1 pb-1.5 text-[11px] text-slate-500 leading-snug">${escapeHtml(hits.length ? tr('search.summary', { n: hits.length, d: nDocs, more: hits.length >= SEARCH_MAX_HITS ? '+' : '' }) : tr('search.none'))}${group ? `<div class="text-amber-700">${escapeHtml(tr('search.inGroup', { group }))}</div>` : ''}${hits.length ? `<div class="text-slate-400">${escapeHtml(tr('search.keys'))}</div>` : ''}</div>`;
+  const SHOW = 300;
+  let lastDoc = null;
+  hits.slice(0, SHOW).forEach((h, i) => {
+    const doc = docById(h.docId);
+    if (h.docId !== lastDoc) {
+      lastDoc = h.docId;
+      const n = hits.filter(x => x.docId === h.docId).length;
+      html += `<div class="mt-2 mb-1 px-1 text-[11px] font-bold text-slate-600 flex items-center gap-1"><i class="ph ph-file-text"></i><span class="truncate flex-1">${escapeHtml(doc?.name || '')}</span><span class="font-normal text-slate-400">${n}</span></div>`;
+    }
+    // Context on the same line only: up to 36 characters before and 60 after
+    let bs = Math.max(0, h.s - 36);
+    const nl = doc.text.lastIndexOf('\n', h.s - 1);
+    if (nl >= bs) bs = nl + 1;
+    let ae = Math.min(doc.text.length, h.e + 60);
+    const nl2 = doc.text.indexOf('\n', h.e);
+    if (nl2 >= 0 && nl2 < ae) ae = nl2;
+    const lead = bs > 0 && doc.text[bs - 1] !== '\n' ? '…' : '';
+    const trail = ae < doc.text.length && doc.text[ae] !== '\n' ? '…' : '';
+    const par = participantLabels(participantsForRange(h.docId, h.s, h.e));
+    html += `<button class="search-link block w-full text-left text-[11px] leading-snug rounded px-2 py-1 border cursor-pointer ${i === state.searchIdx ? 'bg-amber-50 border-amber-300' : 'bg-white border-slate-200 hover:border-indigo-300'}" data-i="${i}">
+      <span class="text-slate-600">${lead}${escapeHtml(doc.text.slice(bs, h.s))}<mark class="search-mark">${escapeHtml(doc.text.slice(h.s, h.e))}</mark>${escapeHtml(doc.text.slice(h.e, ae))}${trail}</span>
+      ${par ? `<span class="block text-[10px] text-slate-400 mt-0.5">${escapeHtml(par)}</span>` : ''}
+    </button>`;
+  });
+  if (hits.length > SHOW) html += `<div class="px-1 py-2 text-[11px] text-slate-400">${escapeHtml(tr('search.moreHits', { n: hits.length - SHOW }))}</div>`;
+  el.innerHTML = html;
+  el.querySelectorAll('.search-link').forEach(b => b.onclick = () => goToSearchHit(Number(b.dataset.i)));
+}
+
+function goToSearchHit(i) {
+  const hits = state.searchHits;
+  if (!hits.length) return;
+  i = ((i % hits.length) + hits.length) % hits.length;
+  state.searchIdx = i;
+  const h = hits[i];
+  if (state.activeDocId !== h.docId) openDocument(h.docId);
+  else renderViewer();
+  const els = document.querySelectorAll(`#viewerBody [data-hit="${i}"]`);
+  if (els[0]) els[0].scrollIntoView({ block: 'center' });
+  els.forEach(x => { x.classList.remove('seg-flash'); void x.offsetWidth; x.classList.add('seg-flash'); });
+  renderSearchResults();
+  document.querySelector(`#searchResults .search-link[data-i="${i}"]`)?.scrollIntoView({ block: 'nearest' });
+}
+
+function runTextSearch() {
+  computeSearchHits();
+  renderSearchResults();
+  if (state.activeTab === 'code') renderViewer();
+}
+
+function setupTextSearchEvents() {
+  const inp = document.getElementById('textSearchInput');
+  let timer = null;
+  inp.addEventListener('input', () => {
+    state.textQuery = inp.value;
+    clearTimeout(timer);
+    timer = setTimeout(runTextSearch, 180);
+    document.getElementById('textSearchClear').classList.toggle('hidden', !inp.value);
+  });
+  inp.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      clearTimeout(timer);
+      if (state.textQuery !== inp.value || !state.searchHits.length) { state.textQuery = inp.value; computeSearchHits(); }
+      goToSearchHit(state.searchIdx < 0 ? (e.shiftKey ? -1 : 0) : state.searchIdx + (e.shiftKey ? -1 : 1));
+    } else if (e.key === 'Escape') {
+      e.stopPropagation();
+      clearTextSearch();
+    }
+  });
+  document.getElementById('textSearchClear').onclick = clearTextSearch;
+  // Ctrl/⌘+F inside the coding tab: focus the search box (the browser's own find does not see other documents)
+  document.addEventListener('keydown', (e) => {
+    if (state.activeTab === 'code' && (e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'f') {
+      e.preventDefault(); inp.focus(); inp.select();
+    }
+  });
+}
+function clearTextSearch() {
+  const inp = document.getElementById('textSearchInput');
+  inp.value = '';
+  state.textQuery = '';
+  runTextSearch();
+}
+
+// ========================================================
+// SPLIT A CODE (the reverse of merging)
+// ========================================================
+function openSplitModal(codeId) {
+  const c = codeById(codeId);
+  if (!c) return;
+  const modal = document.getElementById('splitModal');
+  const segs = segmentsForCode(codeId);
+  document.getElementById('splitTitle').textContent = tr('split.title', { code: c.name });
+  const nameInp = document.getElementById('splitName');
+  nameInp.value = '';
+  document.getElementById('splitCodeOptions').innerHTML = sortedCodes().filter(x => x.id !== codeId).map(x => `<option value="${escapeHtml(x.name)}"></option>`).join('');
+  document.getElementById('splitFilter').value = '';
+  document.getElementById('splitReason').value = '';
+  document.getElementById('splitKeep').checked = false;
+  const sameThemes = document.getElementById('splitSameThemes');
+  sameThemes.checked = c.themeIds.length > 0;
+  sameThemes.closest('label').classList.toggle('hidden', !c.themeIds.length);
+  const list = document.getElementById('splitList');
+  list.innerHTML = segs.map(s => {
+    const doc = docById(s.docId);
+    const parts = participantLabels(participantsForRange(s.docId, s.s, s.e));
+    return `<label class="split-row flex items-start gap-2 px-2 py-1.5 border-b border-slate-100 hover:bg-slate-50 cursor-pointer" data-text="${escapeHtml(foldForSearch(`${s.text} ${s.memo || ''} ${parts} ${doc?.name || ''}`))}">
+      <input type="checkbox" class="split-chk mt-0.5" value="${s.id}">
+      <span class="flex-1 min-w-0 text-xs leading-snug">
+        <span class="text-slate-700">${s.key ? '<span class="text-amber-500">★</span> ' : ''}“${escapeHtml(clip(s.text, 240))}”</span>
+        <span class="block text-[10px] text-slate-400 mt-0.5">${escapeHtml(parts || tr('seg.noParticipant'))} · ${escapeHtml(doc?.name || '')}${s.codeIds.length > 1 ? ` · ${escapeHtml(tr('split.alsoCoded', { codes: s.codeIds.filter(x => x !== codeId).map(x => codeById(x)?.name).filter(Boolean).join(', ') }))}` : ''}</span>
+        ${s.memo ? `<span class="block text-[10px] text-purple-700 mt-0.5">${escapeHtml(clip(s.memo, 140))}</span>` : ''}
+      </span>
+    </label>`;
+  }).join('');
+  const okBtn = document.getElementById('splitOk');
+  const update = () => {
+    const n = list.querySelectorAll('.split-chk:checked').length;
+    okBtn.textContent = tr(document.getElementById('splitKeep').checked ? 'split.okCopy' : 'split.ok', { n });
+    okBtn.disabled = !n;
+  };
+  list.onchange = update;
+  document.getElementById('splitKeep').onchange = update;
+  document.getElementById('splitFilter').oninput = (e) => {
+    const q = foldForSearch(e.target.value.trim());
+    list.querySelectorAll('.split-row').forEach(r => r.classList.toggle('hidden', !!q && !r.dataset.text.includes(q)));
+  };
+  document.getElementById('splitAll').onclick = () => {
+    const visible = [...list.querySelectorAll('.split-row:not(.hidden) .split-chk')];
+    const on = visible.some(x => !x.checked);
+    visible.forEach(x => x.checked = on);
+    update();
+  };
+  update();
+  okBtn.onclick = async () => {
+    const name = nameInp.value.replace(/\s+/g, ' ').trim();
+    if (!name) { alert(tr('split.needName')); nameInp.focus(); return; }
+    if (name.toLowerCase() === c.name.toLowerCase()) { alert(tr('split.sameName')); nameInp.focus(); return; }
+    const ids = [...list.querySelectorAll('.split-chk:checked')].map(x => x.value);
+    if (!ids.length) return;
+    modal.classList.add('hidden');
+    await splitCode(codeId, ids, name, { keep: document.getElementById('splitKeep').checked, sameThemes: sameThemes.checked, reason: document.getElementById('splitReason').value.trim() });
+  };
+  modal.classList.remove('hidden');
+  nameInp.focus();
+}
+
+async function splitCode(sourceId, segIds, name, { keep = false, sameThemes = true, reason = '' } = {}) {
+  const src = codeById(sourceId);
+  if (!src) return;
+  const existing = state.codes.find(x => x.name.toLowerCase() === name.toLowerCase());
+  pushUndo(['undo.split', { src: src.name, tgt: existing?.name || name }], ['codes', 'segments']);
+  const { code: tgt, saved } = makeCode(name);
+  await saved;
+  if (sameThemes) for (const t of src.themeIds) if (!tgt.themeIds.includes(t)) tgt.themeIds.push(t);
+  const changed = [];
+  for (const s of state.segments) {
+    if (!segIds.includes(s.id) || !s.codeIds.includes(sourceId)) continue;
+    if (!keep) s.codeIds = s.codeIds.filter(x => x !== sourceId);
+    if (!s.codeIds.includes(tgt.id)) s.codeIds.push(tgt.id);
+    changed.push(s);
+  }
+  renderAll();
+  await dbPut('codes', tgt);
+  await dbPutMany('segments', changed);
+  await recordLog({ category: 'codebook', ak: keep ? 'log.codeSplitCopy' : 'log.codeSplit', ap: { src: src.name, tgt: tgt.name }, dk: 'log.d.recoded', dp: { n: changed.length }, from: src.name, to: tgt.name, reason });
+  showToast(tr('toast.split', { n: changed.length, tgt: tgt.name }), 'success');
+}
+
+// ========================================================
+// EXTRACT FILTER (read the extracts of one group or one participant)
+// ========================================================
+// Shown in the codebook (tab 1) and the code pool (tab 2); also narrows the full-text search.
+function extractFilterValue(f = state.extractFilter) {
+  if (!f) return '';
+  return f.type === 'par' ? `par\u0001${f.id}` : `attr\u0001${f.key}\u0001${f.value}`;
+}
+function renderExtractFilters() {
+  const keys = new Map(); // attribute → Set of values
+  for (const p of countedParticipants()) {
+    for (const [k, v] of Object.entries(p.attributes || {})) {
+      const val = String(v ?? '').trim();
+      if (!val) continue;
+      if (!keys.has(k)) keys.set(k, new Set());
+      keys.get(k).add(val);
+    }
+  }
+  const pars = [...countedParticipants()].sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true }));
+  // A filter whose group no longer exists is dropped
+  if (state.extractFilter && !(extractFilterParticipants() || new Set()).size) state.extractFilter = null;
+  const cur = extractFilterValue();
+  const opts = `<option value="">${escapeHtml(tr('xf.all'))}</option>`
+    + [...keys.entries()].map(([k, vals]) => `<optgroup label="${escapeHtml(k)}">${[...vals].sort((a, b) => a.localeCompare(b, undefined, { numeric: true })).map(v => { const val = `attr\u0001${k}\u0001${v}`; return `<option value="${escapeHtml(val)}" ${val === cur ? 'selected' : ''}>${escapeHtml(`${k}: ${v}`)}</option>`; }).join('')}</optgroup>`).join('')
+    + (pars.length ? `<optgroup label="${escapeHtml(tr('xf.participant'))}">${pars.map(p => { const val = `par\u0001${p.id}`; return `<option value="${escapeHtml(val)}" ${val === cur ? 'selected' : ''}>${escapeHtml(p.label)}</option>`; }).join('')}</optgroup>` : '');
+  document.querySelectorAll('.extract-filter-host').forEach(host => {
+    const on = !!state.extractFilter;
+    host.innerHTML = `<div class="flex items-center gap-1">
+        <i class="ph ph-funnel text-[11px] ${on ? 'text-amber-600' : 'text-slate-400'}"></i>
+        <select class="extract-filter flex-1 min-w-0 text-[11px] border rounded px-1 py-0.5 ${on ? 'bg-amber-50 border-amber-300 text-amber-900 font-semibold' : 'bg-white border-slate-200 text-slate-600'}" title="${escapeHtml(tr('xf.title'))}">${opts}</select>
+        ${on ? `<button class="extract-filter-clear text-slate-400 hover:text-slate-700 cursor-pointer" title="${escapeHtml(tr('xf.clear'))}"><i class="ph ph-x text-[11px]"></i></button>` : ''}
+      </div>
+      ${on ? `<div class="text-[10px] text-amber-800 leading-snug mt-0.5">${escapeHtml(tr('xf.note'))}</div>` : ''}`;
+    host.querySelector('.extract-filter').onchange = (e) => setExtractFilter(e.target.value);
+    host.querySelector('.extract-filter-clear')?.addEventListener('click', () => setExtractFilter(''));
+  });
+}
+function setExtractFilter(value) {
+  const [type, a, b] = String(value || '').split('\u0001');
+  state.extractFilter = type === 'par' ? { type: 'par', id: a } : type === 'attr' ? { type: 'attr', key: a, value: b } : null;
+  if (state.textQuery.trim()) { computeSearchHits(); renderSearchResults(); }
+  if (state.activeTab === 'code') { renderViewer(); renderCodebook(); }
+  else if (state.activeTab === 'themes') renderThemesView();
+}
+// A list of extracts that follows the filter (codebook, code pool, theme cards)
+function extractListHtml(segs) {
+  const shown = filterSegments(segs);
+  if (shown.length) return shown.map(s => extractLinkHtml(s)).join('');
+  const msg = segs.length && state.extractFilter ? tr('xf.noneInGroup', { group: extractFilterLabel() }) : tr('code.noExtracts');
+  return `<div class="text-[11px] text-slate-400">${escapeHtml(msg)}</div>`;
 }

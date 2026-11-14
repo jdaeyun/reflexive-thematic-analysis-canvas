@@ -21,6 +21,10 @@
 1. **Familiarise & Code (Phases 1–2)**
    * Import interview or focus-group transcripts (`.txt`, `.docx`, `.doc`) and open-ended survey answers (`.csv`).
    * Select text and click a code, type a new code and press Enter, or drag a code onto a line. Codes can overlap, and one extract can carry several codes. In-vivo codes, key extracts and memos are supported.
+   * **Search all documents** (Ctrl/⌘+F): matches are listed with their context and highlighted in the text; Enter / Shift+Enter step through them.
+   * **Change an extract's range**: select new text and choose *Use as the range of the open extract*, or widen it to the whole line. Codes, memo and key mark stay with the extract.
+   * **Merge and split codes**: *Split…* moves the extracts you tick to a new (or another) code, with an optional reason for the audit trail.
+   * **Read extracts group by group**: filter the extracts in the code list, the code pool and theme cards by a participant attribute (e.g. *Age: 40s*) or by one participant. This is for reading across groups; counts and exports are not affected.
    * **Speakers are a separate layer.** “Detect speakers” tags lines that start with `P01：`, `A:` and so on. Interviewers and moderators are tagged but not counted as participants. CSV rows become participants, and other columns become their attributes.
    * Familiarisation notes for each document.
 2. **Themes (Phases 3–5)**
@@ -34,6 +38,14 @@
    * Appendix A: audit trail and reflexive journal
 
    Export the narrative and tables as rich copy, Markdown or **Word (`.docx`)**, tables as CSV, and all coded extracts as long-format CSV.
+
+## 🔁 Moving between QDA software (REFI-QDA)
+
+The app reads and writes the [REFI-QDA](https://www.qdasoftware.org) project exchange format (`.qdpx`), supported by ATLAS.ti, MAXQDA, NVivo, QDA Miner, Quirkos and others. Exported files validate against the REFI-QDA Project 1.0 schema.
+
+* **Export** (*Writing up → REFI-QDA project (.qdpx)*): documents, codes, coded extracts and their memos, participants (cases) with attributes, themes and subthemes (as sets of codes, with the definition as description and the analytic narrative as a note), familiarisation notes, and journal entries (as notes).
+* **Import** (*Import*, or drop the file): everything is **added** to the current project. Codes and participants with the same name are joined. Code folders from other software and sets of codes become **candidate** themes, for you to review. Memos not attached to a document or extract go into the reflexive journal, marked as imported. One click on Undo removes the whole import.
+* **Not included:** the audit trail, theme status and review notes, and the thematic map have no place in the standard. Keep using **Backup** (`.json`) for a complete copy of the project.
 
 ## 🧭 Reporting: RTARG
 
@@ -57,6 +69,7 @@ After a discussion, add a journal entry of the type **Supervisor / team meeting*
 | `.csv` | Choose the participant ID column, the free-text column(s) to code and the attribute columns |
 | `.docx` | Text is extracted with mammoth.js |
 | `.doc` | Word 97–2003, read by a small built-in reader. Password-protected files and Word 95 or older are not supported |
+| `.qdpx` | REFI-QDA project from other QDA software (see below). Text sources only; PDF, audio, video and image sources are skipped |
 
 On import, every file is turned into fixed plain text, one block per line or answer. Codes point at character positions in that text.
 
@@ -71,7 +84,7 @@ On import, every file is turned into fixed plain text, one block per line or ans
 ## 🏗️ Architecture
 
 * Single page, classic `<script>` files in a shared global scope (works from `file://`), no build step to run it.
-* `app/js/core.js` (state, IndexedDB, audit log, undo) → `importers.js` → `coding.js` (tab 1) → `themes.js` (tab 2) → `audit.js` (tab 3) → `export.js` (tab 4) → `app.js` (startup).
+* `app/js/core.js` (state, IndexedDB, audit log, undo) → `importers.js` → `coding.js` (tab 1) → `themes.js` (tab 2) → `audit.js` (tab 3) → `export.js` (tab 4) → `refi-qda.js` (.qdpx exchange) → `app.js` (startup).
 * Bundled libraries in `app/vendor/` (no CDN): Tailwind CSS 3.4.17 (prebuilt), Phosphor Icons 2.1.1, docx 8.5.0, mammoth.js 1.13.0, Papa Parse 5.7.0. See [`app/vendor/THIRD_PARTY_NOTICES.md`](app/vendor/THIRD_PARTY_NOTICES.md).
 * To update libraries or Tailwind classes: `npm install`, then `npm run build`.
 

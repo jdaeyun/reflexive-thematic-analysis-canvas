@@ -16,13 +16,15 @@ app/version.js         release info (version, date) — the one place to edit pe
 app/js/i18n.js         tr(), applyI18n(), setLanguage(); English + Japanese dictionaries (auto = browser language)
 app/css/ta_canvas.css  app-specific CSS (everything else is Tailwind classes)
 app/js/core.js         IndexedDB, `state`, lookups, participantsForRange(), coverage(), recordLog(), undo snapshots
-app/js/importers.js    .txt/.csv/.docx/.doc → fixed plain text + blocks; CSV column dialog; built-in .doc reader
-app/js/coding.js       Tab 1 (phases 1–2): documents, participants, viewer, selection, codebook, extract panel
+app/js/importers.js    .txt/.csv/.docx/.doc → fixed plain text + blocks; CSV column dialog; built-in .doc reader (.qdpx → refi-qda.js)
+app/js/coding.js       Tab 1 (phases 1–2): documents, participants, viewer, selection, codebook, extract panel,
+                       full-text search, extract range changes, splitting codes, extract filter (also used in tab 2)
 app/js/themes.js       Tab 2 (phases 3–5): code pool, theme board, status / review / definition, gentle RTARG hints
 app/js/thematic-map.js Tab 2 "Map" view: draggable themes, named links between themes, SVG / PNG for exports
 app/js/audit.js        Tab 3: audit trail timeline, reflexive journal
 app/js/journal.js      journal drawer (Ctrl/⌘+J), optional "Why?" decision prompt, context capture, structure snapshots + diff
 app/js/export.js       Tab 4 (phase 6): analytic narrative editor (first view) + supporting table specs; copy / Markdown / CSV / .docx
+app/js/refi-qda.js     REFI-QDA .qdpx export / import (built-in zip writer/reader; positions in code points, not UTF-16)
 app/js/app.js          startup (DOMContentLoaded), tabs, project setup, backup / restore / reset, drag & drop, shortcuts
 samples/               fictional test files in every supported format
 docs/rtarg-mapping*.md how the app maps to the RTARG (Braun & Clarke 2024); update it when a change affects reporting
@@ -51,7 +53,7 @@ docs/rtarg-mapping*.md how the app maps to the RTARG (Braun & Clarke 2024); upda
 ## Rules
 
 - Classic `<script>` files sharing one global scope (not ES modules, so `file://` works). Keep the load order
-  in `ta_canvas.html` (version → i18n → core → importers → coding → themes → thematic-map → audit → journal → export → app). Top-level code may
+  in `ta_canvas.html` (version → i18n → core → importers → coding → themes → thematic-map → audit → journal → export → refi-qda → app). Top-level code may
   only call functions from earlier files; anything else runs inside handlers or DOMContentLoaded.
 - Log every interpretive change with `recordLog({ category, action, detail, from, to })`. Single coding
   actions use category `coding` (omitted from the appendix by default).
@@ -67,6 +69,10 @@ docs/rtarg-mapping*.md how the app maps to the RTARG (Braun & Clarke 2024); upda
   started a new text selection would wipe it.
 - Escape every user value interpolated into HTML with `escapeHtml()`.
 - Exports are built from `getTableSpec(id)`; change the spec, not the renderers separately.
+- The extract filter (`state.extractFilter`, `filterSegments()`) only narrows what is read: never apply it to counts,
+  the theme structure or exports.
+- `.qdpx` export must keep validating against the REFI-QDA Project 1.0 schema (element order matters). Import always
+  adds to the current project, behind one `pushUndo`.
 - Stay coherent with reflexive TA: prevalence counts are hidden by default (`state.showCounts`, counts toggle) and
   left out of exports unless `optCounts`; the code list is a record, not a codebook (`optCodeList`, off by default);
   phase 6 is the analytic narrative first, tables second; the participant table summarises the group unless
