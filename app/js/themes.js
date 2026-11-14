@@ -4,8 +4,36 @@
 // tracked as a status on each theme (Candidate → Reviewed → Defined) rather than as separate tabs.
 // Codes are dragged from the pool into themes (or subthemes); a code may sit in more than one theme.
 
+// One setting for the codebook and the theme board
+function setShowCounts(on) {
+  state.showCounts = on;
+  try { localStorage.setItem('ta_show_counts', on ? 'true' : 'false'); } catch (e) { /* private mode */ }
+  renderCountsToggles();
+  if (state.activeTab === 'code') renderCodebook();
+  if (state.activeTab === 'themes') renderThemesView();
+}
+function renderCountsToggles() {
+  document.querySelectorAll('.counts-toggle').forEach(b => {
+    b.classList.toggle('counts-on', state.showCounts);
+    b.querySelector('.counts-label').textContent = tr(state.showCounts ? 'counts.hide' : 'counts.show');
+    b.title = tr('counts.title');
+  });
+}
+
 function renderThemesView() {
+  renderCountsToggles();
   renderThemeToolbar();
+  const isMap = state.themeView === 'map';
+  document.getElementById('themeBoardPane').classList.toggle('hidden', isMap);
+  document.getElementById('themePoolPane').classList.toggle('hidden', isMap);
+  document.getElementById('themeMapPane').classList.toggle('hidden', !isMap);
+  document.getElementById('themeStatusFilter').classList.toggle('hidden', isMap);
+  for (const [id, on] of [['viewBoardBtn', !isMap], ['viewMapBtn', isMap]]) {
+    document.getElementById(id).className = on
+      ? 'px-2 py-1 text-[11px] font-bold rounded bg-white text-indigo-700 shadow-sm cursor-pointer flex items-center gap-1'
+      : 'px-2 py-1 text-[11px] rounded text-slate-500 hover:text-slate-800 cursor-pointer flex items-center gap-1';
+  }
+  if (isMap) { renderThemeMap(); return; }
   renderCodePool();
   renderThemeBoard();
 }
@@ -14,11 +42,11 @@ function renderThemeToolbar() {
   const counts = { all: state.themes.length };
   for (const k of Object.keys(THEME_STATUS)) counts[k] = state.themes.filter(t => t.status === k).length;
   const el = document.getElementById('themeStatusFilter');
-  const opts = [['all', 'All'], ['candidate', 'Candidate'], ['reviewed', 'Reviewed'], ['defined', 'Defined'], ['discarded', 'Set aside']];
-  el.innerHTML = opts.map(([k, label]) => `<button data-f="${k}" class="px-2 py-1 text-[11px] rounded-md cursor-pointer border ${state.themeStatusFilter === k ? 'bg-indigo-600 text-white border-indigo-600 font-bold' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}">${label} <span class="opacity-70">${counts[k] || 0}</span></button>`).join('');
+  const opts = [['all', tr('themes.all')], ...Object.keys(THEME_STATUS).map(k => [k, statusLabel(k)])];
+  el.innerHTML = opts.map(([k, label]) => `<button data-f="${k}" class="px-2 py-1 text-[11px] rounded-md cursor-pointer border ${state.themeStatusFilter === k ? 'bg-indigo-600 text-white border-indigo-600 font-bold' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}">${escapeHtml(label)} <span class="opacity-70">${counts[k] || 0}</span></button>`).join('');
   el.querySelectorAll('button').forEach(b => b.onclick = () => { state.themeStatusFilter = b.dataset.f; renderThemesView(); });
   const nAssigned = state.codes.filter(c => c.themeIds.some(t => themeById(t) && themeById(t).status !== 'discarded')).length;
-  document.getElementById('themeProgress').textContent = `${nAssigned}/${state.codes.length} codes in a theme`;
+  document.getElementById('themeProgress').textContent = tr('themes.progress', { a: nAssigned, n: state.codes.length });
 }
 
 function renderCodePool() {
@@ -31,11 +59,11 @@ function renderCodePool() {
     return !q || c.name.toLowerCase().includes(q) || (c.description || '').toLowerCase().includes(q);
   });
   if (!state.codes.length) {
-    el.innerHTML = `<div class="text-[11px] text-slate-400 p-2 leading-relaxed">No codes yet. Code your data in tab 1 first.</div>`;
+    el.innerHTML = `<div class="text-[11px] text-slate-400 p-2 leading-relaxed">${escapeHtml(tr('pool.empty'))}</div>`;
     return;
   }
   if (!codes.length) {
-    el.innerHTML = `<div class="text-[11px] text-slate-400 p-2">${onlyFree ? 'Every code is in a theme.' : 'No matching codes.'}</div>`;
+    el.innerHTML = `<div class="text-[11px] text-slate-400 p-2">${escapeHtml(tr(onlyFree ? 'pool.allAssigned' : 'pool.noMatch'))}</div>`;
     return;
   }
   el.innerHTML = codes.map(c => {
@@ -44,15 +72,15 @@ function renderCodePool() {
     const open = state.openCodeExtracts.has(c.id);
     const themes = c.themeIds.map(t => themeById(t)?.name).filter(Boolean);
     return `<div class="pool-code bg-white border border-slate-200 rounded-md shadow-sm" data-code="${c.id}">
-      <div class="pool-row flex items-start gap-1.5 px-2 py-1.5 cursor-grab" draggable="true" title="${escapeHtml(c.description || 'Drag into a theme')}">
+      <div class="pool-row flex items-start gap-1.5 px-2 py-1.5 cursor-grab" draggable="true" title="${escapeHtml(c.description || tr('pool.dragHint'))}">
         <span class="w-2.5 h-2.5 rounded-sm shrink-0 mt-0.5" style="background:${c.color}"></span>
         <div class="flex-1 min-w-0">
           <div class="text-xs text-slate-800 leading-snug">${escapeHtml(c.name)}</div>
-          ${themes.length ? `<div class="text-[10px] text-slate-400 truncate">in: ${escapeHtml(themes.join(', '))}</div>` : ''}
+          ${themes.length ? `<div class="text-[10px] text-slate-400 truncate">${escapeHtml(tr('pool.in', { themes: themes.join(', ') }))}</div>` : ''}
         </div>
-        <span class="text-[10px] text-slate-400 shrink-0" title="extracts / participants">${segs.length}/${cov.participants.size}</span>
+        ${state.showCounts ? `<span class="text-[10px] text-slate-400 shrink-0" title="${escapeHtml(tr('code.countsHeader'))}">${segs.length}/${cov.participants.size}</span>` : ''}
       </div>
-      ${open ? `<div class="px-2 pb-2 space-y-1">${segs.map(s => extractLinkHtml(s)).join('') || '<div class="text-[11px] text-slate-400">No extracts.</div>'}</div>` : ''}
+      ${open ? `<div class="px-2 pb-2 space-y-1">${segs.map(s => extractLinkHtml(s)).join('') || `<div class="text-[11px] text-slate-400">${escapeHtml(tr('code.noExtracts'))}</div>`}</div>` : ''}
     </div>`;
   }).join('');
   el.querySelectorAll('.pool-code').forEach(card => {
@@ -73,15 +101,29 @@ function renderThemeBoard() {
   const top = sortedThemes(null).filter(t => f === 'all' || t.status === f || sortedThemes(t.id).some(s => s.status === f));
   if (!state.themes.length) {
     el.innerHTML = `<div class="col-span-full text-center text-xs text-slate-500 bg-white border border-dashed border-slate-300 rounded-xl p-10 leading-relaxed">
-      <div class="text-sm font-bold text-slate-700 mb-1">Phase 3 — Generating initial themes</div>
-      Create a candidate theme above, then drag codes that share a central organising concept into it.<br>
-      Themes are patterns of shared meaning, not just topic summaries. They will change as you review them against the data.
+      <div class="text-sm font-bold text-slate-700 mb-1">${escapeHtml(tr('board.emptyTitle'))}</div>
+      ${tr('board.emptyBody')}
     </div>`;
     return;
   }
-  el.innerHTML = top.map((t, i) => themeCardHtml(t, 0, i, top.length)).join('') || `<div class="col-span-full text-xs text-slate-400 p-6 text-center">No themes with this status.</div>`;
+  const liveTop = sortedThemes(null).filter(t => t.status !== 'discarded').length;
+  const many = liveTop > 8 ? `<div class="col-span-full text-[11px] text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2"><i class="ph ph-lightbulb"></i> ${escapeHtml(tr('hint.manyThemes', { n: liveTop }))}</div>` : '';
+  el.innerHTML = many + top.map((t, i) => themeCardHtml(t, 0, i, top.length)).join('') || `<div class="col-span-full text-xs text-slate-400 p-6 text-center">${escapeHtml(tr('board.noneWithStatus'))}</div>`;
   bindThemeCards(el);
   bindExtractLinks(el);
+}
+
+// Gentle writing hints from the RTARG (never blocking): names that tell the story, judicious subthemes
+function looksLikeTopicLabel(name) {
+  const s = String(name || '').trim();
+  if (/[\u3040-\u30ff\u3400-\u9fff]/.test(s)) return s.replace(/\s/g, '').length <= 4; // Japanese / CJK
+  return s.split(/\s+/).filter(Boolean).length <= 2;
+}
+function themeHintsHtml(t, depth, subs) {
+  const hints = [];
+  if ((t.status === 'reviewed' || t.status === 'defined') && looksLikeTopicLabel(t.name)) hints.push(tr('hint.themeName'));
+  if (depth === 0 && subs.length > 3) hints.push(tr('hint.subthemes', { n: subs.length }));
+  return hints.map(h => `<div class="mx-3 mt-1 text-[10px] text-amber-800 bg-amber-50 border border-amber-100 rounded px-2 py-1 leading-snug"><i class="ph ph-lightbulb"></i> ${escapeHtml(h)}</div>`).join('');
 }
 
 function themeCardHtml(t, depth, idx, total) {
@@ -96,38 +138,39 @@ function themeCardHtml(t, depth, idx, total) {
   return `<div class="theme-card ${depth ? 'bg-slate-50 border-slate-200 mt-2' : 'bg-white border-slate-300 shadow-sm'} border rounded-xl ${t.status === 'discarded' ? 'opacity-60' : ''}" data-theme="${t.id}">
     <div class="flex items-center gap-1.5 px-3 pt-2.5">
       <i class="ph ${depth ? 'ph-arrow-elbow-down-right' : 'ph-shapes'} text-slate-400"></i>
-      <input class="theme-name flex-1 min-w-0 text-sm font-bold text-slate-900 bg-transparent border-b border-transparent hover:border-slate-200 focus:border-indigo-500 focus:outline-none px-0.5" value="${escapeHtml(t.name)}" placeholder="${depth ? 'Subtheme name' : 'Theme name'}">
-      <select class="theme-status text-[11px] font-bold border rounded-md px-1 py-0.5 cursor-pointer ${st.cls}" title="Phase status">
-        ${Object.entries(THEME_STATUS).map(([k, v]) => `<option value="${k}" ${t.status === k ? 'selected' : ''}>${v.label}${v.phase !== '—' ? ` (${v.phase})` : ''}</option>`).join('')}
+      <input class="theme-name flex-1 min-w-0 text-sm font-bold text-slate-900 bg-transparent border-b border-transparent hover:border-slate-200 focus:border-indigo-500 focus:outline-none px-0.5" value="${escapeHtml(t.name)}" placeholder="${escapeHtml(tr(depth ? 'theme.subNamePh' : 'theme.namePh'))}">
+      <select class="theme-status text-[11px] font-bold border rounded-md px-1 py-0.5 cursor-pointer ${st.cls}" title="${escapeHtml(tr('theme.statusTitle'))}">
+        ${Object.keys(THEME_STATUS).map(k => `<option value="${k}" ${t.status === k ? 'selected' : ''}>${escapeHtml(statusLabel(k))}${k !== 'discarded' ? ` (${escapeHtml(tr(`status.${k}.phase`))})` : ''}</option>`).join('')}
       </select>
-      ${depth === 0 ? `<button class="theme-up text-slate-300 hover:text-slate-700 cursor-pointer ${idx === 0 ? 'invisible' : ''}" title="Move up"><i class="ph ph-caret-up"></i></button>
-      <button class="theme-down text-slate-300 hover:text-slate-700 cursor-pointer ${idx === total - 1 ? 'invisible' : ''}" title="Move down"><i class="ph ph-caret-down"></i></button>` : ''}
-      <button class="theme-delete text-slate-300 hover:text-rose-600 cursor-pointer" title="Delete ${depth ? 'subtheme' : 'theme'}"><i class="ph ph-trash"></i></button>
+      ${depth === 0 ? `<button class="theme-up text-slate-300 hover:text-slate-700 cursor-pointer ${idx === 0 ? 'invisible' : ''}" title="${escapeHtml(tr('theme.up'))}"><i class="ph ph-caret-up"></i></button>
+      <button class="theme-down text-slate-300 hover:text-slate-700 cursor-pointer ${idx === total - 1 ? 'invisible' : ''}" title="${escapeHtml(tr('theme.down'))}"><i class="ph ph-caret-down"></i></button>` : ''}
+      <button class="theme-delete text-slate-300 hover:text-rose-600 cursor-pointer" title="${escapeHtml(tr(depth ? 'theme.deleteSub' : 'theme.delete'))}"><i class="ph ph-trash"></i></button>
     </div>
-    <div class="px-3 text-[10px] text-slate-500 mt-0.5">${ownCodes.length} code${ownCodes.length === 1 ? '' : 's'}${subs.length ? ` + ${subs.length} subtheme${subs.length > 1 ? 's' : ''}` : ''} · ${segs.length} extracts · <b>${cov.participants.size}${nPart ? `/${nPart}` : ''}</b> participants · ${cov.docs.size} document${cov.docs.size === 1 ? '' : 's'}</div>
+    <div class="px-3 text-[10px] text-slate-500 mt-0.5">${escapeHtml(tr('n.codes', { n: ownCodes.length }))}${subs.length ? ` + ${escapeHtml(tr('n.subthemes', { n: subs.length }))}` : ''}${state.showCounts ? ` · ${escapeHtml(tr('n.extracts', { n: segs.length }))} · <b>${escapeHtml(tr('n.participantsOf', { n: cov.participants.size, of: nPart }))}</b> · ${escapeHtml(tr('n.documents', { n: cov.docs.size }))}` : ''}</div>
+    ${themeHintsHtml(t, depth, subs)}
 
-    <div class="theme-drop mx-3 mt-2 min-h-[38px] rounded-lg border-2 border-dashed border-slate-200 p-1.5 flex flex-wrap gap-1 content-start" title="Drop codes here">
-      ${ownCodes.length ? ownCodes.map(c => `<span class="theme-code inline-flex items-center gap-1 text-[11px] pl-1.5 pr-1 py-0.5 rounded border bg-white cursor-grab" draggable="true" data-code="${c.id}" style="border-color:${c.color}" title="${escapeHtml(c.description || 'Drag to another theme to move')}">
-        <span class="w-2 h-2 rounded-sm" style="background:${c.color}"></span>${escapeHtml(c.name)} <span class="text-slate-400">${segmentsForCode(c.id).length}</span>
-        <button class="theme-code-remove text-slate-300 hover:text-rose-600 cursor-pointer" title="Remove from this theme"><i class="ph ph-x text-[10px]"></i></button></span>`).join('') : `<span class="text-[11px] text-slate-400 px-1 py-1">Drop codes here</span>`}
+    <div class="theme-drop mx-3 mt-2 min-h-[38px] rounded-lg border-2 border-dashed border-slate-200 p-1.5 flex flex-wrap gap-1 content-start" title="${escapeHtml(tr('theme.dropHere'))}">
+      ${ownCodes.length ? ownCodes.map(c => `<span class="theme-code inline-flex items-center gap-1 text-[11px] pl-1.5 pr-1 py-0.5 rounded border bg-white cursor-grab" draggable="true" data-code="${c.id}" style="border-color:${c.color}" title="${escapeHtml(c.description || tr('theme.dragToMove'))}">
+        <span class="w-2 h-2 rounded-sm" style="background:${c.color}"></span>${escapeHtml(c.name)}${state.showCounts ? ` <span class="text-slate-400">${segmentsForCode(c.id).length}</span>` : ''}
+        <button class="theme-code-remove text-slate-300 hover:text-rose-600 cursor-pointer" title="${escapeHtml(tr('theme.removeCode'))}"><i class="ph ph-x text-[10px]"></i></button></span>`).join('') : `<span class="text-[11px] text-slate-400 px-1 py-1">${escapeHtml(tr('theme.dropHere'))}</span>`}
     </div>
 
     <details class="mx-3 mt-2 group" ${t.status !== 'candidate' ? 'open' : ''}>
-      <summary class="text-[11px] font-bold text-sky-700 cursor-pointer select-none">Phase 4 · Review against the data ${t.checkedExtracts && t.checkedDataset ? '✓' : ''}</summary>
+      <summary class="text-[11px] font-bold text-sky-700 cursor-pointer select-none">${escapeHtml(tr('theme.phase4'))} ${t.checkedExtracts && t.checkedDataset ? '✓' : ''}</summary>
       <div class="mt-1 space-y-1">
-        <label class="flex items-center gap-1.5 text-[11px] text-slate-600"><input type="checkbox" class="theme-chk-extracts" ${t.checkedExtracts ? 'checked' : ''}> Checked against all coded extracts (do they cohere?)</label>
-        <label class="flex items-center gap-1.5 text-[11px] text-slate-600"><input type="checkbox" class="theme-chk-dataset" ${t.checkedDataset ? 'checked' : ''}> Checked against the full dataset (does it capture the data?)</label>
-        <textarea class="theme-review w-full text-[11px] border border-slate-300 rounded px-2 py-1 resize-y focus:outline-none focus:border-sky-500" rows="2" placeholder="Review notes: what changed, what was split, merged or set aside, and why…">${escapeHtml(t.reviewNote || '')}</textarea>
+        <label class="flex items-center gap-1.5 text-[11px] text-slate-600"><input type="checkbox" class="theme-chk-extracts" ${t.checkedExtracts ? 'checked' : ''}> ${escapeHtml(tr('theme.chkExtracts'))}</label>
+        <label class="flex items-center gap-1.5 text-[11px] text-slate-600"><input type="checkbox" class="theme-chk-dataset" ${t.checkedDataset ? 'checked' : ''}> ${escapeHtml(tr('theme.chkDataset'))}</label>
+        <textarea class="theme-review w-full text-[11px] border border-slate-300 rounded px-2 py-1 resize-y focus:outline-none focus:border-sky-500" rows="2" placeholder="${escapeHtml(tr('theme.reviewPh'))}">${escapeHtml(t.reviewNote || '')}</textarea>
       </div>
     </details>
     <details class="mx-3 mt-1.5" ${t.status === 'reviewed' || t.status === 'defined' ? 'open' : ''}>
-      <summary class="text-[11px] font-bold text-emerald-700 cursor-pointer select-none">Phase 5 · Define & name ${t.definition ? '✓' : ''}</summary>
-      <textarea class="theme-def mt-1 w-full text-[11px] border border-slate-300 rounded px-2 py-1 resize-y focus:outline-none focus:border-emerald-500" rows="3" placeholder="Definition: the central organising concept, its scope and boundaries, and how it relates to the other themes…">${escapeHtml(t.definition || '')}</textarea>
+      <summary class="text-[11px] font-bold text-emerald-700 cursor-pointer select-none">${escapeHtml(tr('theme.phase5'))} ${t.definition ? '✓' : ''}</summary>
+      <textarea class="theme-def mt-1 w-full text-[11px] border border-slate-300 rounded px-2 py-1 resize-y focus:outline-none focus:border-emerald-500" rows="3" placeholder="${escapeHtml(tr('theme.defPh'))}">${escapeHtml(t.definition || '')}</textarea>
     </details>
 
     <div class="mx-3 mt-1.5 mb-2.5 flex items-center gap-3">
-      <button class="theme-toggle-extracts text-[11px] font-semibold text-indigo-700 hover:underline cursor-pointer" ${segs.length ? '' : 'disabled'}>${open ? 'Hide' : 'Show'} extracts (${segs.length})</button>
-      ${depth === 0 ? `<button class="theme-add-sub text-[11px] text-slate-500 hover:text-slate-800 cursor-pointer">+ Subtheme</button>` : ''}
+      <button class="theme-toggle-extracts text-[11px] font-semibold text-indigo-700 hover:underline cursor-pointer" ${segs.length ? '' : 'disabled'}>${escapeHtml(tr(open ? 'theme.hideExtracts' : 'theme.showExtracts', { n: segs.length }))}</button>
+      ${depth === 0 ? `<button class="theme-add-sub text-[11px] text-slate-500 hover:text-slate-800 cursor-pointer">${escapeHtml(tr('theme.addSub'))}</button>` : ''}
     </div>
     ${open ? `<div class="mx-3 mb-3 space-y-1 max-h-72 overflow-y-auto">${keyFirst.map(s => extractLinkHtml(s)).join('')}</div>` : ''}
     ${subs.length ? `<div class="px-3 pb-3">${subs.map(s => themeCardHtml(s, 1, 0, 0)).join('')}</div>` : ''}
@@ -148,46 +191,46 @@ function bindThemeCards(root) {
     one('.theme-name').addEventListener('change', async (e) => {
       const v = e.target.value.trim();
       if (!v || v === t.name) { e.target.value = t.name; return; }
-      await recordLog({ category: 'themes', action: `Renamed ${t.parentId ? 'subtheme' : 'theme'}`, from: t.name, to: v });
+      await recordLog({ category: 'themes', ak: t.parentId ? 'log.subRenamed' : 'log.themeRenamed', from: t.name, to: v });
       t.name = v; await dbPut('themes', t); renderThemeToolbar();
     });
     one('.theme-status').addEventListener('change', async (e) => {
       const v = e.target.value;
       if (v === 'defined' && !(t.definition || '').trim()) {
-        alert('Write a definition (Phase 5) before marking the theme as defined.');
+        alert(tr('theme.needDefinition'));
         e.target.value = t.status; return;
       }
-      const from = THEME_STATUS[t.status]?.label, to = THEME_STATUS[v]?.label;
+      const from = t.status;
       t.status = v;
       renderThemesView();
       await dbPut('themes', t);
-      const entry = await recordLog({ category: 'themes', action: `Changed status of “${t.name}”`, from, to, snapshot: takeSnapshot() });
-      promptNote({ title: `“${clip(t.name, 40)}”: ${from} → ${to}`, logEntry: entry });
+      const entry = await recordLog({ category: 'themes', ak: 'log.statusChanged', ap: { theme: t.name }, from, to: v, ft: 'status', snapshot: takeSnapshot() });
+      promptNote({ title: tr('prompt.status', { theme: clip(t.name, 40), from: statusLabel(from), to: statusLabel(v) }), logEntry: entry });
     });
     one('.theme-up')?.addEventListener('click', () => moveTheme(tid, -1));
     one('.theme-down')?.addEventListener('click', () => moveTheme(tid, 1));
     one('.theme-delete').addEventListener('click', () => deleteTheme(tid));
-    one('.theme-add-sub')?.addEventListener('click', () => createTheme('New subtheme', tid));
+    one('.theme-add-sub')?.addEventListener('click', () => createTheme(tr('theme.newSub'), tid));
     one('.theme-toggle-extracts').addEventListener('click', () => {
       if (state.openThemeExtracts.has(tid)) state.openThemeExtracts.delete(tid); else state.openThemeExtracts.add(tid);
       renderThemeBoard();
     });
     one('.theme-chk-extracts').addEventListener('change', async (e) => {
       t.checkedExtracts = e.target.checked; await dbPut('themes', t);
-      await recordLog({ category: 'themes', action: `${e.target.checked ? 'Checked' : 'Unchecked'} “${t.name}” against coded extracts` });
+      await recordLog({ category: 'themes', ak: e.target.checked ? 'log.chkExtracts' : 'log.unchkExtracts', ap: { theme: t.name } });
     });
     one('.theme-chk-dataset').addEventListener('change', async (e) => {
       t.checkedDataset = e.target.checked; await dbPut('themes', t);
-      await recordLog({ category: 'themes', action: `${e.target.checked ? 'Checked' : 'Unchecked'} “${t.name}” against the full dataset` });
+      await recordLog({ category: 'themes', ak: e.target.checked ? 'log.chkDataset' : 'log.unchkDataset', ap: { theme: t.name } });
     });
     one('.theme-review').addEventListener('change', async (e) => {
       const v = e.target.value.trim();
-      await recordLog({ category: 'themes', action: `Review note for “${t.name}”`, from: t.reviewNote || '', to: v });
+      await recordLog({ category: 'themes', ak: 'log.reviewNote', ap: { theme: t.name }, from: t.reviewNote || '', to: v });
       t.reviewNote = v; await dbPut('themes', t);
     });
     one('.theme-def').addEventListener('change', async (e) => {
       const v = e.target.value.trim();
-      await recordLog({ category: 'themes', action: `Definition of “${t.name}”`, from: t.definition || '', to: v });
+      await recordLog({ category: 'themes', ak: 'log.definition', ap: { theme: t.name }, from: t.definition || '', to: v });
       t.definition = v; await dbPut('themes', t);
     });
 
@@ -223,10 +266,10 @@ async function createTheme(name, parentId = null) {
   state.themes.push(t);
   await dbPut('themes', t);
   const parent = parentId ? themeById(parentId) : null;
-  const entry = await recordLog({ category: 'themes', action: parent ? `Created subtheme “${t.name}” under “${parent.name}”` : `Created candidate theme “${t.name}”` });
+  const entry = await recordLog({ category: 'themes', ak: parent ? 'log.subCreated' : 'log.themeCreated', ap: { theme: t.name, parent: parent?.name || '' } });
   state.lastThemeId = t.id;
   if (!parent && state.themes.length === 1) {
-    promptNote({ title: 'Your first candidate theme. What are you noticing in the data right now?', placeholder: 'A sentence or two (optional — Enter to save)', mode: 'journal', logEntry: entry, ttl: 20000 });
+    promptNote({ title: tr('prompt.firstTheme'), placeholder: tr('prompt.firstThemePh'), mode: 'journal', logEntry: entry, ttl: 20000 });
   }
   if (state.themeStatusFilter !== 'all' && state.themeStatusFilter !== 'candidate') state.themeStatusFilter = 'all';
   renderThemesView();
@@ -241,7 +284,7 @@ async function addCodeToTheme(codeId, themeId, fromThemeId) {
   if (!c.themeIds.includes(themeId)) c.themeIds.push(themeId);
   await dbPut('codes', c);
   const from = fromThemeId ? themeById(fromThemeId) : null;
-  await recordLog({ category: 'themes', action: from ? `Moved code “${c.name}” from “${from.name}” to “${t.name}”` : `Added code “${c.name}” to “${t.name}”` });
+  await recordLog({ category: 'themes', ak: from ? 'log.codeMoved' : 'log.codeAddedToTheme', ap: { code: c.name, from: from?.name || '', theme: t.name } });
   renderThemesView();
 }
 
@@ -250,7 +293,7 @@ async function removeCodeFromTheme(codeId, themeId) {
   if (!c || !t) return;
   c.themeIds = c.themeIds.filter(x => x !== themeId);
   await dbPut('codes', c);
-  await recordLog({ category: 'themes', action: `Removed code “${c.name}” from “${t.name}”` });
+  await recordLog({ category: 'themes', ak: 'log.codeRemovedFromTheme', ap: { code: c.name, theme: t.name } });
   renderThemesView();
 }
 
@@ -270,8 +313,8 @@ async function deleteTheme(themeId) {
   const t = themeById(themeId);
   if (!t) return;
   const subs = state.themes.filter(x => x.parentId === themeId);
-  if (!confirm(`Delete “${t.name}”? Its codes go back to the pool${subs.length ? ` and its ${subs.length} subtheme(s) become themes` : ''}. Tip: use “Set aside” instead to keep a record. (You can undo.)`)) return;
-  pushUndo(`Delete theme “${t.name}”`, ['themes', 'codes']);
+  if (!confirm(tr('theme.confirmDelete', { theme: t.name, n: subs.length }))) return;
+  pushUndo(['undo.deleteTheme', { theme: t.name }], ['themes', 'codes']);
   for (const s of subs) s.parentId = null;
   await dbPutMany('themes', subs);
   const changed = state.codes.filter(c => c.themeIds.includes(themeId));
@@ -280,11 +323,12 @@ async function deleteTheme(themeId) {
   state.themes = state.themes.filter(x => x.id !== themeId);
   await dbDelete('themes', themeId);
   renderThemesView();
-  const entry = await recordLog({ category: 'themes', action: `Deleted ${t.parentId ? 'subtheme' : 'theme'} “${t.name}”`, detail: `${changed.length} code(s) returned to the pool`, snapshot: takeSnapshot() });
-  promptNote({ title: `Deleted “${clip(t.name, 40)}”`, logEntry: entry });
+  const entry = await recordLog({ category: 'themes', ak: t.parentId ? 'log.subDeleted' : 'log.themeDeleted', ap: { theme: t.name }, dk: 'log.d.returned', dp: { n: changed.length }, snapshot: takeSnapshot() });
+  promptNote({ title: tr('prompt.deleted', { theme: clip(t.name, 40) }), logEntry: entry });
 }
 
 function setupThemeEvents() {
+  document.querySelectorAll('.counts-toggle').forEach(b => b.onclick = () => setShowCounts(!state.showCounts));
   const inp = document.getElementById('newThemeInput');
   const go = () => { createTheme(inp.value); inp.value = ''; };
   inp.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });

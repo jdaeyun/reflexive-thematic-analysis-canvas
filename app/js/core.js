@@ -33,11 +33,12 @@ function flashSaveStatus(status = 'saved') {
   badge.classList.remove('hidden');
   if (status === 'error') {
     badge.className = 'inline-flex items-center space-x-1 px-2 py-1 rounded-md text-[11px] font-bold whitespace-nowrap bg-rose-50 text-rose-700 border border-rose-200';
-    badge.innerHTML = '<i class="ph ph-warning-circle"></i><span>Save error</span>';
+    badge.innerHTML = `<i class="ph ph-warning-circle"></i><span>${escapeHtml(tr('save.error'))}</span>`;
   } else {
-    const t = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const time = new Date().toLocaleTimeString(localeOf(), { hour: '2-digit', minute: '2-digit' });
     badge.className = 'inline-flex items-center space-x-1 px-2 py-1 rounded-md text-[11px] font-bold whitespace-nowrap bg-emerald-50 text-emerald-700 border border-emerald-200';
-    badge.innerHTML = `<i class="ph ph-check-circle"></i><span>Saved ${t}</span>`;
+    badge.title = tr('save.saved', { time });
+    badge.innerHTML = `<i class="ph ph-check-circle"></i><span class="hidden xl:inline">${escapeHtml(tr('save.saved', { time }))}</span>`;
   }
 }
 
@@ -121,9 +122,13 @@ const state = {
   activeSegId: null,
   codeFilter: '',
   themeStatusFilter: 'all',
+  themeView: (() => { try { return localStorage.getItem('ta_theme_view') === 'map' ? 'map' : 'board'; } catch (e) { return 'board'; } })(),
   openThemeExtracts: new Set(),
   openCodeExtracts: new Set(),
-  exportTable: 'themes',
+  exportTable: 'narrative',
+  // Prevalence counts (extracts / participants per code and theme) are hidden by default: in reflexive TA
+  // frequency does not decide what matters, and constant numbers nudge "more = more important"
+  showCounts: (() => { try { return localStorage.getItem('ta_show_counts') === 'true'; } catch (e) { return false; } })(),
   auditFilter: 'decisions', // single coding actions are hidden by default so journal notes stay visible
   lastThemeId: null,        // theme card the user last worked on (journal context)
   undoStack: []
@@ -134,12 +139,16 @@ const COLLECTIONS = ['docs', 'segments', 'ptags', 'codes', 'themes', 'participan
 const CODE_COLORS = ['#f59e0b', '#10b981', '#3b82f6', '#ec4899', '#8b5cf6', '#ef4444', '#14b8a6', '#f97316', '#6366f1', '#84cc16', '#06b6d4', '#d946ef'];
 const PARTICIPANT_COLORS = ['#0f766e', '#7c3aed', '#b45309', '#be123c', '#1d4ed8', '#4d7c0f', '#a21caf', '#0369a1'];
 
+// Labels come from i18n.js: statusLabel(id) ('status.<id>') and 'status.<id>.phase'
 const THEME_STATUS = {
-  candidate: { label: 'Candidate', phase: 'Phase 3', cls: 'bg-amber-100 text-amber-800 border-amber-200' },
-  reviewed:  { label: 'Reviewed',  phase: 'Phase 4', cls: 'bg-sky-100 text-sky-800 border-sky-200' },
-  defined:   { label: 'Defined',   phase: 'Phase 5', cls: 'bg-emerald-100 text-emerald-800 border-emerald-200' },
-  discarded: { label: 'Set aside', phase: '—',       cls: 'bg-slate-100 text-slate-500 border-slate-200' }
+  candidate: { cls: 'bg-amber-100 text-amber-800 border-amber-200' },
+  reviewed:  { cls: 'bg-sky-100 text-sky-800 border-sky-200' },
+  defined:   { cls: 'bg-emerald-100 text-emerald-800 border-emerald-200' },
+  discarded: { cls: 'bg-slate-100 text-slate-500 border-slate-200' }
 };
+function statusLabel(id, lang = LANG) {
+  return THEME_STATUS[id] ? tr(`status.${id}`, {}, lang) : String(id || '');
+}
 
 // ========================================================
 // HELPERS
@@ -158,8 +167,8 @@ function hexAlpha(hex, alpha) {
   const a = Math.round(alpha * 255).toString(16).padStart(2, '0');
   return hex + a;
 }
-function fmtTime(ts) {
-  return new Date(ts).toLocaleString([], { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+function fmtTime(ts, lang = LANG) {
+  return new Date(ts).toLocaleString(localeOf(lang), { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
 }
 function showToast(msg, kind = 'info') {
   const host = document.getElementById('toastHost');
@@ -253,10 +262,16 @@ function coverage(segments) {
 // ========================================================
 // AUDIT LOG
 // ========================================================
+// Text is stored as message keys (ak/ap = action key/params, dk/dp = detail key/params) so the audit trail
+// is shown and exported in whatever language is chosen later; `action` / `detail` keep an English copy.
+// ft: 'status' marks from/to as theme status ids. User-written text goes in detail/from/to/reason as is.
 // Optional: reason (why, from the decision prompt), ctx (what was on screen), snapshot (code/theme structure
 // at that moment, see takeSnapshot in journal.js), linkedLogId (a journal note written about another entry)
-async function recordLog({ category, action, detail = '', from = '', to = '', reason = '', ctx = null, snapshot = null, linkedLogId = null }) {
-  const entry = { id: uid('log'), ts: Date.now(), category, action, detail, from, to, by: state.researcherId || '' };
+async function recordLog({ category, ak, ap = {}, dk = null, dp = {}, action = '', detail = '', from = '', to = '', ft = null, reason = '', ctx = null, snapshot = null, linkedLogId = null }) {
+  const entry = { id: uid('log'), ts: Date.now(), category, action: ak ? tr(ak, ap, 'en') : action, detail: dk ? tr(dk, dp, 'en') : detail, from, to, by: state.researcherId || '' };
+  if (ak) { entry.ak = ak; entry.ap = ap; }
+  if (dk) { entry.dk = dk; entry.dp = dp; }
+  if (ft) entry.ft = ft;
   if (reason) entry.reason = reason;
   if (ctx && Object.keys(ctx).length) entry.ctx = ctx;
   if (snapshot) entry.snapshot = snapshot;
@@ -274,6 +289,7 @@ function updateAuditBadge() {
 // ========================================================
 // UNDO (snapshots of whole collections — the data is small text)
 // ========================================================
+// label: [messageKey, params] so the undo button follows the current language
 function pushUndo(label, collections) {
   const data = {};
   for (const c of collections) data[c] = JSON.parse(JSON.stringify(state[c]));
@@ -289,17 +305,18 @@ async function performUndo() {
     state[coll] = items;
     await dbReplaceAll(coll, items);
   }
-  await recordLog({ category: 'system', action: `Undid: ${last.label}` });
+  await recordLog({ category: 'system', ak: 'log.undid', ap: { lk: last.label[0], lp: last.label[1] || {} } });
   if (state.activeDocId && !docById(state.activeDocId)) state.activeDocId = state.docs[0]?.id || null;
   state.activeSegId = null;
   renderAll();
-  showToast(`Undone: ${last.label}`, 'success');
+  showToast(tr('toast.undone', { label: tr(last.label[0], last.label[1] || {}) }), 'success');
 }
 function updateUndoButton() {
   const btn = document.getElementById('undoBtn');
   if (!btn) return;
   btn.disabled = state.undoStack.length === 0;
-  btn.title = state.undoStack.length ? `Undo: ${state.undoStack[state.undoStack.length - 1].label} (Ctrl+Z)` : 'Nothing to undo';
+  const last = state.undoStack[state.undoStack.length - 1];
+  btn.title = last ? tr('undo.title', { label: tr(last.label[0], last.label[1] || {}) }) : tr('undo.none');
 }
 
 // ========================================================
