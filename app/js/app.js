@@ -3,7 +3,7 @@
 // Startup, tab switching, project setup, backup / restore / reset, file drag & drop, keyboard shortcuts.
 
 const TABS = {
-  code:   { btn: 'tabCodeBtn', view: 'viewCode', render: () => { renderDocList(); renderParticipantList(); renderViewer(); renderSelectionPanel(); renderCodebook(); renderSegmentPanel(); } },
+  code:   { btn: 'tabCodeBtn', view: 'viewCode', render: () => { renderCountsToggles(); renderDocList(); renderParticipantList(); renderViewer(); renderSelectionPanel(); renderCodebook(); renderSegmentPanel(); } },
   themes: { btn: 'tabThemesBtn', view: 'viewThemes', render: () => renderThemesView() },
   audit:  { btn: 'tabAuditBtn', view: 'viewAudit', render: () => renderAuditView() },
   export: { btn: 'tabExportBtn', view: 'viewExport', render: () => renderExportView() }
@@ -146,6 +146,7 @@ function setupShellEvents() {
     if (e.key === 'Escape') {
       document.querySelectorAll('.ta-modal:not(.hidden)').forEach(m => m.classList.add('hidden'));
       closeJournal();
+      document.getElementById('notePrompt').classList.add('hidden');
       if (state.pendingSel) clearPendingSelection();
     }
     // With text selected in the viewer, start typing a code name right away

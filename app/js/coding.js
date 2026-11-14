@@ -515,7 +515,7 @@ function renderCodebook() {
         <span class="w-2.5 h-2.5 rounded-sm shrink-0" style="background:${c.color}"></span>
         <span class="flex-1 text-xs text-slate-800 truncate">${escapeHtml(c.name)}</span>
         ${themes.length ? `<i class="ph ph-shapes text-[11px] text-slate-400" title="${escapeHtml(tr('code.inTheme', { themes: themes.join(', ') }))}"></i>` : ''}
-        <span class="text-[10px] text-slate-400 shrink-0" title="${escapeHtml(tr('code.countsTitle', { n: segs.length, p: cov.participants.size }))}">${segs.length}<span class="text-slate-300">/</span>${cov.participants.size}</span>
+        ${state.showCounts ? `<span class="text-[10px] text-slate-400 shrink-0" title="${escapeHtml(tr('code.countsTitle', { n: segs.length, p: cov.participants.size }))}">${segs.length}<span class="text-slate-300">/</span>${cov.participants.size}</span>` : ''}
         <button class="code-edit text-slate-300 hover:text-slate-700 cursor-pointer" title="${escapeHtml(tr('code.editTitle'))}"><i class="ph ph-dots-three-vertical"></i></button>
       </div>
       ${open ? `<div class="px-2 pb-2 space-y-1">${segs.length ? segs.map(s => extractLinkHtml(s)).join('') : `<div class="text-[11px] text-slate-400">${escapeHtml(tr('code.noExtracts'))}</div>`}</div>` : ''}

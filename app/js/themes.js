@@ -4,7 +4,24 @@
 // tracked as a status on each theme (Candidate → Reviewed → Defined) rather than as separate tabs.
 // Codes are dragged from the pool into themes (or subthemes); a code may sit in more than one theme.
 
+// One setting for the codebook and the theme board
+function setShowCounts(on) {
+  state.showCounts = on;
+  try { localStorage.setItem('ta_show_counts', on ? 'true' : 'false'); } catch (e) { /* private mode */ }
+  renderCountsToggles();
+  if (state.activeTab === 'code') renderCodebook();
+  if (state.activeTab === 'themes') renderThemesView();
+}
+function renderCountsToggles() {
+  document.querySelectorAll('.counts-toggle').forEach(b => {
+    b.classList.toggle('counts-on', state.showCounts);
+    b.querySelector('.counts-label').textContent = tr(state.showCounts ? 'counts.hide' : 'counts.show');
+    b.title = tr('counts.title');
+  });
+}
+
 function renderThemesView() {
+  renderCountsToggles();
   renderThemeToolbar();
   renderCodePool();
   renderThemeBoard();
@@ -50,7 +67,7 @@ function renderCodePool() {
           <div class="text-xs text-slate-800 leading-snug">${escapeHtml(c.name)}</div>
           ${themes.length ? `<div class="text-[10px] text-slate-400 truncate">${escapeHtml(tr('pool.in', { themes: themes.join(', ') }))}</div>` : ''}
         </div>
-        <span class="text-[10px] text-slate-400 shrink-0" title="${escapeHtml(tr('code.countsHeader'))}">${segs.length}/${cov.participants.size}</span>
+        ${state.showCounts ? `<span class="text-[10px] text-slate-400 shrink-0" title="${escapeHtml(tr('code.countsHeader'))}">${segs.length}/${cov.participants.size}</span>` : ''}
       </div>
       ${open ? `<div class="px-2 pb-2 space-y-1">${segs.map(s => extractLinkHtml(s)).join('') || `<div class="text-[11px] text-slate-400">${escapeHtml(tr('code.noExtracts'))}</div>`}</div>` : ''}
     </div>`;
@@ -103,11 +120,11 @@ function themeCardHtml(t, depth, idx, total) {
       <button class="theme-down text-slate-300 hover:text-slate-700 cursor-pointer ${idx === total - 1 ? 'invisible' : ''}" title="${escapeHtml(tr('theme.down'))}"><i class="ph ph-caret-down"></i></button>` : ''}
       <button class="theme-delete text-slate-300 hover:text-rose-600 cursor-pointer" title="${escapeHtml(tr(depth ? 'theme.deleteSub' : 'theme.delete'))}"><i class="ph ph-trash"></i></button>
     </div>
-    <div class="px-3 text-[10px] text-slate-500 mt-0.5">${escapeHtml(tr('n.codes', { n: ownCodes.length }))}${subs.length ? ` + ${escapeHtml(tr('n.subthemes', { n: subs.length }))}` : ''} · ${escapeHtml(tr('n.extracts', { n: segs.length }))} · <b>${escapeHtml(tr('n.participantsOf', { n: cov.participants.size, of: nPart }))}</b> · ${escapeHtml(tr('n.documents', { n: cov.docs.size }))}</div>
+    <div class="px-3 text-[10px] text-slate-500 mt-0.5">${escapeHtml(tr('n.codes', { n: ownCodes.length }))}${subs.length ? ` + ${escapeHtml(tr('n.subthemes', { n: subs.length }))}` : ''}${state.showCounts ? ` · ${escapeHtml(tr('n.extracts', { n: segs.length }))} · <b>${escapeHtml(tr('n.participantsOf', { n: cov.participants.size, of: nPart }))}</b> · ${escapeHtml(tr('n.documents', { n: cov.docs.size }))}` : ''}</div>
 
     <div class="theme-drop mx-3 mt-2 min-h-[38px] rounded-lg border-2 border-dashed border-slate-200 p-1.5 flex flex-wrap gap-1 content-start" title="${escapeHtml(tr('theme.dropHere'))}">
       ${ownCodes.length ? ownCodes.map(c => `<span class="theme-code inline-flex items-center gap-1 text-[11px] pl-1.5 pr-1 py-0.5 rounded border bg-white cursor-grab" draggable="true" data-code="${c.id}" style="border-color:${c.color}" title="${escapeHtml(c.description || tr('theme.dragToMove'))}">
-        <span class="w-2 h-2 rounded-sm" style="background:${c.color}"></span>${escapeHtml(c.name)} <span class="text-slate-400">${segmentsForCode(c.id).length}</span>
+        <span class="w-2 h-2 rounded-sm" style="background:${c.color}"></span>${escapeHtml(c.name)}${state.showCounts ? ` <span class="text-slate-400">${segmentsForCode(c.id).length}</span>` : ''}
         <button class="theme-code-remove text-slate-300 hover:text-rose-600 cursor-pointer" title="${escapeHtml(tr('theme.removeCode'))}"><i class="ph ph-x text-[10px]"></i></button></span>`).join('') : `<span class="text-[11px] text-slate-400 px-1 py-1">${escapeHtml(tr('theme.dropHere'))}</span>`}
     </div>
 
@@ -284,6 +301,7 @@ async function deleteTheme(themeId) {
 }
 
 function setupThemeEvents() {
+  document.querySelectorAll('.counts-toggle').forEach(b => b.onclick = () => setShowCounts(!state.showCounts));
   const inp = document.getElementById('newThemeInput');
   const go = () => { createTheme(inp.value); inp.value = ''; };
   inp.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });

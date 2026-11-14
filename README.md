@@ -9,6 +9,7 @@
 * **Nothing to install, no account, no server.** Open `ta_canvas.html` in a desktop browser. Double-clicking the file works offline too.
 * **Your data stays on your computer.** Documents are read and stored only in this browser (IndexedDB). Nothing is uploaded.
 * **No AI.** No language model reads, codes or summarises your data.
+* **No counting as a shortcut.** Following reflexive TA, prevalence counts are hidden unless you ask for them, there is no inter-coder agreement, and codes are an analytic record rather than a codebook.
 * **English and Japanese (日本語).** The interface follows your browser language automatically, or choose it in Settings. Write-up tables can be exported in either language.
 
 > 📌 **Status:** early prototype. Feedback from qualitative researchers is very welcome in [Issues](https://github.com/jdaeyun/thematic-analysis-canvas/issues). Keep a JSON backup of real projects.
@@ -26,15 +27,13 @@
    One board for generating, reviewing and defining themes. Drag codes into candidate themes and subthemes. Each theme moves through **Candidate → Reviewed → Defined** (or *Set aside*), with review checks against the coded extracts and the full dataset, review notes and a definition. It also shows how many participants each theme draws on.
 3. **Audit & Journal**
    Every interpretive change (codes created, renamed, merged or deleted; theme changes; status, definitions) is logged automatically, next to a timestamped reflexive journal.
-4. **Write-up Tables (Phase 6)**
-   * Analysis summary
-   * Table 1: participants
-   * Table 2: themes, subthemes, definitions and illustrative extracts
-   * Table 3: theme × participant
-   * Table 4: codebook
-   * Appendix A: audit trail
+4. **Writing up (Phase 6)**
+   Writing is part of the analysis, so the first view is a writing space: an overview of the analysis and an analytic narrative for each theme and subtheme, with the theme's extracts at hand to insert as evidence. Supporting tables follow:
+   * Analysis summary, participants, and themes with definitions and illustrative extracts
+   * Optional, off by default: prevalence (participants per theme, theme × participant) and the code list
+   * Appendix A: audit trail and reflexive journal
 
-   Export as rich copy, Markdown, CSV or a landscape **Word (`.docx`)** file, plus all coded extracts as long-format CSV.
+   Export the narrative and tables as rich copy, Markdown or **Word (`.docx`)**, tables as CSV, and all coded extracts as long-format CSV.
 
 ## 📂 Supported files
 

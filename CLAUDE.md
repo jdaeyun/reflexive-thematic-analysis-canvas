@@ -21,7 +21,7 @@ app/js/coding.js       Tab 1 (phases 1–2): documents, participants, viewer, se
 app/js/themes.js       Tab 2 (phases 3–5): code pool, theme board, status / review / definition
 app/js/audit.js        Tab 3: audit trail timeline, reflexive journal
 app/js/journal.js      journal drawer (Ctrl/⌘+J), optional "Why?" decision prompt, context capture, structure snapshots + diff
-app/js/export.js       Tab 4 (phase 6): table specs + HTML / copy / Markdown / CSV / .docx renderers
+app/js/export.js       Tab 4 (phase 6): analytic narrative editor (first view) + supporting table specs; copy / Markdown / CSV / .docx
 app/js/app.js          startup (DOMContentLoaded), tabs, project setup, backup / restore / reset, drag & drop, shortcuts
 samples/               fictional test files in every supported format
 ```
@@ -37,7 +37,8 @@ samples/               fictional test files in every supported format
 - `participants`: `{ label, role: 'participant'|'interviewer', attributes }`. Interviewers are excluded from
   counts (`countedParticipants()`, `coverage()`).
 - `codes`: `{ name, description, color, themeIds[] }` (a code may sit in several themes).
-- `themes`: `{ name, parentId, status: candidate|reviewed|defined|discarded, definition, reviewNote, checkedExtracts, checkedDataset, order }`.
+- `themes`: `{ name, parentId, status: candidate|reviewed|defined|discarded, definition, reviewNote, checkedExtracts, checkedDataset, order, narrative }`.
+  `narrative` = the phase 6 analytic write-up for the theme; `meta.storyline` = the overview across themes.
 - `logs`: audit trail and journal `{ ts, category, action, detail, from, to, by, reason?, ctx?, snapshot?, linkedLogId? }`.
   `reason` = optional "why" for a decision; `ctx` = what was on screen (doc / extract / quote / theme);
   `snapshot` = theme tree + code names and counts (no extract text), taken on journal notes and theme status
@@ -59,6 +60,10 @@ samples/               fictional test files in every supported format
   started a new text selection would wipe it.
 - Escape every user value interpolated into HTML with `escapeHtml()`.
 - Exports are built from `getTableSpec(id)`; change the spec, not the renderers separately.
+- Stay coherent with reflexive TA: prevalence counts are hidden by default (`state.showCounts`, counts toggle) and
+  left out of exports unless `optCounts`; the code list is a record, not a codebook (`optCodeList`, off by default);
+  phase 6 is the analytic narrative first, tables second. Do not add features that treat frequency, agreement
+  or a fixed codebook as markers of quality.
 - Every UI string goes through `tr(key, params)` with the message in BOTH `I18N.en` and `I18N.ja` (app/js/i18n.js);
   static HTML uses data-i18n / data-i18n-html / data-i18n-ph / data-i18n-title. Do not name a local variable `tr`.
   Audit log entries store message keys (`ak`/`ap`, `dk`/`dp`, `ft: 'status'`) and are rendered with logAction() /

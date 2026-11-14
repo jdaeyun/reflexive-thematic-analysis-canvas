@@ -124,7 +124,10 @@ const state = {
   themeStatusFilter: 'all',
   openThemeExtracts: new Set(),
   openCodeExtracts: new Set(),
-  exportTable: 'themes',
+  exportTable: 'narrative',
+  // Prevalence counts (extracts / participants per code and theme) are hidden by default: in reflexive TA
+  // frequency does not decide what matters, and constant numbers nudge "more = more important"
+  showCounts: (() => { try { return localStorage.getItem('ta_show_counts') === 'true'; } catch (e) { return false; } })(),
   auditFilter: 'decisions', // single coding actions are hidden by default so journal notes stay visible
   lastThemeId: null,        // theme card the user last worked on (journal context)
   undoStack: []

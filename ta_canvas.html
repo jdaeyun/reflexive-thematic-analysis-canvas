@@ -54,7 +54,7 @@
       <button id="tabCodeBtn"><span class="hidden xl:inline" data-i18n="tab.code">1. Familiarise &amp; Code</span><span class="xl:hidden whitespace-nowrap" data-i18n="tab.codeShort">1 Code</span></button>
       <button id="tabThemesBtn"><span class="hidden xl:inline" data-i18n="tab.themes">2. Themes</span><span class="xl:hidden whitespace-nowrap" data-i18n="tab.themesShort">2 Themes</span></button>
       <button id="tabAuditBtn"><span class="hidden xl:inline" data-i18n="tab.audit">3. Audit &amp; Journal</span><span class="xl:hidden whitespace-nowrap" data-i18n="tab.auditShort">3 Audit</span><span id="auditCountBadge" class="text-[10px] bg-indigo-100 text-indigo-700 px-1.5 rounded-full font-bold">0</span></button>
-      <button id="tabExportBtn"><i class="ph ph-table text-sm"></i><span class="hidden xl:inline" data-i18n="tab.export">4. Write-up Tables</span><span class="xl:hidden whitespace-nowrap" data-i18n="tab.exportShort">4 Tables</span></button>
+      <button id="tabExportBtn"><i class="ph ph-pen-nib text-sm"></i><span class="hidden xl:inline" data-i18n="tab.export">4. Writing up</span><span class="xl:hidden whitespace-nowrap" data-i18n="tab.exportShort">4 Write</span></button>
     </div>
 
     <div class="flex items-center justify-end space-x-1.5 flex-1">
@@ -147,7 +147,7 @@
       <div id="segmentPanel" class="hidden mx-3 mb-2 p-2.5 rounded-lg bg-white border border-slate-300 shadow-sm"></div>
       <div class="px-3 pt-1 flex items-center justify-between">
         <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wide"><span data-i18n="code.title">Codes</span> <span id="codeCount" class="text-slate-400">0</span></span>
-        <span class="text-[10px] text-slate-400" data-i18n-title="code.countsHeader" title="extracts / participants" data-i18n="code.countsShort">extr./part.</span>
+        <button type="button" class="counts-toggle text-[10px] text-slate-400 hover:text-slate-700 border border-slate-200 rounded px-1.5 py-0.5 cursor-pointer flex items-center gap-1"><i class="ph ph-hash"></i><span class="counts-label">Show counts</span></button>
       </div>
       <div class="px-3 pt-1.5 space-y-1.5">
         <input id="quickCodeInput" data-i18n-ph="code.newPh" data-i18n-title="code.newTitle" placeholder="New code — type and press Enter" title="Applies to the selected text, or adds to the extract shown above" class="w-full text-xs border border-slate-300 rounded px-2 py-1.5 focus:outline-none focus:border-indigo-500">
@@ -169,6 +169,7 @@
       <button id="newThemeBtn" class="px-2.5 py-1.5 text-xs font-bold rounded-md bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer flex items-center gap-1"><i class="ph ph-plus"></i><span data-i18n="themes.add">Theme</span></button>
       <div id="themeStatusFilter" class="flex items-center gap-1 ml-2"></div>
       <span id="themeProgress" class="ml-auto text-[11px] text-slate-500"></span>
+      <button type="button" class="counts-toggle text-[11px] text-slate-500 hover:text-slate-800 border border-slate-200 bg-white rounded-md px-2 py-1 cursor-pointer flex items-center gap-1"><i class="ph ph-hash"></i><span class="counts-label">Show counts</span></button>
     </div>
     <div class="flex-1 flex min-h-0">
       <aside class="w-72 border-r border-slate-200 bg-slate-50 flex flex-col min-h-0 shrink-0">
@@ -220,10 +221,12 @@
           </select></label>
         <label class="flex items-center justify-between gap-2"><span data-i18n="exp.optMax">Extracts per theme row</span> <input id="optMaxExtracts" type="number" min="1" max="10" value="2" class="w-14 text-xs border border-slate-300 rounded px-1.5 py-0.5"></label>
         <label class="flex items-center gap-1.5"><input type="checkbox" id="optIncludeSetAside"> <span data-i18n="exp.optSetAside">Include themes set aside</span></label>
+        <label class="flex items-start gap-1.5" data-i18n-title="exp.optCountsTitle"><input type="checkbox" id="optCounts" class="mt-0.5"> <span data-i18n="exp.optCounts">Include prevalence (participants per theme, theme × participant table)</span></label>
+        <label class="flex items-start gap-1.5" data-i18n-title="exp.optCodeListTitle"><input type="checkbox" id="optCodeList" class="mt-0.5"> <span data-i18n="exp.optCodeList">Include the code list</span></label>
         <label class="flex items-center gap-1.5"><input type="checkbox" id="optIncludeCoding"> <span data-i18n="exp.optCoding">Appendix: include single coding actions</span></label>
       </div>
       <div class="border-t border-slate-100 pt-3 grid grid-cols-2 gap-1.5">
-        <button id="copyTableBtn" class="col-span-2 px-2 py-1.5 text-xs font-bold rounded-md bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer flex items-center justify-center gap-1"><i class="ph ph-copy"></i><span data-i18n="exp.copy">Copy table</span></button>
+        <button id="copyTableBtn" class="col-span-2 px-2 py-1.5 text-xs font-bold rounded-md bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer flex items-center justify-center gap-1"><i class="ph ph-copy"></i><span id="copyTableLabel">Copy</span></button>
         <button id="docxBtn" class="col-span-2 px-2 py-1.5 text-xs font-bold rounded-md bg-slate-800 hover:bg-slate-900 text-white cursor-pointer flex items-center justify-center gap-1"><i class="ph ph-file-doc"></i><span data-i18n="exp.docx">All tables (.docx)</span></button>
         <button id="mdBtn" class="px-2 py-1.5 text-[11px] rounded-md border border-slate-300 hover:bg-slate-50 cursor-pointer" data-i18n="exp.md">Markdown</button>
         <button id="csvBtn" class="px-2 py-1.5 text-[11px] rounded-md border border-slate-300 hover:bg-slate-50 cursor-pointer" data-i18n="exp.csv">This table (.csv)</button>
@@ -233,6 +236,7 @@
     <section class="flex-1 overflow-y-auto p-6">
       <div class="px-0 pb-3 flex items-center gap-1.5 text-[11px]">
         <span class="phase-step" data-i18n="phase.3">3 · Initial themes</span><span class="phase-step" data-i18n="phase.4">4 · Reviewing</span><span class="phase-step" data-i18n="phase.5">5 · Defining</span><span class="phase-step on" data-i18n="phase.6">6 · Writing up</span>
+        <span class="text-slate-400 ml-2" data-i18n="phase.hint6">Writing is part of the analysis: tell the analytic story theme by theme, with extracts as evidence.</span>
       </div>
       <div id="exportPreview" class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm max-w-6xl"></div>
     </section>
