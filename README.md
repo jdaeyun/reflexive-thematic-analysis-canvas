@@ -2,7 +2,9 @@
 
 **Version 0.1.0 (prototype)**
 
-**Thematic Analysis Canvas** is an open-source, zero-backend browser workspace for **thematic analysis** of qualitative text data. It follows the six phases of Braun & Clarke's (reflexive) thematic analysis and produces tables you can put straight into a manuscript.
+**Thematic Analysis Canvas** is an open-source, zero-backend browser workspace for **reflexive thematic analysis** (Braun & Clarke) of qualitative text data. It follows the six phases of reflexive TA and produces tables you can put straight into a manuscript.
+
+> **Scope:** reflexive TA only. Coding is treated as interpretive, so the app does not calculate inter-coder agreement (coding-reliability TA). Codebook approaches (template, framework analysis) are not supported yet.
 
 * **Nothing to install, no account, no server.** Open `ta_canvas.html` in a desktop browser. Double-clicking the file works offline too.
 * **Your data stays on your computer.** Documents are read and stored only in this browser (IndexedDB). Nothing is uploaded.

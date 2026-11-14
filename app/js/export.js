@@ -61,7 +61,7 @@ function getTableSpec(id, opts = exportOptions()) {
       rows: [
         ['Project', state.meta.name || '—'],
         ['Research question', state.meta.question || '—'],
-        ['Approach', { reflexive: 'Reflexive thematic analysis (Braun & Clarke)', codebook: 'Codebook thematic analysis', other: 'Other' }[state.meta.approach] || '—'],
+        ['Approach', 'Reflexive thematic analysis (Braun & Clarke)'],
         ['Dataset', `${state.docs.length} document(s) — ${Object.entries(kinds).map(([k, v]) => `${v} ${k.toUpperCase()}`).join(', ') || 'none'}`],
         ['Participants', String(nPart)],
         ['Coded extracts', String(state.segments.length)],

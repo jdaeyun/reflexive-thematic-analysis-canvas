@@ -43,14 +43,13 @@ function renderHeader() {
 function openProjectModal() {
   document.getElementById('projName').value = state.meta.name || '';
   document.getElementById('projQuestion').value = state.meta.question || '';
-  document.getElementById('projApproach').value = state.meta.approach || 'reflexive';
   document.getElementById('projectModal').classList.remove('hidden');
 }
 async function saveProjectModal() {
   const name = document.getElementById('projName').value.trim();
   const question = document.getElementById('projQuestion').value.trim();
-  const approach = document.getElementById('projApproach').value;
-  if (name !== state.meta.name || question !== state.meta.question || approach !== state.meta.approach) {
+  const approach = 'reflexive'; // the only approach supported for now
+  if (name !== state.meta.name || question !== state.meta.question) {
     await recordLog({ category: 'system', action: 'Updated project setup', detail: [name, question].filter(Boolean).join(' — ') });
   }
   Object.assign(state.meta, { name, question, approach });

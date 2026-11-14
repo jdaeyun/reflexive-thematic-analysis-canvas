@@ -147,21 +147,43 @@ function goToContext(ctx, key) {
 // ========================================================
 const journalDraft = { ctx: null, linkedLogId: null };
 
+const NARROW_JOURNAL = window.matchMedia('(max-width: 1100px)'); // below this the drawer overlays the workspace
+
 function openJournal({ linkedLogId = null, type = null, text = '' } = {}) {
   const drawer = document.getElementById('journalDrawer');
-  journalDraft.ctx = captureContext();
-  journalDraft.linkedLogId = linkedLogId;
-  if (type) document.getElementById('jdType').value = type;
   const ta = document.getElementById('jdText');
+  // Reopening with a kept draft: keep what it was attached to. Otherwise attach what is on screen now.
+  const resumingDraft = ta.value.trim() && !linkedLogId && !text;
+  if (!resumingDraft) {
+    journalDraft.ctx = captureContext();
+    journalDraft.linkedLogId = linkedLogId;
+  }
+  if (type) document.getElementById('jdType').value = type;
   if (text) ta.value = text;
   renderJournalDrawer();
   drawer.classList.remove('hidden');
-  document.body.classList.add('journal-open'); // the workspace narrows instead of being covered
-  setTimeout(() => ta.focus(), 0);
+  document.body.classList.add('journal-open'); // wide screens: the workspace narrows instead of being covered
+  updateJournalDraftIndicators();
+  setTimeout(() => { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }, 0);
 }
+// Closing never discards what was typed; the Journal button and the edge handle show a dot instead
 function closeJournal() {
   document.getElementById('journalDrawer').classList.add('hidden');
   document.body.classList.remove('journal-open');
+  updateJournalDraftIndicators();
+}
+function journalIsOpen() {
+  return !document.getElementById('journalDrawer').classList.contains('hidden');
+}
+function updateJournalDraftIndicators() {
+  const hasDraft = !!document.getElementById('jdText').value.trim();
+  const open = journalIsOpen();
+  document.getElementById('journalDraftDot').classList.toggle('hidden', !hasDraft || open);
+  // Edge handle: on narrow screens (the drawer is light-dismissed there), or whenever a draft is waiting
+  const handle = document.getElementById('journalHandle');
+  handle.classList.toggle('hidden', open || !(NARROW_JOURNAL.matches || hasDraft));
+  handle.classList.toggle('journal-handle-draft', hasDraft);
+  handle.title = hasDraft ? 'Unsaved journal note — click to continue (Ctrl+J)' : 'Open the reflexive journal (Ctrl+J)';
 }
 // While the drawer stays open and nothing is typed yet, follow what the researcher is looking at
 function refreshJournalContext() {
@@ -212,6 +234,7 @@ async function saveJournalFromDrawer() {
   journalDraft.linkedLogId = null;
   journalDraft.ctx = captureContext();
   renderJournalDrawer();
+  updateJournalDraftIndicators();
   if (state.activeTab === 'audit') renderAuditView();
   showToast('Saved to the journal', 'success');
 }
@@ -274,4 +297,15 @@ function setupJournalEvents() {
   document.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'j') { e.preventDefault(); toggleJournal(); }
   }, true);
+  document.getElementById('jdText').addEventListener('input', updateJournalDraftIndicators);
+  document.getElementById('journalHandle').onclick = () => openJournal();
+  // Light dismiss on narrow screens: a click outside the drawer closes it (the draft is kept).
+  // Wide screens keep it docked so it can stay open while coding.
+  document.addEventListener('pointerdown', (e) => {
+    if (!NARROW_JOURNAL.matches || !journalIsOpen()) return;
+    if (e.target.closest('#journalDrawer, #journalOpenBtn, #journalHandle, #notePrompt, .ta-modal')) return;
+    closeJournal();
+  }, true);
+  NARROW_JOURNAL.addEventListener('change', updateJournalDraftIndicators);
+  updateJournalDraftIndicators();
 }

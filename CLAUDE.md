@@ -1,6 +1,7 @@
 # Thematic Analysis Canvas — notes for AI assistants
 
-Browser-only app for thematic analysis of text data (Braun & Clarke). No server, no build step to run it,
+Browser-only app for reflexive thematic analysis of text data (Braun & Clarke). Reflexive TA is the only
+approach supported for now: no inter-coder agreement statistics, no codebook / framework mode. No server, no build step to run it,
 no AI features (a deliberate design choice: do not add LLM calls). Works online and offline: opening
 `ta_canvas.html` by double-click (file://) must keep working.
 Third-party libraries are bundled in `app/vendor/` (committed): Tailwind 3.4.17 (prebuilt CSS), Phosphor Icons
@@ -48,6 +49,8 @@ samples/               fictional test files in every supported format
   only call functions from earlier files; anything else runs inside handlers or DOMContentLoaded.
 - Log every interpretive change with `recordLog({ category, action, detail, from, to })`. Single coding
   actions use category `coding` (omitted from the appendix by default).
+- Journal drawer: docked beside the workspace on wide screens; at ≤1100px it overlays and closes on an
+  outside click (light dismiss). Closing never discards the draft (dot on the Journal button + edge handle).
 - Reflexive notes are never required: no blocking dialogs asking for a note. Use `promptNote()` (small,
   self-dismissing) after significant decisions only, never after single coding actions.
 - Before destructive changes call `pushUndo(label, [collections])` (snapshots whole collections).
