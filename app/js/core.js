@@ -121,6 +121,12 @@ const state = {
   pendingSel: null, // { docId, s, e, text }
   activeSegId: null,
   codeFilter: '',
+  textQuery: '',     // full-text search over all documents (tab 1, left column)
+  searchHits: [],    // [{ docId, s, e }] for textQuery, in document order
+  searchIdx: -1,     // hit shown in the viewer
+  // Read extracts from one group: null | { type: 'attr', key, value } | { type: 'par', id }.
+  // For reading across groups only: counts, the theme structure and exports ignore it.
+  extractFilter: null,
   themeStatusFilter: 'all',
   themeView: (() => { try { return localStorage.getItem('ta_theme_view') === 'map' ? 'map' : 'board'; } catch (e) { return 'board'; } })(),
   openThemeExtracts: new Set(),
@@ -257,6 +263,27 @@ function coverage(segments) {
     for (const p of participantsForRange(s.docId, s.s, s.e)) if (!isInterviewer(p)) parts.add(p);
   }
   return { participants: parts, docs };
+}
+
+// Extract filter (by participant attribute or by participant): which participants are shown, or null for all
+function extractFilterParticipants() {
+  const f = state.extractFilter;
+  if (!f) return null;
+  if (f.type === 'par') return new Set([f.id]);
+  return new Set(state.participants.filter(p => String((p.attributes || {})[f.key] ?? '').trim() === f.value).map(p => p.id));
+}
+function matchesExtractFilter(docId, s, e, allowed = extractFilterParticipants()) {
+  if (!allowed) return true;
+  return participantsForRange(docId, s, e).some(id => allowed.has(id));
+}
+function filterSegments(segments) {
+  const allowed = extractFilterParticipants();
+  return allowed ? segments.filter(x => matchesExtractFilter(x.docId, x.s, x.e, allowed)) : segments;
+}
+function extractFilterLabel(f = state.extractFilter) {
+  if (!f) return '';
+  if (f.type === 'par') return participantById(f.id)?.label || '';
+  return `${f.key}: ${f.value}`;
 }
 
 // ========================================================

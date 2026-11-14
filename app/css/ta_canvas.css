@@ -70,3 +70,8 @@ body.journal-open > main { margin-right: 25rem; }
 .col-resizer:hover, .col-resizer.dragging { background: rgba(99, 102, 241, 0.35); }
 body.col-resizing { cursor: col-resize; user-select: none; }
 .center-col { max-width: 64rem; margin-left: auto; margin-right: auto; width: 100%; }
+
+/* Full-text search: hits are marked on top of any code highlight (background-image layers over the colour) */
+.search-hit { background-image: linear-gradient(rgba(250, 204, 21, 0.55), rgba(250, 204, 21, 0.55)); border-radius: 2px; }
+.search-hit-current { background-image: linear-gradient(rgba(249, 115, 22, 0.55), rgba(249, 115, 22, 0.55)); outline: 2px solid #f97316; outline-offset: 1px; }
+.search-mark { background: #fde68a; color: inherit; border-radius: 2px; padding: 0 1px; }

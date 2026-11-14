@@ -65,7 +65,7 @@ The RTARG prefers the heading **Analysis** over *Results* or *Findings*. The app
 | 27 | Use subthemes judiciously; avoid a fragmented, "bitty" structure | 🟡 | Only one level of subthemes is possible, and a theme with more than three subthemes gets a gentle hint. |
 | 28 | Make the analytic narrative explain meaning and significance; no frequency counts as justification; do not let data "speak for themselves" | ✅ | Phase 6 opens on the narrative editor. Prevalence counts are hidden by default and left out of exports unless chosen. |
 | 29 | Balance analytic narrative and data extracts drawn from across the dataset | ✅ | The theme's extracts sit next to the narrative and can be inserted at the cursor. The table's illustrative extracts are spread across participants, with key extracts first. |
-| 30 | Make narrative and extracts cohere; consider alternative readings | ✍️ | Every extract links back to its place in the source, which helps when re-reading in context. |
+| 30 | Make narrative and extracts cohere; consider alternative readings | ✍️ | Every extract links back to its place in the source, which helps when re-reading in context. Full-text search across all documents helps to look for talk that complicates a theme, and the extract filter lets you read a code's extracts group by group (for reading only: counts and exports are unchanged). |
 | 31 | Integrate existing research and theory into the analytic narrative (not a separate Results/Discussion split) | 🟡 | The narrative editor's guidance asks to weave research and theory into each theme rather than save them for a separate discussion. The writing is the researcher's. |
 
 ## The final section (General discussion, Conclusions, Implications…)
