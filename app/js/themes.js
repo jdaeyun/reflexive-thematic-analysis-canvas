@@ -25,7 +25,6 @@ function renderThemesView() {
   renderThemeToolbar();
   const isMap = state.themeView === 'map';
   document.getElementById('themeBoardPane').classList.toggle('hidden', isMap);
-  document.getElementById('themePoolPane').classList.toggle('hidden', isMap);
   document.getElementById('themeMapPane').classList.toggle('hidden', !isMap);
   document.getElementById('themeStatusFilter').classList.toggle('hidden', isMap);
   for (const [id, on] of [['viewBoardBtn', !isMap], ['viewMapBtn', isMap]]) {

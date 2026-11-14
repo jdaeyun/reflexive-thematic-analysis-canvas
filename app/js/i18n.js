@@ -287,7 +287,8 @@ I18N.en = {
   'log.conclusions': 'Wrote the general discussion',
   'hint.themeName': 'This name may only name a topic. A theme name can tell its story — a short quote from the data can work.',
   'hint.subthemes': '{n} subthemes: use them only where they show an important facet of the theme\'s central concept, to avoid a fragmented structure.',
-  'hint.manyThemes': '{n} themes: many themes for one report can leave each one thin. Could some be combined, or set aside?'
+  'hint.manyThemes': '{n} themes: many themes for one report can leave each one thin. Could some be combined, or set aside?',
+  'layout.resize': 'Drag to resize this column (all tabs share the width; double-click to reset)'
 };
 
 I18N.ja = {
@@ -553,7 +554,8 @@ I18N.ja = {
   'log.conclusions': '総合考察を書いた',
   'hint.themeName': 'この名前は話題を示すだけかもしれません。テーマ名はその物語を伝えられます。データからの短い引用も使えます。',
   'hint.subthemes': 'サブテーマが {n} 個あります。構造が細切れにならないよう、テーマの中心となる考えの重要な側面を示す場合にだけ使いましょう。',
-  'hint.manyThemes': 'テーマが {n} 個あります。1本の論文にテーマが多いと、一つひとつが薄くなりがちです。まとめられるもの、保留にできるものはありませんか？'
+  'hint.manyThemes': 'テーマが {n} 個あります。1本の論文にテーマが多いと、一つひとつが薄くなりがちです。まとめられるもの、保留にできるものはありませんか？',
+  'layout.resize': 'ドラッグで列の幅を変更（全タブ共通。ダブルクリックで元に戻す）'
 };
 
 const SUPPORTED_LANGS = Object.keys(I18N);

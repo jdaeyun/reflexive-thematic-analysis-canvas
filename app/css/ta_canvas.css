@@ -61,3 +61,12 @@ body.journal-open > main { margin-right: 25rem; }
 #mapLinkBtn.map-link-on { background: #ede9fe; border-color: #a78bfa; color: #5b21b6; }
 #themeMapWrap svg { display: block; touch-action: none; }
 .map-link:hover line:last-of-type { stroke: #7c3aed; }
+
+/* Shared layout: the left column has one width in every tab (resizable, remembered), and the content of the
+   centre column is centred at one maximum width, so switching tabs does not move the page around. */
+:root { --left-w: 17rem; }
+.left-col { width: var(--left-w); flex-shrink: 0; position: relative; }
+.col-resizer { position: absolute; top: 0; right: -3px; width: 6px; height: 100%; cursor: col-resize; z-index: 15; }
+.col-resizer:hover, .col-resizer.dragging { background: rgba(99, 102, 241, 0.35); }
+body.col-resizing { cursor: col-resize; user-select: none; }
+.center-col { max-width: 64rem; margin-left: auto; margin-right: auto; width: 100%; }

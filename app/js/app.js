@@ -109,6 +109,43 @@ async function resetProject() {
 }
 
 // ========================================================
+// LAYOUT: one resizable left column shared by every tab
+// ========================================================
+const LEFT_W = { def: 272, min: 200, max: 480 };
+function applyLeftWidth(px) {
+  const w = Math.max(LEFT_W.min, Math.min(LEFT_W.max, Math.round(px)));
+  document.documentElement.style.setProperty('--left-w', `${w}px`);
+  return w;
+}
+function setupColumnResize() {
+  let saved = LEFT_W.def;
+  try { saved = Number(localStorage.getItem('ta_left_w')) || LEFT_W.def; } catch (e) { /* private mode */ }
+  applyLeftWidth(saved);
+  document.querySelectorAll('.col-resizer').forEach(h => {
+    h.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      const col = h.parentElement;
+      const startX = e.clientX, startW = col.getBoundingClientRect().width;
+      h.setPointerCapture(e.pointerId);
+      h.classList.add('dragging'); document.body.classList.add('col-resizing');
+      const move = (ev) => applyLeftWidth(startW + ev.clientX - startX);
+      const up = (ev) => {
+        h.releasePointerCapture(e.pointerId);
+        h.removeEventListener('pointermove', move); h.removeEventListener('pointerup', up);
+        h.classList.remove('dragging'); document.body.classList.remove('col-resizing');
+        const w = applyLeftWidth(startW + ev.clientX - startX);
+        try { localStorage.setItem('ta_left_w', String(w)); } catch (err) { /* private mode */ }
+      };
+      h.addEventListener('pointermove', move); h.addEventListener('pointerup', up);
+    });
+    h.addEventListener('dblclick', () => {
+      applyLeftWidth(LEFT_W.def);
+      try { localStorage.removeItem('ta_left_w'); } catch (e) { /* private mode */ }
+    });
+  });
+}
+
+// ========================================================
 // STARTUP
 // ========================================================
 function setupShellEvents() {
@@ -174,6 +211,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const ver = document.getElementById('appVersionLabel');
   if (ver && window.TA_CANVAS) ver.textContent = `v${window.TA_CANVAS.version}`;
   setupShellEvents();
+  setupColumnResize();
   setupCodingEvents();
   setupThemeEvents();
   setupMapEvents();
