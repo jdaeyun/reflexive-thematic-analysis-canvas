@@ -36,6 +36,26 @@ function renderHeader() {
   document.getElementById('projectBtnCompact').title = `${tr('hdr.projectSetup')}: ${state.meta.name || tr('hdr.untitled')}`;
   const rid = document.getElementById('researcherIdInput');
   if (document.activeElement !== rid) rid.value = state.researcherId;
+  renderLastBackup();
+}
+
+// "Last backup: 3 days ago" in the header. Deliberately passive: no prompt, no colour change, nothing that
+// interrupts the analysis. Hidden on an empty project.
+function renderLastBackup() {
+  const el = document.getElementById('lastBackupLabel');
+  if (!el) return;
+  const ts = state.meta.lastBackupAt;
+  el.classList.toggle('hidden', !ts && !state.docs.length);
+  el.textContent = ts ? tr('hdr.lastBackup', { when: relativeTime(ts) }) : tr('hdr.noBackup');
+  el.title = ts ? tr('hdr.lastBackupTitle', { time: fmtTime(ts) }) : tr('hdr.backupTitle');
+}
+function relativeTime(ts) {
+  const sec = Math.max(0, (Date.now() - ts) / 1000);
+  if (sec < 60) return tr('time.justNow');
+  const rtf = new Intl.RelativeTimeFormat(localeOf(), { numeric: 'auto' });
+  if (sec < 3600) return rtf.format(-Math.floor(sec / 60), 'minute');
+  if (sec < 86400) return rtf.format(-Math.floor(sec / 3600), 'hour');
+  return rtf.format(-Math.floor(sec / 86400), 'day');
 }
 
 // ========================================================
@@ -75,10 +95,13 @@ async function saveProjectModal() {
 // ========================================================
 // BACKUP / RESTORE / RESET
 // ========================================================
-function backupProject() {
+async function backupProject() {
+  state.meta.lastBackupAt = Date.now(); // saved in the backup too: a restored project shows when that copy was made
   const payload = { app: 'thematic-analysis-canvas', schema: 1, appVersion: window.TA_CANVAS?.version || '', exportedAt: new Date().toISOString(), exportedBy: state.researcherId || '', meta: state.meta };
   for (const c of COLLECTIONS) payload[c] = state[c];
   downloadBlob(new Blob([JSON.stringify(payload, null, 1)], { type: 'application/json' }), `${safeFileStem()}_${new Date().toISOString().slice(0, 10)}.json`);
+  renderLastBackup();
+  await saveMeta();
   promptNote({ title: tr('prompt.backup'), placeholder: tr('prompt.backupPh'), mode: 'journal', journalType: 'session', ttl: 15000 });
 }
 async function restoreProject(file) {
@@ -233,5 +256,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   renderHeader();
   updateAuditBadge();
   updateUndoButton();
+  setInterval(renderLastBackup, 60000); // keep "… ago" current
   if (!state.meta.name && !state.docs.length) openProjectModal();
 });
