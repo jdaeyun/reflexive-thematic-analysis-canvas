@@ -38,3 +38,7 @@
 /* Phase guide */
 .phase-step { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; font-size: 11px; border: 1px solid #e2e8f0; background: #fff; color: #94a3b8; white-space: nowrap; }
 .phase-step.on { background: #eef2ff; border-color: #c7d2fe; color: #3730a3; font-weight: 700; }
+
+/* Journal drawer docks on the right: the workspace narrows so codes and themes stay usable */
+body.journal-open > main { margin-right: 25rem; }
+@media (max-width: 1100px) { body.journal-open > main { margin-right: 0; } }

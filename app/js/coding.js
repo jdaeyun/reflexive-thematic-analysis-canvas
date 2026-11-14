@@ -472,6 +472,7 @@ async function deleteActiveDocument() {
 // RIGHT: SELECTION, CODEBOOK, SEGMENT DETAILS
 // ========================================================
 function renderSelectionPanel() {
+  if (typeof refreshJournalContext === 'function') refreshJournalContext();
   const el = document.getElementById('selectionPanel');
   const ps = state.pendingSel;
   if (!ps) {
@@ -564,6 +565,7 @@ function openCodeEditor(codeId) {
   const merge = document.getElementById('codeEditMerge');
   merge.innerHTML = `<option value="">— merge into another code —</option>` + sortedCodes().filter(x => x.id !== c.id).map(x => `<option value="${x.id}">${escapeHtml(x.name)}</option>`).join('');
   document.getElementById('codeEditUsage').textContent = `${segmentsForCode(c.id).length} extracts`;
+  document.getElementById('codeEditReason').value = '';
   modal.classList.remove('hidden');
 
   document.getElementById('codeEditSave').onclick = async () => {
@@ -574,24 +576,25 @@ function openCodeEditor(codeId) {
     if (name.toLowerCase() !== c.name.toLowerCase() && state.codes.some(x => x.id !== c.id && x.name.toLowerCase() === name.toLowerCase())) {
       alert(`A code called “${name}” already exists. Use “Merge” instead.`); return;
     }
-    if (name !== c.name) await recordLog({ category: 'codebook', action: 'Renamed code', from: c.name, to: name });
+    const reason = document.getElementById('codeEditReason').value.trim();
+    const target = merge.value;
+    if (name !== c.name) await recordLog({ category: 'codebook', action: 'Renamed code', from: c.name, to: name, reason: target ? '' : reason });
     if (desc !== (c.description || '')) await recordLog({ category: 'codebook', action: `Updated description of “${name}”`, from: c.description || '', to: desc });
     c.name = name; c.description = desc; c.color = color;
     await dbPut('codes', c);
-    const target = merge.value;
     modal.classList.add('hidden');
-    if (target) await mergeCodes(c.id, target);
+    if (target) await mergeCodes(c.id, target, reason);
     renderAll();
   };
   document.getElementById('codeEditDelete').onclick = async () => {
     const n = segmentsForCode(c.id).length;
     if (!confirm(`Delete code “${c.name}”?${n ? ` It is removed from ${n} extract(s); extracts with no other code are removed.` : ''} (You can undo.)`)) return;
     modal.classList.add('hidden');
-    await deleteCode(c.id);
+    await deleteCode(c.id, document.getElementById('codeEditReason').value.trim());
   };
 }
 
-async function mergeCodes(sourceId, targetId) {
+async function mergeCodes(sourceId, targetId, reason = '') {
   const src = codeById(sourceId), tgt = codeById(targetId);
   if (!src || !tgt) return;
   pushUndo(`Merge “${src.name}” into “${tgt.name}”`, ['codes', 'segments']);
@@ -608,12 +611,12 @@ async function mergeCodes(sourceId, targetId) {
   await dbPutMany('segments', changed);
   await dbPut('codes', tgt);
   await dbDelete('codes', sourceId);
-  await recordLog({ category: 'codebook', action: `Merged code “${src.name}” into “${tgt.name}”`, detail: `${changed.length} extract(s) recoded`, from: src.name, to: tgt.name });
+  await recordLog({ category: 'codebook', action: `Merged code “${src.name}” into “${tgt.name}”`, detail: `${changed.length} extract(s) recoded`, from: src.name, to: tgt.name, reason });
   showToast(`Merged into “${tgt.name}”`, 'success');
   renderAll();
 }
 
-async function deleteCode(codeId) {
+async function deleteCode(codeId, reason = '') {
   const c = codeById(codeId);
   if (!c) return;
   pushUndo(`Delete code “${c.name}”`, ['codes', 'segments']);
@@ -628,12 +631,13 @@ async function deleteCode(codeId) {
   await dbPutMany('segments', changed);
   await dbDeleteMany('segments', removed.map(s => s.id));
   await dbDelete('codes', codeId);
-  await recordLog({ category: 'codebook', action: `Deleted code “${c.name}”`, detail: `${changed.length + removed.length} extract(s) affected` });
+  await recordLog({ category: 'codebook', action: `Deleted code “${c.name}”`, detail: `${changed.length + removed.length} extract(s) affected`, reason });
   if (removed.some(s => s.id === state.activeSegId)) state.activeSegId = null;
   renderAll();
 }
 
 function renderSegmentPanel() {
+  if (typeof refreshJournalContext === 'function') refreshJournalContext();
   const el = document.getElementById('segmentPanel');
   const seg = state.segments.find(s => s.id === state.activeSegId);
   if (!seg) { el.classList.add('hidden'); el.innerHTML = ''; return; }

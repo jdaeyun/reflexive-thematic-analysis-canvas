@@ -153,17 +153,34 @@ function getTableSpec(id, opts = exportOptions()) {
     const logs = opts.includeCodingActions ? state.logs.filter(l => l.category !== 'system') : filteredLogs('decisions');
     return {
       title: 'Appendix A. Audit trail and reflexive journal',
-      note: opts.includeCodingActions ? 'All entries, including single coding actions.' : 'Interpretive decisions and journal entries (single coding actions omitted).',
+      note: (opts.includeCodingActions ? 'All entries, including single coding actions.' : 'Interpretive decisions and journal entries (single coding actions omitted).') + ' “Why” is the reason recorded with a decision; “About” links a note to an earlier entry.',
       headers: ['Date', 'Type', 'Entry', 'Details'],
       rows: logs.map(l => [
         fmtTime(l.ts) + (l.by ? `\n${l.by}` : ''),
         (LOG_CATEGORIES[l.category] || LOG_CATEGORIES.system).label,
         l.action,
-        [l.detail, l.from ? `From: ${l.from}` : '', l.to ? `To: ${l.to}` : ''].filter(Boolean).join('\n') || '—'
+        [
+          l.detail,
+          l.from ? `From: ${l.from}` : '',
+          l.to ? `To: ${l.to}` : '',
+          l.reason ? `Why: ${l.reason}` : '',
+          l.linkedLogId ? `About: ${state.logs.find(x => x.id === l.linkedLogId)?.action || '(removed entry)'}` : '',
+          logContextText(l.ctx)
+        ].filter(Boolean).join('\n') || '—'
       ])
     };
   }
   return { title: '', note: '', headers: [], rows: [] };
+}
+
+function logContextText(ctx) {
+  if (!ctx) return '';
+  const parts = [];
+  if (ctx.doc) parts.push(`document “${ctx.doc.name}”`);
+  if (ctx.extract) parts.push(`extract “${clip(ctx.extract.text, 80)}”`);
+  if (ctx.quote) parts.push(`passage “${clip(ctx.quote.text, 80)}”`);
+  if (ctx.theme) parts.push(`theme “${ctx.theme.name}”`);
+  return parts.length ? `Context: ${parts.join(' · ')}` : '';
 }
 
 // ========================================================

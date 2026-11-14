@@ -21,6 +21,7 @@ function switchTab(tab) {
   }
   try { localStorage.setItem('ta_active_tab', tab); } catch (e) { /* private mode */ }
   TABS[tab].render();
+  if (typeof refreshJournalContext === 'function') refreshJournalContext();
 }
 
 function renderAll() {
@@ -65,7 +66,7 @@ function backupProject() {
   const payload = { app: 'thematic-analysis-canvas', schema: 1, appVersion: window.TA_CANVAS?.version || '', exportedAt: new Date().toISOString(), exportedBy: state.researcherId || '', meta: state.meta };
   for (const c of COLLECTIONS) payload[c] = state[c];
   downloadBlob(new Blob([JSON.stringify(payload, null, 1)], { type: 'application/json' }), `${safeFileStem()}_${new Date().toISOString().slice(0, 10)}.json`);
-  showToast('Backup saved. It contains the full text of your documents — store it like raw data.', 'success');
+  promptNote({ title: 'Backup saved (it contains the full text of your documents — store it like raw data). A note on this session?', placeholder: 'What did you work on, what is still open? (optional — Enter to save)', mode: 'journal', journalType: 'Session note', ttl: 15000 });
 }
 async function restoreProject(file) {
   let data;
@@ -136,6 +137,7 @@ function setupShellEvents() {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !typing) { e.preventDefault(); performUndo(); }
     if (e.key === 'Escape') {
       document.querySelectorAll('.ta-modal:not(.hidden)').forEach(m => m.classList.add('hidden'));
+      closeJournal();
       if (state.pendingSel) clearPendingSelection();
     }
     // With text selected in the viewer, start typing a code name right away
@@ -154,6 +156,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupThemeEvents();
   setupAuditEvents();
   setupExportEvents();
+  setupJournalEvents();
   try {
     await loadAll();
   } catch (e) {

@@ -14,7 +14,7 @@ const LOG_CATEGORIES = {
   system:          { label: 'System', icon: 'ph-gear', cls: 'bg-slate-100 text-slate-500' }
 };
 
-const JOURNAL_TYPES = ['Reflexive memo', 'Familiarisation note', 'Analytic decision', 'Supervisor / team meeting', 'Positionality'];
+const JOURNAL_TYPES = ['Reflexive memo', 'Familiarisation note', 'Analytic decision', 'Session note', 'Supervisor / team meeting', 'Positionality'];
 
 function renderAuditView() {
   const filter = document.getElementById('auditFilter');
@@ -31,8 +31,10 @@ function renderAuditView() {
     list.innerHTML = `<div class="text-xs text-slate-400 p-8 text-center bg-white border border-dashed border-slate-300 rounded-xl">Nothing logged yet.</div>`;
     return;
   }
+  const notedIds = new Set(state.logs.filter(x => x.linkedLogId).map(x => x.linkedLogId));
   list.innerHTML = logs.map(l => {
     const c = LOG_CATEGORIES[l.category] || LOG_CATEGORIES.system;
+    const linked = l.linkedLogId ? state.logs.find(x => x.id === l.linkedLogId) : null;
     const fromTo = (l.from || l.to) ? `<div class="mt-1 text-[11px] grid grid-cols-[auto_1fr] gap-x-2 gap-y-0.5">
         ${l.from ? `<span class="text-slate-400">from</span><span class="text-slate-500 line-through decoration-slate-300 whitespace-pre-wrap">${escapeHtml(l.from)}</span>` : ''}
         ${l.to ? `<span class="text-slate-400">to</span><span class="text-slate-700 whitespace-pre-wrap">${escapeHtml(l.to)}</span>` : ''}</div>` : '';
@@ -42,11 +44,22 @@ function renderAuditView() {
         <span>${fmtTime(l.ts)}</span>${l.by ? `<span>· ${escapeHtml(l.by)}</span>` : ''}
         ${l.category === 'journal' ? `<button class="log-del ml-auto text-slate-300 hover:text-rose-600 cursor-pointer" data-log="${l.id}" title="Delete journal entry"><i class="ph ph-trash"></i></button>` : ''}
       </div>
+      ${linked ? `<div class="mt-1 text-[10px] text-slate-500"><i class="ph ph-link-simple"></i> About: ${escapeHtml(clip(linked.action, 100))} <span class="text-slate-400">(${fmtTime(linked.ts)})</span></div>` : ''}
       <div class="text-xs text-slate-800 mt-1 font-medium whitespace-pre-wrap">${escapeHtml(l.action)}</div>
-      ${l.detail ? `<div class="text-[11px] text-slate-500 mt-0.5 whitespace-pre-wrap">${escapeHtml(l.detail)}</div>` : ''}
+      ${l.detail ? `<div class="${l.category === 'journal' ? 'text-xs text-slate-700' : 'text-[11px] text-slate-500'} mt-0.5 whitespace-pre-wrap">${escapeHtml(l.detail)}</div>` : ''}
       ${fromTo}
+      ${l.reason ? `<div class="mt-1.5 text-[11px] bg-purple-50 border border-purple-100 rounded px-2 py-1"><span class="font-bold text-purple-700">Why:</span> <span class="text-slate-700 whitespace-pre-wrap">${escapeHtml(l.reason)}</span></div>` : ''}
+      ${(l.ctx || l.snapshot) ? `<div class="log-ctx mt-1.5 flex flex-wrap items-center gap-1" data-log="${l.id}">${contextChipsHtml(l.ctx)}
+        ${l.snapshot ? `<button type="button" class="log-snap inline-flex items-center gap-1 text-[10px] text-indigo-700 border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 rounded px-1.5 py-0.5 cursor-pointer" title="Code and theme structure at this moment, and what has changed since"><i class="ph ph-tree-structure"></i>Structure then</button>` : ''}</div>` : ''}
+      ${l.category !== 'journal' && l.category !== 'coding' && l.category !== 'system' && !notedIds.has(l.id) ? `<button type="button" class="log-note mt-1 text-[10px] text-slate-400 hover:text-purple-700 cursor-pointer" data-log="${l.id}"><i class="ph ph-note-pencil"></i> Add a note</button>` : ''}
     </div>`;
   }).join('');
+  list.querySelectorAll('.log-ctx').forEach(row => {
+    const log = state.logs.find(x => x.id === row.dataset.log);
+    row.querySelectorAll('.ctx-go').forEach(b => b.onclick = () => goToContext(log.ctx, b.closest('.ctx-chip').dataset.key));
+    row.querySelector('.log-snap')?.addEventListener('click', () => openSnapshot(log.id));
+  });
+  list.querySelectorAll('.log-note').forEach(b => b.onclick = () => openJournal({ linkedLogId: b.dataset.log, type: 'Analytic decision' }));
   list.querySelectorAll('.log-del').forEach(b => b.onclick = async () => {
     if (!confirm('Delete this journal entry?')) return;
     pushUndo('Delete journal entry', ['logs']);
@@ -68,7 +81,7 @@ async function addJournalEntry() {
   const ta = document.getElementById('journalText');
   const text = ta.value.trim();
   if (!text) return;
-  await recordLog({ category: 'journal', action: type, detail: text });
+  await recordLog({ category: 'journal', action: type, detail: text, snapshot: takeSnapshot() });
   ta.value = '';
   renderAuditView();
   showToast('Journal entry added', 'success');
