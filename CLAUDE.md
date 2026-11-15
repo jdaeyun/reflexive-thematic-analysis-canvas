@@ -69,7 +69,10 @@ Renamed from Thematic Analysis Canvas in the v0.1 beta: Restore still accepts ba
   [centre column: phase strip on top, content in `.center-col` (centred, one max width)] [+ right column in tab 1].
   Keep new tabs and views to this shape so switching tabs does not move the page.
 - Journal drawer: docked beside the workspace on wide screens; at ≤1100px it overlays and closes on an
-  outside click (light dismiss). Closing never discards the draft (dot on the Journal button + edge handle).
+  outside click (light dismiss). In tab 1 below 1700px it covers the right column instead of pushing the page (the
+  viewer would be squeezed); `#viewerScroll` is a size container that compacts `.ta-block` when it is narrow.
+- Coding highlights follow `markerStyle()` (MARKER_STYLES in core.js; gear menu, `ta_marker_style`): never hard-code
+  highlight opacities in renderers. Closing never discards the draft (dot on the Journal button + edge handle).
 - Reflexive notes are never required: no blocking dialogs asking for a note. Use `promptNote()` (small,
   self-dismissing) after significant decisions only, never after single coding actions.
 - Before destructive changes call `pushUndo(label, [collections])` (snapshots whole collections).

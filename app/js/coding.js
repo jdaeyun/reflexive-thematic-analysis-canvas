@@ -183,8 +183,9 @@ function renderBlock(doc, b, bi, segs, pts, showLabels, hits = []) {
     const codeIds = [];
     for (const s of cover) for (const c of s.codeIds) if (!codeIds.includes(c)) codeIds.push(c);
     const colors = codeIds.map(id => codeById(id)?.color).filter(Boolean);
-    const bg = hexAlpha(colors[0] || '#94a3b8', codeIds.length > 1 ? 0.34 : 0.24);
-    const shadows = colors.slice(0, 4).map((c, k) => `inset 0 -${(k + 1) * 3}px 0 ${c}`).join(',');
+    const ms = markerStyle();
+    const bg = ms.bg ? hexAlpha(colors[0] || '#94a3b8', codeIds.length > 1 ? ms.bgMulti : ms.bg) : 'transparent';
+    const shadows = colors.slice(0, 4).map((c, k) => `inset 0 -${(k + 1) * ms.lineW}px 0 ${ms.line < 1 ? hexAlpha(c, ms.line) : c}`).join(',');
     const active = cover.some(s => s.id === state.activeSegId) ? ' seg-active' : '';
     const title = codeIds.map(id => codeById(id)?.name).filter(Boolean).join(' · ');
     html += `<span class="seg${active}${hitCls}" data-s="${a}"${hitAttr} data-segs="${cover.map(s => s.id).join(' ')}" style="background:${bg};box-shadow:${shadows}" title="${escapeHtml(title)}">${txt}</span>`;

@@ -43,7 +43,7 @@
       <!-- On narrow screens the logo opens project setup; the title block appears from xl -->
       <button id="projectBtnCompact" type="button" class="bg-teal-600 text-white p-2.5 rounded-lg flex items-center justify-center shadow shrink-0 cursor-pointer"><i class="ph ph-tag text-lg"></i></button>
       <div class="hidden xl:flex flex-col min-w-0">
-        <h1 class="text-sm font-bold text-slate-900 leading-tight truncate"><span data-i18n="hdr.title">Thematic Analysis</span> <span class="text-[10px] font-bold text-amber-700 bg-amber-100 rounded px-1 py-0.5 align-middle" data-i18n="hdr.prototype">PROTOTYPE</span></h1>
+        <h1 class="text-sm font-bold text-slate-900 leading-tight truncate"><span data-i18n="hdr.title">Reflexive Thematic Analysis</span> <span class="text-[10px] font-bold text-amber-700 bg-amber-100 rounded px-1 py-0.5 align-middle" data-i18n="hdr.prototype">PROTOTYPE</span></h1>
         <button id="projectBtn" type="button" class="flex items-center space-x-1 text-xs text-teal-700 font-semibold cursor-pointer hover:underline text-left truncate mt-0.5" data-i18n-title="hdr.projectSetup" title="Project setup">
           <i class="ph ph-folder-notch-open text-[11px] shrink-0"></i><span id="projectNameLabel" class="truncate">Untitled project</span>
         </button>
@@ -77,6 +77,14 @@
               <option value="auto" data-i18n="lang.auto">Automatic (browser language)</option>
               <option value="en">English</option>
               <option value="ja">日本語</option>
+            </select>
+          </label>
+          <label class="block px-3 py-2 border-b border-slate-100 text-[11px] font-semibold text-slate-500">
+            <span class="flex items-center gap-1.5"><i class="ph ph-highlighter"></i><span data-i18n="marker.label">Coding highlights</span></span>
+            <select id="menuMarker" class="mt-1 w-full text-xs font-normal text-slate-800 border border-slate-300 rounded px-1.5 py-1 bg-white">
+              <option value="standard" data-i18n="marker.standard">Standard</option>
+              <option value="soft" data-i18n="marker.soft">Soft (easier on the eyes)</option>
+              <option value="underline" data-i18n="marker.underline">Underline only</option>
             </select>
           </label>
           <button id="restoreBtn" class="w-full text-left px-3 py-2 text-xs hover:bg-slate-50 text-slate-700 flex items-center space-x-2 border-b border-slate-100"><i class="ph ph-upload-simple"></i><span data-i18n="menu.restore">Restore backup</span></button>
