@@ -1,7 +1,8 @@
-# Thematic Analysis Canvas — notes for AI assistants
+# Reflexive Thematic Analysis Canvas — notes for AI assistants
 
 Browser-only app for reflexive thematic analysis of text data (Braun & Clarke). Reflexive TA is the only
-approach supported for now: no inter-coder agreement statistics, no codebook / framework mode. No server, no build step to run it,
+approach, by design (hence the name): no inter-coder agreement statistics, no codebook / framework mode, and none
+planned — those approaches need the opposite design choices and would belong in a separate app. No server, no build step to run it,
 no AI features (a deliberate design choice: do not add LLM calls). Works online and offline: opening
 `ta_canvas.html` by double-click (file://) must keep working.
 Third-party libraries are bundled in `app/vendor/` (committed): Tailwind 3.4.17 (prebuilt CSS), Phosphor Icons
@@ -33,7 +34,11 @@ tools/site-screenshots.cjs  rebuilds the screenshots from samples/tutorial (need
 docs/rtarg-mapping*.md how the app maps to the RTARG (Braun & Clarke 2024); update it when a change affects reporting
 ```
 
-## Data model (IndexedDB `ThematicAnalysisCanvasDB`)
+## Data model (IndexedDB `ReflexiveThematicAnalysisCanvasDB`)
+
+Renamed from Thematic Analysis Canvas in the v0.1 beta: Restore still accepts backups whose `app` is
+`thematic-analysis-canvas`. The old IndexedDB (`ThematicAnalysisCanvasDB`) is not migrated.
+
 
 - `docs`: `{ id, name, kind, encoding, text, blocks: [{ s, e, label }], defaultParticipantId, note }`.
   `text` is fixed at import. Never change it afterwards: everything else points at character offsets in it.
@@ -101,10 +106,10 @@ Test both ways after changes: http and double-clicking ta_canvas.html (file://).
 zip per language on every push to main; pages link to the app as `../ta_canvas.html`. When a change is visible in the
 UI or changes how something works, update BOTH languages of the 101 and the guide, and re-run
 `node tools/site-screenshots.cjs` if screenshots are affected. UI labels quoted on the site must match `I18N` exactly
-(`<span class="ui">`). The app's gear menu links to `{ja,en}/guide.html` (TA_SITE_URL in app.js).
+(`<span class="ui">`). Japanese wording: コーディング (not コード化), フェーズ for phases, ステータス for a theme's status. The app's gear menu links to `{ja,en}/guide.html` (TA_SITE_URL in app.js).
 
 ## Releases
 
 Update `app/version.js` and `CITATION.cff` (same version and date), commit, then publish a GitHub release
 tagged `vX.Y.Z`. `.github/workflows/offline-zip.yml` checks the versions and attaches
-`thematic-analysis-canvas-offline.zip` (app + samples + README) to the release.
+`reflexive-thematic-analysis-canvas-offline.zip` (app + samples + README) to the release.

@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>101 — はじめての再帰的テーマ分析 | テーマ分析キャンバス</title>
-  <meta name="description" content="練習用の架空データを使って、テーマ分析キャンバスで再帰的テーマ分析の6段階をひととおり体験するチュートリアル（約45分）。">
+  <title>101 — はじめての再帰的テーマ分析 | Reflexive Thematic Analysis Canvas</title>
+  <meta name="description" content="練習用の架空データを使って、Reflexive Thematic Analysis Canvas で再帰的テーマ分析の6つのフェーズをひととおり体験するチュートリアル（約45分）。">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏷️</text></svg>">
   <link rel="alternate" hreflang="en" href="../en/101.html">
   <link rel="stylesheet" href="../assets/site.css">
@@ -13,12 +13,12 @@
 <a class="skip" href="#main">本文へ移動</a>
 <header class="site-header">
   <div class="inner">
-    <a class="brand" href="index.html"><span class="logo">🏷️</span><span class="name">テーマ分析キャンバス</span></a>
+    <a class="brand" href="index.html"><span class="logo">🏷️</span><span class="name">Reflexive Thematic Analysis Canvas</span></a>
     <nav class="nav" aria-label="サイト内">
       <a href="index.html">ホーム</a>
       <a href="101.html" aria-current="page">101</a>
       <a href="guide.html">使い方ガイド</a>
-      <a href="https://github.com/jdaeyun/thematic-analysis-canvas">GitHub</a>
+      <a href="https://github.com/jdaeyun/reflexive-thematic-analysis-canvas">GitHub</a>
       <a class="lang" href="../en/101.html" hreflang="en" lang="en">English</a>
       <a class="open-app" href="../ta_canvas.html">アプリを開く</a>
     </nav>
@@ -34,7 +34,7 @@
       <li><a href="#s1"><span class="phase-num">1</span>アプリを開く</a></li>
       <li><a href="#s2"><span class="phase-num">2</span>データを取り込む</a></li>
       <li><a href="#s3"><span class="phase-num">3</span>データに慣れる</a></li>
-      <li><a href="#s4"><span class="phase-num">4</span>コード化</a></li>
+      <li><a href="#s4"><span class="phase-num">4</span>コーディング</a></li>
       <li><a href="#s5"><span class="phase-num">5</span>初期テーマの生成</a></li>
       <li><a href="#s6"><span class="phase-num">6</span>テーマの見直し</a></li>
       <li><a href="#s7"><span class="phase-num">7</span>定義と命名</a></li>
@@ -47,7 +47,7 @@
   <article class="article">
     <h1>101 — はじめての再帰的テーマ分析</h1>
     <div class="meta"><span>⏱ 約45分</span><span>📁 練習用データ（架空）を使います</span><span>🖥 パソコンのブラウザで</span></div>
-    <p>このチュートリアルでは、夜勤で働く人たちへの架空のインタビュー3件とアンケート1件を使って、データの取り込みから論文の原稿の書き出しまで、再帰的テーマ分析の6段階をひととおり体験します。操作を覚えることと同じくらい、<strong>アプリがなぜそう作られているか</strong>を知ってもらうことを大切にしています。</p>
+    <p>このチュートリアルでは、夜勤で働く人たちへの架空のインタビュー3件とアンケート1件を使って、データの取り込みから論文の原稿の書き出しまで、再帰的テーマ分析の6つのフェーズをひととおり体験します。操作を覚えることと同じくらい、<strong>アプリがなぜそう作られているか</strong>を知ってもらうことを大切にしています。</p>
 
     <!-- 0 -->
     <h2 id="s0"><span class="num">0</span>はじめに<span class="time">5分</span></h2>
@@ -66,16 +66,16 @@
     <div class="box why">
       <div class="box-title">💡 再帰的テーマ分析の考え方（3つだけ）</div>
       <ol>
-        <li><strong>コード化は解釈です。</strong>正解のコードがあるわけではなく、研究者の視点は取り除くべき偏りではなく、分析の資源です。</li>
-        <li><strong>テーマは「見つかる」ものではなく、研究者が「生成する」ものです。</strong>テーマは話題の要約ではなく、中心となる考えでまとまった「共有された意味のパターン」です。</li>
-        <li><strong>6段階は行き来しながら進みます。</strong>テーマを見直しているうちにコード化に戻る、ということが普通に起こります。</li>
+        <li><strong>コーディングは解釈です。</strong>正解のコードがあるわけではなく、研究者の視点は取り除くべき偏りではなく、分析の資源です。</li>
+        <li><strong>テーマは「見つかる」ものではなく、研究者が「生成する」ものです。</strong>テーマは話題の要約ではなく、核となる意味（中心概念）を軸にまとまった「共有された意味のパターン」です。</li>
+        <li><strong>6つのフェーズは行き来しながら進みます。</strong>テーマを見直しているうちにコーディングに戻る、ということが普通に起こります。</li>
       </ol>
       <p>このアプリの多くの設計（数を隠す、一致率を出さない、省察を残す）は、この3つから来ています。</p>
     </div>
 
     <!-- 1 -->
     <h2 id="s1"><span class="num">1</span>アプリを開いて、プロジェクトを設定する<span class="time">3分</span></h2>
-    <p>アプリはこのサイトの <a href="../ta_canvas.html">アプリを開く</a> からすぐに使えます。インターネットにつながっていない環境では、<a href="https://github.com/jdaeyun/thematic-analysis-canvas/releases">リリースページ</a>のオフライン版を展開して <code>ta_canvas.html</code> をダブルクリックします。</p>
+    <p>アプリはこのサイトの <a href="../ta_canvas.html">アプリを開く</a> からすぐに使えます。インターネットにつながっていない環境では、<a href="https://github.com/jdaeyun/reflexive-thematic-analysis-canvas/releases">リリースページ</a>のオフライン版を展開して <code>ta_canvas.html</code> をダブルクリックします。</p>
     <div class="box note">
       <div class="box-title">⚠️ オンライン版とオフライン版は、保存場所が別です</div>
       <p>データはブラウザの中に、開いた場所ごとに保存されます。オンライン版で作ったプロジェクトは、オフライン版からは見えません（逆も同じ）。どちらか一方に決めて使い、移すときはバックアップと復元を使ってください。</p>
@@ -100,14 +100,14 @@
       <div class="box-title">✋ やってみよう</div>
       <ol>
         <li>左上の<span class="ui">取り込み</span>を押して、3つのインタビュー（<code>.txt</code>）を選びます。画面にファイルをドロップしても取り込めます。</li>
-        <li>続けて <code>survey.csv</code> を取り込みます。列を選ぶ画面が出るので、<span class="ui">参加者ID</span>が「ID」、<span class="ui">コード化する</span>が2つの自由記述、<span class="ui">属性</span>が年代・職種・夜勤の形態になっていることを確かめて<span class="ui">取り込み</span>を押します。</li>
+        <li>続けて <code>survey.csv</code> を取り込みます。列を選ぶ画面が出るので、<span class="ui">参加者ID</span>が「ID」、<span class="ui">コーディングする</span>が2つの自由記述、<span class="ui">属性</span>が年代・職種・夜勤の形態になっていることを確かめて<span class="ui">取り込み</span>を押します。</li>
         <li>文書一覧で <code>interview_P01.txt</code> を開き、<span class="ui">話者を検出</span>を押し、確認が出たら OK を押します。「I：」で始まる行は聞き手、「P01：」で始まる行は P01 の発言としてタグが付きます。P02・P03 でも同じようにします。</li>
         <li>左の<span class="ui">参加者</span>一覧で P01 にマウスを重ね、鉛筆のアイコンから属性を入れます。1行に1つ、<code>年代: 40代</code>、<code>職種: 看護師</code>、<code>夜勤の形態: 2交代</code> のように書きます。P02 は「30代・介護福祉士・一人夜勤」、P03 は「20代・看護師・2交代」です。</li>
       </ol>
     </div>
     <figure>
-      <img src="../assets/img/ja/csv-import.webp" width="840" height="620" loading="lazy" alt="CSV の取り込み画面。列ごとに、参加者 ID・コード化する文章・属性のどれとして使うかを選ぶ。">
-      <figcaption>CSV の取り込み。1行が1人の参加者になり、選んだ文章の欄がそれぞれ1つの「回答」としてコード化できるようになります。</figcaption>
+      <img src="../assets/img/ja/csv-import.webp" width="840" height="620" loading="lazy" alt="CSV の取り込み画面。列ごとに、参加者 ID・コーディングする文章・属性のどれとして使うかを選ぶ。">
+      <figcaption>CSV の取り込み。1行が1人の参加者になり、選んだ文章の欄がそれぞれ1つの「回答」としてコーディングできるようになります。</figcaption>
     </figure>
     <div class="box why">
       <div class="box-title">💡 なぜ「話者」はコードと別なのか</div>
@@ -115,15 +115,15 @@
     </div>
 
     <!-- 3 -->
-    <h2 id="s3"><span class="num">3</span>段階1：データに慣れる<span class="time">5分</span></h2>
-    <span class="phase-tag">タブ1 · データに慣れる・コード化</span>
+    <h2 id="s3"><span class="num">3</span>フェーズ1：データに慣れる<span class="time">5分</span></h2>
+    <span class="phase-tag">タブ1 · データに慣れる・コーディング</span>
     <p>コードを付け始める前に、まずはデータ全体を読みます。繰り返し読み、気づいたこと、疑問、自分自身の反応をメモしておきます。</p>
     <div class="box try">
       <div class="box-title">✋ やってみよう</div>
       <ol>
         <li>3つのインタビューとアンケートを、コードを付けずに最後まで読みます。</li>
         <li>文書の上の<span class="ui">メモ</span>を押し、第一印象を書きます。例：「『最後の砦』という言葉が強く残った。責任の話なのに、語り口は淡々としている。」</li>
-        <li><kbd>Ctrl</kbd>+<kbd>J</kbd>（Mac は <kbd>⌘</kbd>+<kbd>J</kbd>）で省察ジャーナルを開き、種類を<span class="ui">ポジショナリティ（立場性）</span>にして、このテーマと自分との関係を書いてみます。例：「自分も夜勤経験者なので、夜勤の大変さを前提に読んでしまわないよう気をつける。」</li>
+        <li><kbd>Ctrl</kbd>+<kbd>J</kbd>（Mac は <kbd>⌘</kbd>+<kbd>J</kbd>）で省察ジャーナルを開き、種類を<span class="ui">ポジショナリティ（立場性）</span>にして、このテーマと自分との関係を書いてみます。例：「自分も夜勤経験者なので、自身の経験と照らし合わせつつも、参加者の固有の語りを自分の経験に引き寄せすぎないよう意識する。」</li>
       </ol>
     </div>
     <figure class="medium">
@@ -132,9 +132,9 @@
     </figure>
 
     <!-- 4 -->
-    <h2 id="s4"><span class="num">4</span>段階2：コード化<span class="time">10分</span></h2>
-    <span class="phase-tag">タブ1 · データに慣れる・コード化</span>
-    <p>データ全体を系統的にコード化します。コードは、研究の問いに関係しそうな意味を捉える「分析の道具」で、途中で名前を変えたり、統合したり、分けたりしてかまいません。</p>
+    <h2 id="s4"><span class="num">4</span>フェーズ2：コーディング<span class="time">10分</span></h2>
+    <span class="phase-tag">タブ1 · データに慣れる・コーディング</span>
+    <p>データ全体を系統的にコーディングします。コードは、研究の問いに関係しそうな意味を捉える「分析の道具」で、途中で名前を変えたり、統合したり、分けたりしてかまいません。</p>
 
     <h3>基本の操作</h3>
     <div class="box try">
@@ -153,7 +153,7 @@
     </figure>
 
     <h3>抜粋を開いて、印・メモ・範囲を整える</h3>
-    <p>色の付いた部分をクリックすると、その「コード化した抜粋」が右側に開きます。重なった抜粋は、クリックするたびに切り替わります。</p>
+    <p>色の付いた部分をクリックすると、その「コーディングした抜粋」が右側に開きます。重なった抜粋は、クリックするたびに切り替わります。</p>
     <ul>
       <li><strong>★ 代表抜粋</strong>：論文で引用したい抜粋に印を付けます。表の「代表的な抜粋」で優先的に使われます。</li>
       <li><strong>分析メモ</strong>：その抜粋について考えたことを書きます。</li>
@@ -161,7 +161,7 @@
       <li><strong>範囲を変える</strong>：抜粋を開いたまま文章を選び直し、<span class="ui">開いている抜粋の範囲をこの選択にする</span>を押します。<span class="ui">行全体</span>で、その行全体に広げることもできます。コード・メモ・印はそのまま残ります。</li>
     </ul>
     <figure>
-      <img src="../assets/img/ja/coding.webp" width="1440" height="860" loading="lazy" alt="コード化の画面全体。本文の右の余白に付いたコードの名前が並び、右側に開いた抜粋の詳細（代表抜粋の印、コード、メモ）が表示されている。">
+      <img src="../assets/img/ja/coding.webp" width="1440" height="860" loading="lazy" alt="コーディングの画面全体。本文の右の余白に付いたコードの名前が並び、右側に開いた抜粋の詳細（代表抜粋の印、コード、メモ）が表示されている。">
       <figcaption>左に文書と参加者、中央に本文（左に話者、右に付いたコード）、右に抜粋の詳細とコードの一覧。</figcaption>
     </figure>
 
@@ -179,12 +179,12 @@
       <figcaption>全文検索。大文字と小文字、全角と半角は区別しません。<kbd>Esc</kbd> で検索をやめると、文書の一覧に戻ります。</figcaption>
     </figure>
     <div class="box why">
-      <div class="box-title">💡 検索はコード化の代わりではない</div>
+      <div class="box-title">💡 検索はコーディングの代わりではない</div>
       <p>検索で見つかった箇所に機械的にコードを付けると、言葉の出現を数えることになってしまいます。検索は、データ全体を読み直すための入り口として使ってください。</p>
     </div>
 
     <h3>コードを整理する：名前の変更・統合・分割</h3>
-    <p>コード化が進むと、似たコードをまとめたくなったり、1つのコードに別々の意味が混ざっていると気づいたりします。コードの右の <strong>⋮</strong> から編集画面を開きます。</p>
+    <p>コーディングが進むと、似たコードをまとめたくなったり、1つのコードに別々の意味が混ざっていると気づいたりします。コードの右の <strong>⋮</strong> から編集画面を開きます。</p>
     <ul>
       <li><strong>名前・説明・色</strong>を変えられます。</li>
       <li><strong>統合</strong>：別のコードを選んで保存すると、このコードの抜粋がすべてそちらに移ります。</li>
@@ -199,12 +199,12 @@
       <div class="box-title">💡 なぜコードの数（出現頻度）が見えないのか</div>
       <p>コードやテーマに付いた抜粋数・参加者数は、初期設定で隠しています。数がいつも見えていると、「多い＝重要」という読み方に引っ張られるからです。必要なときは<span class="ui">数を表示</span>で一時的に出せます。</p>
     </div>
-    <p>このまま残りのデータもコード化します。時間がなければ、15個前後のコードを作ったところで次へ進んでかまいません。</p>
+    <p>このまま残りのデータもコーディングします。時間がなければ、15個前後のコードを作ったところで次へ進んでかまいません。</p>
 
     <!-- 5 -->
-    <h2 id="s5"><span class="num">5</span>段階3：初期テーマの生成<span class="time">5分</span></h2>
+    <h2 id="s5"><span class="num">5</span>フェーズ3：初期テーマの生成<span class="time">5分</span></h2>
     <span class="phase-tag">タブ2 · テーマ</span>
-    <p>コードを見渡し、中心となる共通の意味を持つコードを集めて、候補テーマを作ります。</p>
+    <p>コードを見渡し、テーマの核となる意味（中心概念）を共有するコードを集めて、候補テーマを作ります。</p>
     <div class="box try">
       <div class="box-title">✋ やってみよう</div>
       <ol>
@@ -216,26 +216,26 @@
       </ol>
     </div>
     <figure>
-      <img src="../assets/img/ja/themes.webp" width="1440" height="860" loading="lazy" alt="テーマのボード。テーマカードの中にコードが入り、段階4の見直しのチェック、段階5の定義、抜粋の一覧がある。">
+      <img src="../assets/img/ja/themes.webp" width="1440" height="860" loading="lazy" alt="テーマのボード。テーマカードの中にコードが入り、フェーズ4の見直しのチェック、フェーズ5の定義、抜粋の一覧がある。">
       <figcaption>テーマのボード。ここでは見直しと定義まで進んだ状態を示しています。最初はテーマ名とコードだけで十分です。</figcaption>
     </figure>
     <div class="box why">
-      <div class="box-title">💡 段階はテーマごとの「状態」</div>
-      <p>テーマにはそれぞれ<span class="ui">候補</span>（段階3）→<span class="ui">見直し済み</span>（段階4）→<span class="ui">定義済み</span>（段階5）、または<span class="ui">保留</span>という状態があります。あるテーマは定義済みなのに、別のテーマはまだ候補、ということがあって当然です。</p>
+      <div class="box-title">💡 フェーズはテーマごとの「ステータス」</div>
+      <p>テーマにはそれぞれ<span class="ui">候補</span>（フェーズ3）→<span class="ui">見直し済み</span>（フェーズ4）→<span class="ui">定義済み</span>（フェーズ5）、または<span class="ui">保留</span>というステータスがあります。あるテーマは定義済みなのに、別のテーマはまだ候補、ということがあって当然です。</p>
     </div>
 
     <!-- 6 -->
-    <h2 id="s6"><span class="num">6</span>段階4：テーマの見直し<span class="time">5分</span></h2>
+    <h2 id="s6"><span class="num">6</span>フェーズ4：テーマの見直し<span class="time">5分</span></h2>
     <span class="phase-tag">タブ2 · テーマ</span>
-    <p>候補テーマを、2つの水準でデータと照らし合わせます。1つは「そのテーマのコード化した抜粋が、まとまっているか」、もう1つは「そのテーマがデータ全体を捉えているか」です。</p>
+    <p>候補テーマを、2つの水準でデータと照らし合わせます。1つは「そのテーマのコーディングした抜粋が、まとまっているか」、もう1つは「そのテーマがデータ全体を捉えているか」です。</p>
     <div class="box try">
       <div class="box-title">✋ やってみよう</div>
       <ol>
-        <li>「夜の責任」のカードで<span class="ui">抜粋を表示</span>を押し、抜粋を通して読みます。まとまりがあれば<span class="ui">コード化したすべての抜粋と照合した</span>にチェックします。</li>
+        <li>「夜の責任」のカードで<span class="ui">抜粋を表示</span>を押し、抜粋を通して読みます。まとまりがあれば<span class="ui">コーディングしたすべての抜粋と照合した</span>にチェックします。</li>
         <li>左のコード一覧の上にある絞り込み（<span class="ui">すべての人の抜粋</span>）で「職種: 介護福祉士」を選びます。介護福祉士の語りだけが表示され、病院の看護師とは違う「一人夜勤」の重さが見えてきます。</li>
         <li>タブ1に戻って「好き」で検索してみます。P03 は「夜勤のほうが好き」と語っています。責任は重荷であると同時に、「任されている」手応えでもあるようです。</li>
         <li>この気づきをテーマに反映させます。例えば「任されることの手応え」を<span class="ui">＋ サブテーマ</span>として作り、関係するコードを移します。何を変えたか、なぜかを<span class="ui">見直しメモ</span>に書きます。</li>
-        <li>テーマの状態を<span class="ui">見直し済み</span>に変えます。下に小さな入力欄が出て、理由を書けます（書かなくても数秒で消えます）。</li>
+        <li>テーマのステータスを<span class="ui">見直し済み</span>に変えます。下に小さな入力欄が出て、理由を書けます（書かなくても数秒で消えます）。</li>
       </ol>
     </div>
     <figure>
@@ -252,15 +252,15 @@
     </div>
 
     <!-- 7 -->
-    <h2 id="s7"><span class="num">7</span>段階5：定義と命名<span class="time">5分</span></h2>
+    <h2 id="s7"><span class="num">7</span>フェーズ5：定義と命名<span class="time">5分</span></h2>
     <span class="phase-tag">タブ2 · テーマ</span>
-    <p>テーマごとに、中心となる考え、その範囲と境界、他のテーマとの関係を書き、テーマが語る物語を表す名前を付けます。</p>
+    <p>テーマごとに、テーマの核となる意味（中心概念）、その範囲と境界、他のテーマとの関係を書き、テーマが語る物語を表す名前を付けます。</p>
     <div class="box try">
       <div class="box-title">✋ やってみよう</div>
       <ol>
-        <li>「夜の責任」のカードで<span class="ui">段階5 · 定義と命名</span>を開き、定義を書きます。例：「夜には、安全を左右する最初の判断が少人数の夜勤者に委ねられる。このテーマの中心にあるのは、判断と責任が一人の側に寄せられていく経験である。」</li>
+        <li>「夜の責任」のカードで<span class="ui">フェーズ5 · 定義と命名</span>を開き、定義を書きます。例：「夜には、安全を左右する最初の判断が少人数の夜勤者に委ねられる。このテーマの中心にあるのは、判断と責任が一人の側に寄せられていく経験である。」</li>
         <li>テーマ名を、話題の見出しから物語を伝える名前に変えます。例：「夜の責任」→「『夜は、自分が最後の砦』」。参加者の言葉を使ってもかまいません。</li>
-        <li>状態を<span class="ui">定義済み</span>にします（定義がないまま選ぶと、先に定義を書くよう案内されます）。</li>
+        <li>ステータスを<span class="ui">定義済み</span>にします（定義がないまま選ぶと、先に定義を書くよう案内されます）。</li>
         <li><span class="ui">関係図</span>に切り替え、テーマをドラッグして配置します。<span class="ui">テーマをつなぐ</span>で2つのテーマを順にクリックし、線をクリックして関係に名前を付けます（例：「支えがあるから越えられる」）。</li>
       </ol>
     </div>
@@ -274,16 +274,16 @@
     </div>
 
     <!-- 8 -->
-    <h2 id="s8"><span class="num">8</span>段階6：執筆<span class="time">5分</span></h2>
+    <h2 id="s8"><span class="num">8</span>フェーズ6：執筆<span class="time">5分</span></h2>
     <span class="phase-tag">タブ4 · 執筆</span>
-    <p>段階6は、表を作ることではなく、書くことです。書くこと自体が分析の一部なので、このタブは表ではなく「分析の記述」の画面から始まります。</p>
+    <p>フェーズ6は、表を作ることではなく、書くことです。書くこと自体が分析の一部なので、このタブは表ではなく「分析の記述」の画面から始まります。</p>
     <div class="box try">
       <div class="box-title">✋ やってみよう</div>
       <ol>
         <li><span class="ui">4. 執筆</span>タブを開きます。</li>
         <li><span class="ui">分析の全体像</span>に、テーマ全体が研究の問いに対してどんな物語を語るかを2〜3文で書きます。</li>
         <li>各テーマの欄に、そのテーマの分析の記述を書きます。<span class="ui">使える抜粋</span>を開き、引用したい抜粋の<span class="ui">挿入</span>を押すと、カーソルの位置に入ります。</li>
-        <li>最後の<span class="ui">総合考察：テーマ全体を通した結論</span>に、分析全体の「だから何なのか」を書きます。</li>
+        <li>最後の<span class="ui">全体のまとめ：テーマ間のつながりと考察</span>に、分析全体を通して何が言えるのか（研究の問いへの答えや意義）を書きます。</li>
         <li>左の<span class="ui">原稿と表（.docx）</span>を押すと、記述・関係図・表・付録が Word ファイルになります。</li>
       </ol>
     </div>
@@ -303,7 +303,7 @@
     <div class="box try">
       <div class="box-title">✋ やってみよう</div>
       <ol>
-        <li><span class="ui">3. 監査証跡・ジャーナル</span>タブを開きます。コードの作成・統合・分割、テーマの状態の変更、書いた理由やジャーナルが時系列で並んでいます。</li>
+        <li><span class="ui">3. 監査証跡・ジャーナル</span>タブを開きます。コードの作成・統合・分割、テーマのステータスの変更、書いた理由やジャーナルが時系列で並んでいます。</li>
         <li>ジャーナルの書き込みにある<span class="ui">その時点の構造</span>を押すと、そのときのテーマ構造と、その後の変化を見られます。</li>
         <li>上部の<span class="ui">バックアップ</span>を押して、プロジェクト全体を <code>.json</code> ファイルに保存します。バックアップの左に「最終バックアップ：たった今」と表示されます。</li>
       </ol>
@@ -333,7 +333,7 @@
     <h3>次に読むもの</h3>
     <ul>
       <li><a href="guide.html">使い方ガイド</a> — すべての機能、キーボード操作、データの保存、複数人での分析、よくある質問</li>
-      <li><a href="https://github.com/jdaeyun/thematic-analysis-canvas/blob/main/docs/rtarg-mapping.ja.md">RTARG との対応表</a> — 再帰的テーマ分析の報告ガイドラインの各項目に、アプリがどう対応しているか</li>
+      <li><a href="https://github.com/jdaeyun/reflexive-thematic-analysis-canvas/blob/main/docs/rtarg-mapping.ja.md">RTARG との対応表</a> — 再帰的テーマ分析の報告ガイドラインの各項目に、アプリがどう対応しているか</li>
     </ul>
     <h3>参考文献</h3>
     <ul class="small">
@@ -344,7 +344,7 @@
     </ul>
 
     <div class="pager">
-      <a href="index.html"><span class="label">← ホーム</span><span class="title">テーマ分析キャンバスについて</span></a>
+      <a href="index.html"><span class="label">← ホーム</span><span class="title">Reflexive Thematic Analysis Canvas について</span></a>
       <a href="guide.html"><span class="label">次へ →</span><span class="title">使い方ガイド</span></a>
     </div>
   </article>
@@ -353,8 +353,8 @@
 
 <footer class="site-footer">
   <div class="inner">
-    <div>テーマ分析キャンバス · MIT License · © 2026 Jeong, Dae Yun</div>
-    <div><a href="index.html">ホーム</a> · <a href="guide.html">使い方ガイド</a> · <a href="https://github.com/jdaeyun/thematic-analysis-canvas">GitHub</a> · <a href="../en/101.html" lang="en">English</a></div>
+    <div>Reflexive Thematic Analysis Canvas · MIT License · © 2026 Jeong, Dae Yun</div>
+    <div><a href="index.html">ホーム</a> · <a href="guide.html">使い方ガイド</a> · <a href="https://github.com/jdaeyun/reflexive-thematic-analysis-canvas">GitHub</a> · <a href="../en/101.html" lang="en">English</a></div>
   </div>
 </footer>
 </body>

@@ -1,5 +1,5 @@
-// Thematic Analysis Canvas — Tab 3: Audit trail & reflexive journal
-// MIT License · https://github.com/jdaeyun/thematic-analysis-canvas
+// Reflexive Thematic Analysis Canvas — Tab 3: Audit trail & reflexive journal
+// MIT License · https://github.com/jdaeyun/reflexive-thematic-analysis-canvas
 // Every interpretive change is logged automatically (recordLog in core.js). The researcher adds
 // reflexive journal entries here; both are exported as Appendix A.
 

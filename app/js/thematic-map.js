@@ -1,5 +1,5 @@
-// Thematic Analysis Canvas — Thematic map (Tab 2, "Map" view)
-// MIT License · https://github.com/jdaeyun/thematic-analysis-canvas
+// Reflexive Thematic Analysis Canvas — Thematic map (Tab 2, "Map" view)
+// MIT License · https://github.com/jdaeyun/reflexive-thematic-analysis-canvas
 // A thematic map shows themes, their subthemes and the relationships the researcher sees between themes
 // (Braun & Clarke; RTARG: "overview of themes or thematic structure — a list, map or table").
 // Positions are layout only (theme.mapX / mapY, not logged). Links between themes are interpretive

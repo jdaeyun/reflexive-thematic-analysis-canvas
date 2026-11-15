@@ -1,5 +1,5 @@
-// Thematic Analysis Canvas — Tab 4: Writing up (Braun & Clarke phase 6)
-// MIT License · https://github.com/jdaeyun/thematic-analysis-canvas
+// Reflexive Thematic Analysis Canvas — Tab 4: Writing up (Braun & Clarke phase 6)
+// MIT License · https://github.com/jdaeyun/reflexive-thematic-analysis-canvas
 // Phase 6 is writing an analytic narrative, not producing tables: the first view is a writing space per theme
 // (theme.narrative, meta.storyline). Supporting tables are secondary. Every table is built once as a spec
 // { title, note, headers, rows } by getTableSpec(); preview, copy, Markdown, CSV and .docx all read it.

@@ -1,5 +1,5 @@
-// Thematic Analysis Canvas — App shell
-// MIT License · https://github.com/jdaeyun/thematic-analysis-canvas
+// Reflexive Thematic Analysis Canvas — App shell
+// MIT License · https://github.com/jdaeyun/reflexive-thematic-analysis-canvas
 // Startup, tab switching, project setup, backup / restore / reset, file drag & drop, keyboard shortcuts.
 
 const TABS = {
@@ -41,7 +41,7 @@ function renderHeader() {
   const guide = document.getElementById('guideLink');
   if (guide) guide.href = `${TA_SITE_URL}${LANG === 'ja' ? 'ja' : 'en'}/guide.html`;
 }
-const TA_SITE_URL = 'https://jdaeyun.github.io/thematic-analysis-canvas/';
+const TA_SITE_URL = 'https://jdaeyun.github.io/reflexive-thematic-analysis-canvas/';
 
 // "Last backup: 3 days ago" in the header. Deliberately passive: no prompt, no colour change, nothing that
 // interrupts the analysis. Hidden on an empty project.
@@ -101,7 +101,7 @@ async function saveProjectModal() {
 // ========================================================
 async function backupProject() {
   state.meta.lastBackupAt = Date.now(); // saved in the backup too: a restored project shows when that copy was made
-  const payload = { app: 'thematic-analysis-canvas', schema: 1, appVersion: window.TA_CANVAS?.version || '', exportedAt: new Date().toISOString(), exportedBy: state.researcherId || '', meta: state.meta };
+  const payload = { app: 'reflexive-thematic-analysis-canvas', schema: 1, appVersion: window.TA_CANVAS?.version || '', exportedAt: new Date().toISOString(), exportedBy: state.researcherId || '', meta: state.meta };
   for (const c of COLLECTIONS) payload[c] = state[c];
   downloadBlob(new Blob([JSON.stringify(payload, null, 1)], { type: 'application/json' }), `${safeFileStem()}_${new Date().toISOString().slice(0, 10)}.json`);
   renderLastBackup();
@@ -111,7 +111,8 @@ async function backupProject() {
 async function restoreProject(file) {
   let data;
   try { data = JSON.parse(await file.text()); } catch (e) { alert(tr('restore.invalidJson')); return; }
-  if (data.app !== 'thematic-analysis-canvas') { alert(tr('restore.notBackup')); return; }
+  // 'thematic-analysis-canvas': backups made before the app was renamed (v0.1 beta)
+  if (!['reflexive-thematic-analysis-canvas', 'thematic-analysis-canvas'].includes(data.app)) { alert(tr('restore.notBackup')); return; }
   if (!confirm(tr('restore.confirm', { name: data.meta?.name || file.name }))) return;
   for (const c of COLLECTIONS) { state[c] = Array.isArray(data[c]) ? data[c] : []; await dbReplaceAll(c, state[c]); }
   state.meta = { ...state.meta, ...(data.meta || {}), id: 'project' };

@@ -1,4 +1,4 @@
-/* Thematic Analysis Canvas — website (ja / en). Plain CSS, no build step. Colours follow the app (teal + indigo). */
+/* Reflexive Thematic Analysis Canvas — website (ja / en). Plain CSS, no build step. Colours follow the app (teal + indigo). */
 :root {
   --bg: #ffffff;
   --surface: #f8fafc;
@@ -109,6 +109,7 @@ section + section { border-top: 1px solid var(--border); }
 .hero { padding: 4rem 0 3rem; background: radial-gradient(60rem 24rem at 80% -10%, var(--indigo-bg), transparent 60%), radial-gradient(40rem 20rem at 0% 0%, var(--accent-bg), transparent 60%); border-bottom: 1px solid var(--border); }
 .hero h1 { font-size: clamp(2rem, 5vw, 3.1rem); letter-spacing: -0.02em; margin-bottom: 1rem; }
 :lang(ja) .hero h1 { letter-spacing: 0; }
+.hero .subtitle { font-size: clamp(1.05rem, 2.2vw, 1.3rem); font-weight: 700; color: var(--accent); margin: -0.5rem 0 1rem; }
 .hero .lead { font-size: clamp(1.05rem, 2vw, 1.2rem); color: var(--muted); max-width: 42rem; margin-bottom: 1.6rem; }
 .hero .badge { display: inline-block; font-size: 0.78rem; font-weight: 700; color: var(--amber); background: var(--amber-bg); border: 1px solid var(--amber-border); border-radius: 999px; padding: 0.15rem 0.7rem; margin-bottom: 1rem; }
 .hero-shot { margin-top: 2.5rem; }

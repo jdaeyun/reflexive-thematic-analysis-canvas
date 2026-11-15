@@ -1,5 +1,5 @@
-// Thematic Analysis Canvas — Tab 1: Familiarise & Code (Braun & Clarke phases 1–2)
-// MIT License · https://github.com/jdaeyun/thematic-analysis-canvas
+// Reflexive Thematic Analysis Canvas — Tab 1: Familiarise & Code (Braun & Clarke phases 1–2)
+// MIT License · https://github.com/jdaeyun/reflexive-thematic-analysis-canvas
 // Document list, participant list, document viewer with highlights, codebook and segment details.
 // Two independent layers sit on the text:
 //   • coded segments (state.segments)  — may overlap freely; one segment can carry several codes

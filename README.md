@@ -1,10 +1,12 @@
-# 🏷️ Thematic Analysis Canvas
+# 🏷️ Reflexive Thematic Analysis Canvas
 
 **Version 0.1.0 (prototype)**
 
-**Thematic Analysis Canvas** is an open-source, zero-backend browser workspace for **reflexive thematic analysis** (Braun & Clarke) of qualitative text data. It follows the six phases of reflexive TA and produces tables you can put straight into a manuscript.
+**Reflexive Thematic Analysis Canvas** is an open-source, zero-backend browser workspace for **reflexive thematic analysis** (Braun & Clarke) of qualitative text data. It follows the six phases of reflexive TA and produces tables you can put straight into a manuscript.
 
-> **Scope:** reflexive TA only. Coding is treated as interpretive, so the app does not calculate inter-coder agreement (coding-reliability TA). Codebook approaches (template, framework analysis) are not supported yet.
+> **Scope:** reflexive TA only, by design. Coding reliability TA (inter-coder agreement, a fixed codebook) and codebook TA (template, framework analysis) rest on different assumptions about coding, and the features that make this app work for reflexive TA — hidden prevalence counts, no agreement statistics, codes as an evolving analytic record — would work against them. They are not planned for this app.
+>
+> An independent project, not affiliated with or endorsed by Virginia Braun or Victoria Clarke.
 
 * **Nothing to install, no account, no server.** Open `ta_canvas.html` in a desktop browser. Double-clicking the file works offline too.
 * **Your data stays on your computer.** Documents are read and stored only in this browser (IndexedDB). Nothing is uploaded.
@@ -12,9 +14,9 @@
 * **No counting as a shortcut.** Following reflexive TA, prevalence counts are hidden unless you ask for them, there is no inter-coder agreement, and codes are an analytic record rather than a codebook.
 * **English and Japanese (日本語).** The interface follows your browser language automatically, or choose it in Settings. Write-up tables can be exported in either language.
 
-> 🌐 **Website, 101 tutorial and guide (English / 日本語):** https://jdaeyun.github.io/thematic-analysis-canvas/ — you can also open the app there without downloading anything.
+> 🌐 **Website, 101 tutorial and guide (English / 日本語):** https://jdaeyun.github.io/reflexive-thematic-analysis-canvas/ — you can also open the app there without downloading anything.
 
-> 📌 **Status:** early prototype. Feedback from qualitative researchers is very welcome in [Issues](https://github.com/jdaeyun/thematic-analysis-canvas/issues). Keep a JSON backup of real projects.
+> 📌 **Status:** early prototype. Feedback from qualitative researchers is very welcome in [Issues](https://github.com/jdaeyun/reflexive-thematic-analysis-canvas/issues). Keep a JSON backup of real projects.
 
 ---
 
@@ -49,7 +51,7 @@ The app reads and writes the [REFI-QDA](https://www.qdasoftware.org) project exc
 * **Import** (*Import*, or drop the file): everything is **added** to the current project. Codes and participants with the same name are joined. Code folders from other software and sets of codes become **candidate** themes, for you to review. Memos not attached to a document or extract go into the reflexive journal, marked as imported. One click on Undo removes the whole import.
 * **Not included:** the audit trail, theme status and review notes, and the thematic map have no place in the standard. Keep using **Backup** (`.json`) for a complete copy of the project.
 
-> ⚠️ **Not yet tested with ATLAS.ti, MAXQDA or NVivo.** The export validates against the official schema and the import was tested with hand-made files, but each program interprets the standard a little differently (for example how it counts text positions, or which parts of a project it exports). Check the result after moving a project, keep a backup, and please report what works and what does not in [Issues](https://github.com/jdaeyun/thematic-analysis-canvas/issues), naming the program and its version.
+> ⚠️ **Not yet tested with ATLAS.ti, MAXQDA or NVivo.** The export validates against the official schema and the import was tested with hand-made files, but each program interprets the standard a little differently (for example how it counts text positions, or which parts of a project it exports). Check the result after moving a project, keep a backup, and please report what works and what does not in [Issues](https://github.com/jdaeyun/reflexive-thematic-analysis-canvas/issues), naming the program and its version.
 
 ## 🧭 Reporting: RTARG
 
@@ -81,7 +83,7 @@ On import, every file is turned into fixed plain text, one block per line or ans
 
 * Clone or download this repository, then double-click `ta_canvas.html` (Chrome, Edge or Firefox).
 * Or serve the folder: `npm run serve` (after `npm install`), then open http://localhost:8080/ta_canvas.html.
-* Try it with the fictional files in [`samples/`](samples/). [`samples/tutorial/`](samples/tutorial/) holds the practice dataset for the [101 tutorial](https://jdaeyun.github.io/thematic-analysis-canvas/en/101.html) in English and Japanese.
+* Try it with the fictional files in [`samples/`](samples/). [`samples/tutorial/`](samples/tutorial/) holds the practice dataset for the [101 tutorial](https://jdaeyun.github.io/reflexive-thematic-analysis-canvas/en/101.html) in English and Japanese.
 
 **Backups:** use **Backup** in the top bar regularly (the top bar quietly shows when you last did). Clearing the browser's site data deletes the project. The backup `.json` contains the full text of your documents, so store it like raw data.
 
@@ -94,7 +96,7 @@ On import, every file is turned into fixed plain text, one block per line or ans
 
 ## 🔗 Related
 
-Thematic Analysis Canvas is derived from [Meta-Ethnography Canvas](https://github.com/jdaeyun/meta-ethnography-canvas) ([DOI 10.5281/zenodo.24200375](https://doi.org/10.5281/zenodo.24200375)), a workspace for meta-ethnography qualitative evidence synthesis.
+Reflexive Thematic Analysis Canvas is derived from [Meta-Ethnography Canvas](https://github.com/jdaeyun/meta-ethnography-canvas) ([DOI 10.5281/zenodo.24200375](https://doi.org/10.5281/zenodo.24200375)), a workspace for meta-ethnography qualitative evidence synthesis.
 
 ## 📚 Reference
 

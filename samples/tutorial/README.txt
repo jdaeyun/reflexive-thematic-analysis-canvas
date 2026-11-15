@@ -1,4 +1,4 @@
-Practice data for the "101" tutorial (https://jdaeyun.github.io/thematic-analysis-canvas/).
+Practice data for the "101" tutorial (https://jdaeyun.github.io/reflexive-thematic-analysis-canvas/).
 Fictional: every person, workplace and answer is invented. Topic: experiences of working night shifts
 in hospitals and nursing homes.
 
