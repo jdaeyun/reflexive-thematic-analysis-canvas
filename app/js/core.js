@@ -135,6 +135,8 @@ const state = {
   // Prevalence counts (extracts / participants per code and theme) are hidden by default: in reflexive TA
   // frequency does not decide what matters, and constant numbers nudge "more = more important"
   showCounts: (() => { try { return localStorage.getItem('ta_show_counts') === 'true'; } catch (e) { return false; } })(),
+  // How coded text is highlighted in the viewer (display preference, per browser): standard | soft | underline
+  markerStyle: (() => { try { return localStorage.getItem('ta_marker_style') || 'standard'; } catch (e) { return 'standard'; } })(),
   auditFilter: 'decisions', // single coding actions are hidden by default so journal notes stay visible
   lastThemeId: null,        // theme card the user last worked on (journal context)
   undoStack: []
@@ -144,6 +146,17 @@ const COLLECTIONS = ['docs', 'segments', 'ptags', 'codes', 'themes', 'participan
 
 const CODE_COLORS = ['#f59e0b', '#10b981', '#3b82f6', '#ec4899', '#8b5cf6', '#ef4444', '#14b8a6', '#f97316', '#6366f1', '#84cc16', '#06b6d4', '#d946ef'];
 const PARTICIPANT_COLORS = ['#0f766e', '#7c3aed', '#b45309', '#be123c', '#1d4ed8', '#4d7c0f', '#a21caf', '#0369a1'];
+
+// Highlight strength for coded text: background opacity (one code / several codes) and the coloured underline
+// stripes (opacity, thickness in px). 'soft' and 'underline' are for long reading sessions.
+const MARKER_STYLES = {
+  standard:  { bg: 0.24, bgMulti: 0.34, line: 1, lineW: 3 },
+  soft:      { bg: 0.10, bgMulti: 0.16, line: 0.45, lineW: 2 },
+  underline: { bg: 0, bgMulti: 0, line: 0.75, lineW: 2 }
+};
+function markerStyle() {
+  return MARKER_STYLES[state.markerStyle] || MARKER_STYLES.standard;
+}
 
 // Labels come from i18n.js: statusLabel(id) ('status.<id>') and 'status.<id>.phase'
 const THEME_STATUS = {

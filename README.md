@@ -1,6 +1,6 @@
 # 🏷️ Reflexive Thematic Analysis Canvas
 
-**Version 0.1.0 (prototype)**
+**Version 0.9.0 (beta)**
 
 **Reflexive Thematic Analysis Canvas** is an open-source, zero-backend browser workspace for **reflexive thematic analysis** (Braun & Clarke) of qualitative text data. It follows the six phases of reflexive TA and produces tables you can put straight into a manuscript.
 
@@ -16,7 +16,7 @@
 
 > 🌐 **Website, 101 tutorial and guide (English / 日本語):** https://jdaeyun.github.io/reflexive-thematic-analysis-canvas/ — you can also open the app there without downloading anything.
 
-> 📌 **Status:** early prototype. Feedback from qualitative researchers is very welcome in [Issues](https://github.com/jdaeyun/reflexive-thematic-analysis-canvas/issues). Keep a JSON backup of real projects.
+> 📌 **Status:** beta. Feedback from qualitative researchers is very welcome in [Issues](https://github.com/jdaeyun/reflexive-thematic-analysis-canvas/issues). Keep a JSON backup of real projects.
 
 ---
 

@@ -186,6 +186,15 @@ function setupShellEvents() {
   menuLang.addEventListener('click', e => e.stopPropagation());
   menuLang.onchange = () => { setLanguage(menuLang.value); document.getElementById('projLang').value = menuLang.value; };
   document.getElementById('projLang').onchange = (e) => { setLanguage(e.target.value); menuLang.value = e.target.value; };
+  // Highlight colours for coded text (display preference)
+  const menuMarker = document.getElementById('menuMarker');
+  menuMarker.value = MARKER_STYLES[state.markerStyle] ? state.markerStyle : 'standard';
+  menuMarker.addEventListener('click', e => e.stopPropagation());
+  menuMarker.onchange = () => {
+    state.markerStyle = menuMarker.value;
+    try { localStorage.setItem('ta_marker_style', state.markerStyle); } catch (e) { /* private mode */ }
+    if (state.activeTab === 'code') renderViewer();
+  };
   document.getElementById('projSave').onclick = saveProjectModal;
   document.getElementById('projCancel').onclick = () => document.getElementById('projectModal').classList.add('hidden');
   const rid = document.getElementById('researcherIdInput');
