@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>テーマ分析キャンバス — ブラウザで再帰的テーマ分析</title>
+  <meta name="description" content="インタビューや自由記述を、再帰的テーマ分析（Braun & Clarke）の6段階に沿って分析するための、ブラウザだけで動く無料のワークスペース。インストール不要、データは手元から出ず、AI は使いません。">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏷️</text></svg>">
+  <link rel="alternate" hreflang="en" href="../en/index.html">
+  <link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+<a class="skip" href="#main">本文へ移動</a>
+<header class="site-header">
+  <div class="inner">
+    <a class="brand" href="index.html"><span class="logo">🏷️</span><span class="name">テーマ分析キャンバス</span></a>
+    <nav class="nav" aria-label="サイト内">
+      <a href="index.html" aria-current="page">ホーム</a>
+      <a href="101.html">101</a>
+      <a href="guide.html">使い方ガイド</a>
+      <a href="https://github.com/jdaeyun/thematic-analysis-canvas">GitHub</a>
+      <a class="lang" href="../en/index.html" hreflang="en" lang="en">English</a>
+      <a class="open-app" href="../ta_canvas.html">アプリを開く</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="hero">
+    <div class="wrap">
+      <span class="badge">試作版 v0.1.0 · 無料・オープンソース（MIT）</span>
+      <h1>テーマ分析キャンバス</h1>
+      <p class="lead">インタビューの逐語録や自由記述の回答を、<strong>再帰的テーマ分析</strong>（Braun &amp; Clarke）の6段階に沿って分析するための、ブラウザだけで動くワークスペースです。インストールも登録も要りません。データはあなたのパソコンから出ず、AI も使いません。</p>
+      <div class="cta">
+        <a class="btn primary" href="101.html">101 で始める（約45分）</a>
+        <a class="btn secondary" href="../ta_canvas.html">アプリを開く</a>
+        <a class="btn secondary" href="guide.html">使い方ガイド</a>
+      </div>
+      <figure class="hero-shot">
+        <img src="../assets/img/ja/coding.webp" width="1440" height="860" alt="テーマ分析キャンバスの画面。中央に逐語録があり、コードを付けた箇所が色分けされている。右側にコードの一覧と、選んだ抜粋の詳細が表示されている。">
+      </figure>
+    </div>
+  </div>
+
+  <section>
+    <div class="wrap">
+      <p class="eyebrow">特長</p>
+      <h2 class="section-title">再帰的テーマ分析のために作ったソフト</h2>
+      <p class="section-lead">汎用の質的分析ソフトは便利ですが、出現頻度や一致率、固定したコードブックの方向へ自然と誘導します。このアプリは、再帰的テーマ分析の考え方にそのまま合うように作っています。</p>
+      <div class="grid three">
+        <div class="card"><h3><span class="icon">🔒</span>データは手元に</h3><p>文書はブラウザの中（IndexedDB）にだけ保存され、どこにも送信されません。倫理審査でも説明しやすい構成です。</p></div>
+        <div class="card"><h3><span class="icon">✍️</span>AI は使わない</h3><p>コード化も要約も、分析はすべて研究者が行います。言語モデルがデータを読むことはありません。</p></div>
+        <div class="card"><h3><span class="icon">#</span>数で決めない</h3><p>出現頻度は初期設定で隠し、一致率は計算しません。何が重要かは数ではなく、解釈で決まるからです。</p></div>
+        <div class="card"><h3><span class="icon">📓</span>省察を残す</h3><p>解釈に関わる変更は監査証跡に自動で残り、省察ジャーナルはどこからでも書けます。そのまま論文の付録になります。</p></div>
+        <div class="card"><h3><span class="icon">📄</span>原稿まで</h3><p>段階6は「書くこと」から始まります。分析の記述、テーマの関係図、表を Word（.docx）に書き出せます。</p></div>
+        <div class="card"><h3><span class="icon">🧭</span>RTARG に対応</h3><p>再帰的テーマ分析の報告ガイドライン（Braun &amp; Clarke, 2024）の全項目について、アプリの対応を公開しています。</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <p class="eyebrow">分析の流れ</p>
+      <h2 class="section-title">4つのタブで、6つの段階を行き来する</h2>
+      <p class="section-lead">段階は一方通行ではありません。テーマを見直しながらコード化に戻る、という往復をそのまま行えるように、段階はタブではなく「テーマごとの状態」として記録します。</p>
+      <div class="flow">
+        <div class="step"><span class="tab">タブ1</span><h3>データに慣れる・コード化</h3><p>段階1–2。逐語録・自由記述を取り込み、読み、メモを取り、コードを付けます。全文検索、話者の区別、抜粋の範囲の調整もここで。</p></div>
+        <div class="step"><span class="tab">タブ2</span><h3>テーマ</h3><p>段階3–5。コードをテーマにまとめ、データと照らして見直し、定義し、名前を付けます。テーマ間の関係は関係図に。</p></div>
+        <div class="step"><span class="tab">タブ3</span><h3>監査証跡・ジャーナル</h3><p>いつ何をなぜ変えたかの記録と、省察ジャーナル。その時点のテーマ構造も一緒に残ります。</p></div>
+        <div class="step"><span class="tab">タブ4</span><h3>執筆</h3><p>段階6。テーマごとに分析の物語を書き、抜粋を根拠として挿入します。表と付録は補助として出力します。</p></div>
+      </div>
+      <figure>
+        <img src="../assets/img/ja/themes.webp" width="1440" height="860" loading="lazy" alt="テーマの画面。候補・見直し済み・定義済みといった状態つきのテーマカードに、コードが入っている。左側はコードの一覧。">
+        <figcaption>タブ2「テーマ」。テーマごとに、見直しのチェック、定義、抜粋を確かめられます。</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="grid two">
+        <div>
+          <p class="eyebrow">こんな人に</p>
+          <h2 class="section-title">はじめての質的分析にも</h2>
+          <ul>
+            <li>卒業論文・修士論文・博士論文で、インタビューや自由記述を分析する学生</li>
+            <li>学生の分析を「批判的な友人」として一緒に読む指導教員</li>
+            <li>看護・心理・教育・福祉・社会学などで、再帰的テーマ分析を使う研究者</li>
+            <li>有料ソフトを使えない環境や、データを外に出せない研究</li>
+          </ul>
+        </div>
+        <div>
+          <p class="eyebrow">できないこと</p>
+          <h2 class="section-title">はじめに知っておいてほしいこと</h2>
+          <ul>
+            <li>扱えるのは文章だけです（.txt・.docx・.doc・.csv、REFI-QDA の .qdpx）。音声・動画・画像・PDF は扱えません。</li>
+            <li>コードブック型のテーマ分析（テンプレート分析・フレームワーク分析）や、コーダー間の一致率には対応していません。</li>
+            <li>複数人が同時に同じプロジェクトを編集する機能はありません。</li>
+            <li>データは使っているブラウザの中にだけあります。<strong>こまめにバックアップ</strong>してください。</li>
+            <li>パソコンのブラウザ（Chrome・Edge・Firefox・Safari）向けです。</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <p class="eyebrow">はじめかた</p>
+      <h2 class="section-title">3つの使い方</h2>
+      <div class="grid three">
+        <a class="card" href="../ta_canvas.html"><h3>🌐 ブラウザで開く</h3><p>このサイトからそのまま使えます。オンラインで開いても、データは送信されません。</p></a>
+        <a class="card" href="https://github.com/jdaeyun/thematic-analysis-canvas/releases"><h3>💾 ダウンロードして使う</h3><p>リリースページのオフライン版（.zip）を展開し、<code>ta_canvas.html</code> をダブルクリック。インターネットなしで動きます。</p></a>
+        <a class="card" href="101.html"><h3>🎓 101 で練習する</h3><p>練習用の架空データで、6段階をひととおり体験します。所要時間は約45分です。</p></a>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap prose">
+      <p class="eyebrow">引用</p>
+      <h2 class="section-title">研究で使ったときは</h2>
+      <p>論文などで使った場合は、次のように引用してください（バージョンは使ったものに置き換えてください）。</p>
+      <div class="cite">Jeong, D. Y. (2026). Thematic Analysis Canvas: A browser-only workspace for thematic analysis of qualitative text data (Version 0.1.0) [Computer software]. https://github.com/jdaeyun/thematic-analysis-canvas</div>
+      <p class="small muted" style="margin-top:1rem">ご意見・不具合の報告は <a href="https://github.com/jdaeyun/thematic-analysis-canvas/issues">GitHub の Issues</a> へ。質的研究者からのフィードバックを特に歓迎しています。</p>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="inner">
+    <div>テーマ分析キャンバス · MIT License · © 2026 Jeong, Dae Yun<br><a href="https://github.com/jdaeyun/meta-ethnography-canvas">Meta-Ethnography Canvas</a> から派生したプロジェクトです。</div>
+    <div><a href="101.html">101</a> · <a href="guide.html">使い方ガイド</a> · <a href="https://github.com/jdaeyun/thematic-analysis-canvas">GitHub</a> · <a href="../en/index.html" lang="en">English</a></div>
+  </div>
+</footer>
+</body>
+</html>

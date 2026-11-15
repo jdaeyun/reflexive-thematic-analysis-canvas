@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Guide | Thematic Analysis Canvas</title>
+  <meta name="description" content="Every feature of Thematic Analysis Canvas, keyboard shortcuts, storage and backups, working with other analysts, exchange with other QDA software, and frequently asked questions.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏷️</text></svg>">
+  <link rel="alternate" hreflang="ja" href="../ja/guide.html">
+  <link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-header">
+  <div class="inner">
+    <a class="brand" href="index.html"><span class="logo">🏷️</span><span class="name">Thematic Analysis Canvas</span></a>
+    <nav class="nav" aria-label="Site">
+      <a href="index.html">Home</a>
+      <a href="101.html">101</a>
+      <a href="guide.html" aria-current="page">Guide</a>
+      <a href="https://github.com/jdaeyun/thematic-analysis-canvas">GitHub</a>
+      <a class="lang" href="../ja/guide.html" hreflang="ja" lang="ja">日本語</a>
+      <a class="open-app" href="../ta_canvas.html">Open the app</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main" class="wrap">
+<div class="doc">
+  <nav class="toc" aria-label="Contents">
+    <div class="toc-title">Contents</div>
+    <ol>
+      <li><a href="#screen">The screen</a></li>
+      <li><a href="#files">Supported files</a></li>
+      <li><a href="#tab1">Tab 1 Familiarise &amp; Code</a></li>
+      <li><a href="#tab2">Tab 2 Themes</a></li>
+      <li><a href="#tab3">Tab 3 Audit &amp; Journal</a></li>
+      <li><a href="#tab4">Tab 4 Writing up</a></li>
+      <li><a href="#keys">Keyboard shortcuts</a></li>
+      <li><a href="#data">Storage and backups</a></li>
+      <li><a href="#team">Working with others</a></li>
+      <li><a href="#refi">Other QDA software</a></li>
+      <li><a href="#rtarg">Reporting (RTARG)</a></li>
+      <li><a href="#faq">FAQ</a></li>
+    </ol>
+  </nav>
+
+  <article class="article">
+    <h1>Guide</h1>
+    <p class="muted">Every feature, in the order you meet it on screen. If you are new, the <a href="101.html">101</a> walks you through the whole process first.</p>
+
+    <h2 id="screen">The screen</h2>
+    <p>The top bar holds the four tabs and the controls you can use from anywhere.</p>
+    <div class="table-wrap"><table>
+      <tr><th>Where</th><th>What it does</th></tr>
+      <tr><td>Project name (top left)</td><td>Opens Project setup: name, research question, positioning and data preparation, language.</td></tr>
+      <tr><td>The four tabs</td><td>1. Familiarise &amp; Code (phases 1–2) / 2. Themes (phases 3–5) / 3. Audit &amp; Journal / 4. Writing up (phase 6)</td></tr>
+      <tr><td><span class="ui">Researcher</span></td><td>Your name or initials, recorded with coding, decisions and journal entries.</td></tr>
+      <tr><td><span class="ui">Journal</span></td><td>Opens the reflexive journal (<kbd>Ctrl</kbd>+<kbd>J</kbd>).</td></tr>
+      <tr><td>↶</td><td>Undo (<kbd>Ctrl</kbd>+<kbd>Z</kbd>): up to 20 larger changes such as deleting, merging, splitting or importing.</td></tr>
+      <tr><td>Last backup</td><td>A quiet note of how long ago you last backed up.</td></tr>
+      <tr><td><span class="ui">Backup</span></td><td>Saves the whole project as a <code>.json</code> file.</td></tr>
+      <tr><td>Gear</td><td>Language, Restore backup, New / Reset.</td></tr>
+    </table></div>
+    <p>Drag the edge of the left column to change its width (double-click to reset). The width is shared by every tab.</p>
+
+    <h2 id="files">Supported files</h2>
+    <div class="table-wrap"><table>
+      <tr><th>Format</th><th>Notes</th></tr>
+      <tr><td><code>.txt</code></td><td>UTF-8, UTF-16 (with BOM) and Shift_JIS are detected automatically. Each line becomes a block; empty lines are dropped.</td></tr>
+      <tr><td><code>.csv</code></td><td>On import, choose the participant ID column, the text column(s) to code and the attribute columns. Each row becomes a participant.</td></tr>
+      <tr><td><code>.docx</code></td><td>The body text is extracted; each paragraph becomes a block.</td></tr>
+      <tr><td><code>.doc</code></td><td>Word 97–2003. Password-protected files and Word 95 or older are not supported.</td></tr>
+      <tr><td><code>.qdpx</code></td><td>A REFI-QDA project from other QDA software (<a href="#refi">see below</a>).</td></tr>
+    </table></div>
+    <p>Imported text is fixed and cannot be edited afterwards, because codes point at character positions in it. Finish correcting and anonymising transcripts before you import them.</p>
+
+    <h2 id="tab1">Tab 1 Familiarise &amp; Code</h2>
+    <h3>Documents and participants</h3>
+    <ul>
+      <li><strong>Default participant</strong>: who untagged text in a document belongs to. For a one-to-one interview, this is all you need.</li>
+      <li><strong>Detect speakers</strong>: tags lines that start with “Name:” (or “Name：”, also inside brackets) as that speaker. I, Q, Interviewer, Moderator, Facilitator, Researcher and their Japanese equivalents become <strong>interviewers</strong> automatically and are not counted as participants.</li>
+      <li><strong>Tag by hand</strong>: select text and click <span class="ui">Tag</span> in the participant list, or drag a participant onto a line. Each character has exactly one speaker.</li>
+      <li><strong>Edit a participant</strong>: hover and click the pencil to change the label, mark them as interviewer, and add attributes (one <code>key: value</code> per line). Attributes feed Table 1 and the extract filter.</li>
+      <li><strong>Notes</strong>: familiarisation notes for each document.</li>
+    </ul>
+
+    <h3>Coding</h3>
+    <div class="table-wrap"><table>
+      <tr><th>To…</th><th>Do this</th></tr>
+      <tr><td>Apply a new code</td><td>Select text, type a code name, press <kbd>Enter</kbd>. With text selected, just start typing.</td></tr>
+      <tr><td>Apply an existing code</td><td>Select text and click the code in the list on the right.</td></tr>
+      <tr><td>Code a whole line (answer)</td><td>Drag the code onto the line. Dropping it on the selection codes the selection.</td></tr>
+      <tr><td>In-vivo code</td><td>Select text and click <span class="ui">In-vivo code</span>: the code is named with those exact words.</td></tr>
+      <tr><td>Open an extract</td><td>Click highlighted text, or a code name in the margin. Overlapping extracts take turns as you click.</td></tr>
+      <tr><td>Add a code to an extract</td><td>Open it and use <span class="ui">+ Add another code to this extract…</span>, or type a new code name and press <kbd>Enter</kbd> while it is open.</td></tr>
+      <tr><td>Remove a code</td><td>Click × on the code in the open extract. Removing the last code removes the extract.</td></tr>
+      <tr><td>Key extract and memo</td><td><span class="ui">Key extract</span> (★) and the analytic memo box in the open extract.</td></tr>
+      <tr><td>Change an extract's range</td><td>With the extract open, select new text and click <span class="ui">Use as the range of the open extract</span>, or use <span class="ui">Whole line</span>. If another extract already has exactly that range, the two become one.</td></tr>
+      <tr><td>List a code's extracts</td><td>With no text selected, click the code in the list.</td></tr>
+    </table></div>
+
+    <h3>Full-text search</h3>
+    <p>The search box at the top left (<kbd>Ctrl</kbd>+<kbd>F</kbd>) searches the text of every document. Upper and lower case (and full- and half-width characters) match each other. Matches are listed by document with their context; click one to jump to it. <kbd>Enter</kbd> goes to the next match, <kbd>Shift</kbd>+<kbd>Enter</kbd> to the previous one, <kbd>Esc</kbd> clears the search. While the extract filter (below) is on, only that group's text is searched.</p>
+
+    <h3>Edit, merge, split or delete a code</h3>
+    <p>Open the editor with ⋮ next to the code.</p>
+    <ul>
+      <li>Change the <strong>name, description and colour</strong>.</li>
+      <li><strong>Merge</strong>: choose a target and save. Every extract moves to the target and this code disappears.</li>
+      <li><strong>Split…</strong>: tick extracts and name the code they should carry (new or existing). Options: <span class="ui">Put the code in the same theme(s)</span> and <span class="ui">Also keep the original code on the ticked extracts</span>.</li>
+      <li><strong>Delete</strong>: extracts with no other code are removed too.</li>
+      <li><strong>Why?</strong> (optional): kept in the audit trail as the reason for a rename, merge, split or delete.</li>
+    </ul>
+
+    <h3>Counts</h3>
+    <p>The number of extracts and participants per code is hidden by default. <span class="ui">Show counts</span> toggles it (shared by tabs 1 and 2).</p>
+
+    <h2 id="tab2">Tab 2 Themes</h2>
+    <h3>Board</h3>
+    <ul>
+      <li><strong>Create a theme</strong>: type in <span class="ui">New candidate theme…</span> and click <span class="ui">Theme</span>. Subthemes: <span class="ui">+ Subtheme</span> on a card (one level).</li>
+      <li><strong>Add codes</strong>: drag from the code pool onto a card. Drag between cards to move; click × or drop it back on the pool to remove. A code can sit in several themes.</li>
+      <li><strong>Status</strong>: <span class="ui">Candidate</span> (phase 3), <span class="ui">Reviewed</span> (phase 4), <span class="ui">Defined</span> (phase 5), <span class="ui">Set aside</span>. A theme needs a definition before it can be defined. Changing the status offers a small, optional box to say why.</li>
+      <li><strong>Phase 4 · Review against the data</strong>: two checks (all coded extracts / the full dataset) and review notes.</li>
+      <li><strong>Phase 5 · Define &amp; name</strong>: the central organising concept, scope and boundaries, and relation to other themes.</li>
+      <li><strong>Show extracts</strong>: every extract of the theme and its subthemes, key extracts first. Click one to go back to the text.</li>
+      <li>Filter by status, and reorder themes with ↑ ↓.</li>
+    </ul>
+    <h3>Extract filter</h3>
+    <p><span class="ui">Extracts from everyone</span>, above the code list in tab 1 and the code pool in tab 2, narrows extracts to one attribute value (e.g. Role: Care worker) or one participant, in the code list, theme cards and full-text search. It is for reading across groups: counts, the theme structure and exports are not affected.</p>
+    <h3>Gentle hints</h3>
+    <p>A small hint appears when a reviewed or defined theme has a short, topic-like name, when there are more than eight themes, and when a theme has four or more subthemes. Hints never block anything.</p>
+    <h3>Map</h3>
+    <ul>
+      <li>Drag themes to arrange them (subthemes follow). <span class="ui">Reset layout</span> returns to the automatic layout.</li>
+      <li>Click <span class="ui">Link themes</span>, then two themes in turn, to join them. Click a line to name the relationship or remove it.</li>
+      <li><span class="ui">Map (.svg)</span> saves the map; the Word write-up includes it as Figure 1. Themes set aside are not shown.</li>
+    </ul>
+
+    <h2 id="tab3">Tab 3 Audit &amp; Journal</h2>
+    <h3>Audit trail (automatic)</h3>
+    <p>Imports; codes created, renamed, merged, split and deleted; themes created and changed, with their status; review notes and definitions; speaker tags; project setup changes; and single coding actions — each with a time stamp and the researcher's name. By default the list shows interpretive decisions only, without single coding actions. <span class="ui">Add a note</span> attaches a later note to any entry.</p>
+    <h3>Reflexive journal</h3>
+    <ul>
+      <li>Open it from any tab with <kbd>Ctrl</kbd>+<kbd>J</kbd> (<kbd>⌘</kbd>+<kbd>J</kbd>). On wide screens it sits beside your work; on narrow screens it overlays it. Closing it never loses a draft.</li>
+      <li>Types: reflexive memo, familiarisation note, analytic decision, session note, supervisor / team meeting, positionality. A meeting entry starts with an outline.</li>
+      <li>The open document, extract or theme is attached automatically (click × to detach).</li>
+      <li>Each entry saves the theme structure at that moment. <span class="ui">Structure then</span> shows it, together with what has changed since.</li>
+    </ul>
+
+    <h2 id="tab4">Tab 4 Writing up</h2>
+    <h3>Analytic narrative (phase 6)</h3>
+    <p>The tab opens on writing, not on tables: <span class="ui">Overview of the analysis</span>, a narrative for each theme and subtheme, and <span class="ui">General discussion: conclusions across themes</span>. Under each theme, <span class="ui">Extracts to draw on</span> → <span class="ui">Insert</span> puts an extract at the cursor.</p>
+    <h3>Supporting tables</h3>
+    <div class="table-wrap"><table>
+      <tr><th>Table</th><th>Contents</th><th>Default</th></tr>
+      <tr><td>Analysis summary</td><td>Research question, approach, orientation, dataset size and length, data preparation, number and status of themes</td><td>Included</td></tr>
+      <tr><td>Table 1. Participants</td><td>Characteristics of the participant group (values and counts per attribute). Can list participants one by one (check anonymity)</td><td>Group summary</td></tr>
+      <tr><td>Table 2. Themes &amp; extracts</td><td>Themes and subthemes, definitions, illustrative extracts</td><td>Included</td></tr>
+      <tr><td>Theme × participant</td><td>Contribution of participants to themes</td><td>Not included</td></tr>
+      <tr><td>Code list</td><td>Codes as an analytic record</td><td>Not included</td></tr>
+      <tr><td>Appendix A. Audit trail</td><td>Interpretive decisions and journal (single coding actions optional)</td><td>Included</td></tr>
+    </table></div>
+    <p>Tables have their own language setting, so you can produce English tables from a Japanese interface and vice versa.</p>
+    <h3>Exports</h3>
+    <ul>
+      <li><strong>Write-up &amp; tables (.docx)</strong>: narrative, map (Figure 1), tables and appendix in one Word file.</li>
+      <li><strong>Copy text / Copy table</strong>: rich copy to paste into Word and other editors.</li>
+      <li><strong>Markdown</strong>, <strong>This table (.csv)</strong>, <strong>All coded extracts (.csv)</strong> (one row per extract × code).</li>
+      <li><strong>REFI-QDA project (.qdpx)</strong>: <a href="#refi">see below</a>.</li>
+    </ul>
+
+    <h2 id="keys">Keyboard shortcuts</h2>
+    <div class="table-wrap"><table>
+      <tr><th>Keys</th><th>Action</th></tr>
+      <tr><td><kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>J</kbd></td><td>Open or close the reflexive journal</td></tr>
+      <tr><td><kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>Enter</kbd></td><td>Save the journal entry</td></tr>
+      <tr><td><kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>F</kbd></td><td>Full-text search (tab 1)</td></tr>
+      <tr><td><kbd>Enter</kbd> / <kbd>Shift</kbd>+<kbd>Enter</kbd></td><td>Next / previous search match</td></tr>
+      <tr><td><kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>Z</kbd></td><td>Undo</td></tr>
+      <tr><td><kbd>Esc</kbd></td><td>Clear the selection, close a dialog or the journal, clear the search</td></tr>
+      <tr><td>Any letter (with text selected)</td><td>Start typing a new code name</td></tr>
+    </table></div>
+
+    <h2 id="data">Storage and backups</h2>
+    <ul>
+      <li>Your data is stored only in the browser you are using (IndexedDB). Nothing is sent to a server. Changes are saved as you go (<span class="ui">Saved</span> at the top).</li>
+      <li><strong>One project per browser.</strong> To switch, back up, use <span class="ui">New / Reset</span>, and later <span class="ui">Restore backup</span>.</li>
+      <li><strong>Each place you open the app from has its own storage.</strong> The online version (this site), the offline version (a file you double-click), different browsers and private windows all keep separate data.</li>
+      <li>Clearing the browser's site data (cookies and site data) deletes the project. <strong>Back up regularly.</strong> The top bar quietly shows how long ago you last did.</li>
+      <li>A backup (<code>.json</code>) contains the full text of your documents. Store it as carefully as your raw data.</li>
+    </ul>
+
+    <h2 id="team">Working with others</h2>
+    <p>In reflexive TA, a second analyst is there to <strong>enrich</strong> the interpretation, not to <strong>check</strong> it. The app therefore has no agreement statistics and no merging of two projects.</p>
+    <ul>
+      <li><strong>Supervisor or co-author as critical friend</strong>: the main analyst codes and develops themes, and shares the write-up (.docx) or the backup (.json) before a meeting.</li>
+      <li><strong>Analysing in parallel</strong>: each analyst works in their own project. Compare <strong>interpretations</strong> — themes, definitions, the map, the narrative — rather than code-by-code matches.</li>
+      <li><strong>Analysing in turn</strong>: hand the project over with Backup and Restore. With a name in <span class="ui">Researcher</span>, every action records who made it.</li>
+    </ul>
+    <p>After a discussion, write a journal entry of the type <span class="ui">Supervisor / team meeting</span>. It starts with an outline: who took part, where your readings differed, what each rested on, how you handled it and what changed.</p>
+
+    <h2 id="refi">Other QDA software (REFI-QDA)</h2>
+    <p>The app reads and writes REFI-QDA projects (<code>.qdpx</code>), the exchange format shared by QDA programs.</p>
+    <ul>
+      <li><strong>Export</strong> (tab 4): documents, codes, coded extracts and memos, participants and attributes, themes and subthemes (as sets of codes, with definition and narrative), familiarisation notes, and journal entries.</li>
+      <li><strong>Import</strong> (<span class="ui">Import</span>): everything is <strong>added</strong> to the current project. Codes and participants with the same name are joined; code folders and sets of codes from other software become <strong>candidate</strong> themes. Non-text sources (PDF, audio, images) are skipped. One Undo removes the whole import.</li>
+      <li>The audit trail, theme status and review notes, and the map have no place in the standard and are not exported. Use Backup for a complete copy.</li>
+    </ul>
+    <div class="box note">
+      <div class="box-title">⚠️ Not yet tested with other programs</div>
+      <p>Exported files validate against the official REFI-QDA schema, but round trips with ATLAS.ti, MAXQDA, NVivo and others have not been tested yet, and each program interprets the standard a little differently. Check the result after moving a project and keep a backup. Reports of what works and what does not, with the program and version, are very welcome in <a href="https://github.com/jdaeyun/thematic-analysis-canvas/issues">Issues</a>.</p>
+    </div>
+
+    <h2 id="rtarg">Reporting (RTARG)</h2>
+    <p>The <a href="https://github.com/jdaeyun/thematic-analysis-canvas/blob/main/docs/rtarg-mapping.md">RTARG mapping</a> goes through each item of the Reflexive Thematic Analysis Reporting Guidelines (Braun &amp; Clarke, 2024): what the app supports, what remains the researcher's writing, and what still needs work. Use it as a check when you write up.</p>
+
+    <h2 id="faq">FAQ</h2>
+    <details class="faq"><summary>Is my data sent anywhere?</summary><p>No. Even the online version only loads the app; your data is never sent. It is stored only in your browser.</p></details>
+    <details class="faq"><summary>Can it calculate inter-coder agreement (e.g. kappa)?</summary><p>No. In reflexive TA coding is interpretive, and agreement is not a marker of quality (Braun &amp; Clarke, 2019, 2022). If you need agreement for a codebook approach, use other software.</p></details>
+    <details class="faq"><summary>Can AI code or summarise my data?</summary><p>No, by design. Reading and interpreting the data is the researcher's work.</p></details>
+    <details class="faq"><summary>I need prevalence in my paper. Can I get it?</summary><p>Tick <span class="ui">Include prevalence</span> in the Writing up tab to export participants per theme and the theme × participant table. Reflexive TA does not justify themes by frequency, so consider whether it serves your argument first.</p></details>
+    <details class="faq"><summary>Does it work on a tablet or phone?</summary><p>It will display, but selecting text and dragging are central to the app, so a desktop browser is recommended.</p></details>
+    <details class="faq"><summary>Can I work on several projects?</summary><p>One browser holds one project. Switch with Backup and Restore, or use a different browser for each project.</p></details>
+    <details class="faq"><summary>My text shows garbled characters.</summary><p>.txt and .csv files are detected as UTF-8, UTF-16 or Shift_JIS. If text is still garbled, re-save the file as UTF-8 and import it again.</p></details>
+    <details class="faq"><summary>How do I correct an imported text?</summary><p>Imported text is fixed. Remove the document and import the corrected file (you will need to code that document again). It is best to check transcripts before importing.</p></details>
+    <details class="faq"><summary>Where do I report a bug or suggest a feature?</summary><p>In <a href="https://github.com/jdaeyun/thematic-analysis-canvas/issues">GitHub Issues</a>. Feedback from qualitative researchers is especially welcome.</p></details>
+
+    <div class="pager">
+      <a href="101.html"><span class="label">← Previous</span><span class="title">101 — Your first reflexive thematic analysis</span></a>
+      <a href="../ta_canvas.html"><span class="label">Start →</span><span class="title">Open the app</span></a>
+    </div>
+  </article>
+</div>
+</main>
+
+<footer class="site-footer">
+  <div class="inner">
+    <div>Thematic Analysis Canvas · MIT License · © 2026 Jeong, Dae Yun</div>
+    <div><a href="index.html">Home</a> · <a href="101.html">101</a> · <a href="https://github.com/jdaeyun/thematic-analysis-canvas">GitHub</a> · <a href="../ja/guide.html" lang="ja">日本語</a></div>
+  </div>
+</footer>
+</body>
+</html>

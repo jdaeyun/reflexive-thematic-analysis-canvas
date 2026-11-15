@@ -37,7 +37,11 @@ function renderHeader() {
   const rid = document.getElementById('researcherIdInput');
   if (document.activeElement !== rid) rid.value = state.researcherId;
   renderLastBackup();
+  // Website guide in the interface language
+  const guide = document.getElementById('guideLink');
+  if (guide) guide.href = `${TA_SITE_URL}${LANG === 'ja' ? 'ja' : 'en'}/guide.html`;
 }
+const TA_SITE_URL = 'https://jdaeyun.github.io/thematic-analysis-canvas/';
 
 // "Last backup: 3 days ago" in the header. Deliberately passive: no prompt, no colour change, nothing that
 // interrupts the analysis. Hidden on an empty project.
