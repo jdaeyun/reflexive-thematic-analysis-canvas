@@ -1,5 +1,5 @@
-// Thematic Analysis Canvas — REFI-QDA project exchange (.qdpx)
-// MIT License · https://github.com/jdaeyun/thematic-analysis-canvas
+// Reflexive Thematic Analysis Canvas — REFI-QDA project exchange (.qdpx)
+// MIT License · https://github.com/jdaeyun/reflexive-thematic-analysis-canvas
 // Exchange with other QDA software (ATLAS.ti, MAXQDA, NVivo, QDA Miner, Quirkos, …) through the REFI-QDA
 // Project standard (https://www.qdasoftware.org). A .qdpx file is a zip archive with project.qde (XML,
 // namespace urn:QDA-XML:project:1.0) and the plain-text sources under Sources/.
@@ -178,7 +178,7 @@ function buildQdpx() {
   const enc = new TextEncoder();
   const files = [];
   const G = (kind, id) => refiGuid(`${kind}:${id}`);
-  const appName = `Thematic Analysis Canvas ${window.TA_CANVAS?.version || ''}`.trim();
+  const appName = `Reflexive Thematic Analysis Canvas ${window.TA_CANVAS?.version || ''}`.trim();
 
   // Users: everyone named in the project
   const users = new Map();

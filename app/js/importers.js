@@ -1,5 +1,5 @@
-// Thematic Analysis Canvas — File importers
-// MIT License · https://github.com/jdaeyun/thematic-analysis-canvas
+// Reflexive Thematic Analysis Canvas — File importers
+// MIT License · https://github.com/jdaeyun/reflexive-thematic-analysis-canvas
 // Every source is converted once, at import, into fixed plain text + blocks (paragraphs / lines / CSV cells).
 // Codes and participant tags point at character offsets in that text, so the text must never change afterwards.
 //   .txt  — UTF-8 / UTF-16 (BOM) / Shift_JIS, detected automatically

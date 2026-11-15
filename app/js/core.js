@@ -1,12 +1,12 @@
-// Thematic Analysis Canvas — Core
-// MIT License · https://github.com/jdaeyun/thematic-analysis-canvas
+// Reflexive Thematic Analysis Canvas — Core
+// MIT License · https://github.com/jdaeyun/reflexive-thematic-analysis-canvas
 // IndexedDB storage, app state, audit log, undo snapshots and shared helpers. Must load first.
 // Classic <script> (shared global scope); see the load order in ta_canvas.html.
 
 // ========================================================
 // INDEXEDDB
 // ========================================================
-const TA_DB_NAME = 'ThematicAnalysisCanvasDB';
+const TA_DB_NAME = 'ReflexiveThematicAnalysisCanvasDB';
 const TA_DB_VERSION = 1;
 // docs: imported sources (plain text, fixed at import) · segments: coded extracts · ptags: participant ranges
 // codes · themes · participants · logs: audit trail + reflexive journal · meta: project settings

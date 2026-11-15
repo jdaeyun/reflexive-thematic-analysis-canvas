@@ -1,4 +1,4 @@
-Fictional sample data for trying ta_canvas.html (Thematic Analysis Canvas prototype).
+Fictional sample data for trying ta_canvas.html (Reflexive Thematic Analysis Canvas prototype).
 All people and answers are invented.
 
 interview_P01.txt       UTF-8 transcript with "I：" / "P01：" speaker labels (try "Detect speakers")

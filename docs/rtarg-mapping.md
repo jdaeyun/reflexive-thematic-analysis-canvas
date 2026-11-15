@@ -1,6 +1,6 @@
-# Thematic Analysis Canvas and the RTARG
+# Reflexive Thematic Analysis Canvas and the RTARG
 
-This page maps the **Reflexive Thematic Analysis Reporting Guidelines (RTARG)** to what Thematic Analysis Canvas does. It shows where the app supports good reporting, where reporting is the researcher's job, and where the app still conflicts with the guidelines.
+This page maps the **Reflexive Thematic Analysis Reporting Guidelines (RTARG)** to what Reflexive Thematic Analysis Canvas does. It shows where the app supports good reporting, where reporting is the researcher's job, and where the app still conflicts with the guidelines.
 
 > Braun, V., & Clarke, V. (2024). Supporting best practice in reflexive thematic analysis reporting in *Palliative Medicine*: A review of published research and introduction to the Reflexive Thematic Analysis Reporting Guidelines (RTARG). *Palliative Medicine, 38*(6), 608–616. https://doi.org/10.1177/02692163241234800 — The RTARG is in the article's Supplemental Material. The article is published under CC BY 4.0.
 

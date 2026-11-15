@@ -1,4 +1,4 @@
-Thematic Analysis Canvas — Offline edition
+Reflexive Thematic Analysis Canvas — Offline edition
 ==========================================
 
 This edition works without an internet connection. All libraries are bundled.
@@ -21,6 +21,6 @@ Try it
 
 Version and licence
   - The version is shown in app/version.js and CITATION.cff.
-  - Thematic Analysis Canvas is MIT-licensed (LICENSE). Bundled third-party libraries keep their own
+  - Reflexive Thematic Analysis Canvas is MIT-licensed (LICENSE). Bundled third-party libraries keep their own
     licences: see app/vendor/THIRD_PARTY_NOTICES.md.
-  - Updates: https://github.com/jdaeyun/thematic-analysis-canvas/releases
+  - Updates: https://github.com/jdaeyun/reflexive-thematic-analysis-canvas/releases

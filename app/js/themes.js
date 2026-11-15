@@ -1,5 +1,5 @@
-// Thematic Analysis Canvas — Tab 2: Themes (Braun & Clarke phases 3–5)
-// MIT License · https://github.com/jdaeyun/thematic-analysis-canvas
+// Reflexive Thematic Analysis Canvas — Tab 2: Themes (Braun & Clarke phases 3–5)
+// MIT License · https://github.com/jdaeyun/reflexive-thematic-analysis-canvas
 // One board for generating, reviewing and defining themes. The phases are recursive, so they are
 // tracked as a status on each theme (Candidate → Reviewed → Defined) rather than as separate tabs.
 // Codes are dragged from the pool into themes (or subthemes); a code may sit in more than one theme.

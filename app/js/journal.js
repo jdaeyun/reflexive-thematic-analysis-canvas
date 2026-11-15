@@ -1,5 +1,5 @@
-// Thematic Analysis Canvas — Reflexive journal: quick drawer, decision prompts, structure snapshots
-// MIT License · https://github.com/jdaeyun/thematic-analysis-canvas
+// Reflexive Thematic Analysis Canvas — Reflexive journal: quick drawer, decision prompts, structure snapshots
+// MIT License · https://github.com/jdaeyun/reflexive-thematic-analysis-canvas
 // Nothing here is mandatory. The journal is always one shortcut away (Ctrl/⌘+J); significant decisions
 // show a small, self-dismissing "Why?" prompt; journal notes and theme status changes keep a lightweight
 // snapshot of the code/theme structure so the audit trail can show "what the analysis looked like then".

@@ -1,14 +1,14 @@
 cff-version: 1.2.0
-message: "If you use Thematic Analysis Canvas in your research, please cite it using the metadata below."
+message: "If you use Reflexive Thematic Analysis Canvas in your research, please cite it using the metadata below."
 type: software
-title: "Thematic Analysis Canvas: A browser-only workspace for thematic analysis of qualitative text data"
+title: "Reflexive Thematic Analysis Canvas: A browser-only workspace for reflexive thematic analysis of qualitative text data"
 version: "0.1.0"
-abstract: "A zero-backend browser workspace for reflexive thematic analysis (Braun & Clarke) of interview transcripts, focus groups and open-ended survey answers (.txt, .csv, .docx, .doc). Supports overlapping coding with a separate speaker layer, a theme board with review and definition status, an automatic audit trail with a reflexive journal, and Word (.docx) export of write-up tables. Data stays in the browser and no AI is used."
+abstract: "A zero-backend browser workspace for reflexive thematic analysis (Braun & Clarke) of interview transcripts, focus groups and open-ended survey answers (.txt, .csv, .docx, .doc, REFI-QDA .qdpx). Supports overlapping coding, full-text search with a separate speaker layer, a theme board with review and definition status, an automatic audit trail with a reflexive journal, and Word (.docx) export of write-up tables. Data stays in the browser and no AI is used. An independent project, not affiliated with Virginia Braun or Victoria Clarke."
 authors:
   - family-names: "Jeong"
     given-names: "Dae Yun"
     orcid: https://orcid.org/0009-0004-0432-4675
-repository-code: "https://github.com/jdaeyun/thematic-analysis-canvas"
+repository-code: "https://github.com/jdaeyun/reflexive-thematic-analysis-canvas"
 license: MIT
 date-released: "2026-11-14"
 keywords:

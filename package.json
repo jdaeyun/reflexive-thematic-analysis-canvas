@@ -1,5 +1,5 @@
 {
-  "name": "thematic-analysis-canvas-build",
+  "name": "reflexive-thematic-analysis-canvas-build",
   "private": true,
   "description": "Build tools only: fetches the bundled third-party libraries and builds the Tailwind CSS. The app itself needs no build to run.",
   "scripts": {
