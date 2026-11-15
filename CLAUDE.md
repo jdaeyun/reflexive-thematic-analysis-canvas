@@ -26,7 +26,10 @@ app/js/journal.js      journal drawer (Ctrl/⌘+J), optional "Why?" decision pro
 app/js/export.js       Tab 4 (phase 6): analytic narrative editor (first view) + supporting table specs; copy / Markdown / CSV / .docx
 app/js/refi-qda.js     REFI-QDA .qdpx export / import (built-in zip writer/reader; positions in code points, not UTF-16)
 app/js/app.js          startup (DOMContentLoaded), tabs, project setup, backup / restore / reset, drag & drop, shortcuts
-samples/               fictional test files in every supported format
+samples/               fictional test files in every supported format; samples/tutorial/{ja,en}: practice data for the 101
+site/                  website (GitHub Pages): {ja,en}/index.html (landing), 101.html (tutorial), guide.html (reference);
+                       assets/site.css; assets/img/{ja,en}/*.webp screenshots. Plain HTML, no build step
+tools/site-screenshots.cjs  rebuilds the screenshots from samples/tutorial (needs Playwright + Python Pillow)
 docs/rtarg-mapping*.md how the app maps to the RTARG (Braun & Clarke 2024); update it when a change affects reporting
 ```
 
@@ -91,6 +94,14 @@ app/vendor and write THIRD_PARTY_NOTICES.md; `npm run css`: Tailwind CLI scans t
 Re-run `npm run css` after using a Tailwind class that appears nowhere else. Write class names in full
 (no string concatenation) so the scanner can see them. `npm run serve` serves http://localhost:8080.
 Test both ways after changes: http and double-clicking ta_canvas.html (file://).
+
+## Website (site/)
+
+`.github/workflows/pages.yml` publishes site/ together with the app (ta_canvas.html, app/, samples/) and one practice-data
+zip per language on every push to main; pages link to the app as `../ta_canvas.html`. When a change is visible in the
+UI or changes how something works, update BOTH languages of the 101 and the guide, and re-run
+`node tools/site-screenshots.cjs` if screenshots are affected. UI labels quoted on the site must match `I18N` exactly
+(`<span class="ui">`). The app's gear menu links to `{ja,en}/guide.html` (TA_SITE_URL in app.js).
 
 ## Releases
 

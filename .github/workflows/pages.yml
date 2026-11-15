@@ -1,0 +1,49 @@
+# Website on GitHub Pages: the pages in site/ (ja + en), the app itself (so the 101 can say "open it here"),
+# and the practice data as one .zip per language. No build step: files are copied as they are.
+# One-time setup: Settings → Pages → Build and deployment → Source: "GitHub Actions".
+name: Website
+
+on:
+  push:
+    branches: [main]
+    paths: ['site/**', 'ta_canvas.html', 'app/**', 'samples/**', '.github/workflows/pages.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Assemble the site
+        run: |
+          mkdir -p _site
+          cp -r site/. _site/
+          cp ta_canvas.html _site/
+          cp -r app samples _site/
+          (cd samples/tutorial && zip -qr ../../_site/practice-data-ja.zip ja README.txt && zip -qr ../../_site/practice-data-en.zip en README.txt)
+          touch _site/.nojekyll
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

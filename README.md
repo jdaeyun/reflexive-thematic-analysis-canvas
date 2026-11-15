@@ -12,6 +12,8 @@
 * **No counting as a shortcut.** Following reflexive TA, prevalence counts are hidden unless you ask for them, there is no inter-coder agreement, and codes are an analytic record rather than a codebook.
 * **English and Japanese (日本語).** The interface follows your browser language automatically, or choose it in Settings. Write-up tables can be exported in either language.
 
+> 🌐 **Website, 101 tutorial and guide (English / 日本語):** https://jdaeyun.github.io/thematic-analysis-canvas/ — you can also open the app there without downloading anything.
+
 > 📌 **Status:** early prototype. Feedback from qualitative researchers is very welcome in [Issues](https://github.com/jdaeyun/thematic-analysis-canvas/issues). Keep a JSON backup of real projects.
 
 ---
@@ -79,7 +81,7 @@ On import, every file is turned into fixed plain text, one block per line or ans
 
 * Clone or download this repository, then double-click `ta_canvas.html` (Chrome, Edge or Firefox).
 * Or serve the folder: `npm run serve` (after `npm install`), then open http://localhost:8080/ta_canvas.html.
-* Try it with the fictional files in [`samples/`](samples/).
+* Try it with the fictional files in [`samples/`](samples/). [`samples/tutorial/`](samples/tutorial/) holds the practice dataset for the [101 tutorial](https://jdaeyun.github.io/thematic-analysis-canvas/en/101.html) in English and Japanese.
 
 **Backups:** use **Backup** in the top bar regularly (the top bar quietly shows when you last did). Clearing the browser's site data deletes the project. The backup `.json` contains the full text of your documents, so store it like raw data.
 
