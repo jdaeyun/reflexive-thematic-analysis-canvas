@@ -45,18 +45,10 @@ function liveSubthemes(t, opts) {
   return sortedThemes(t.id).filter(s => opts.includeSetAside || s.status !== 'discarded');
 }
 
-// Up to n extracts: key extracts first, then spread across participants
-function pickExtracts(segs, n) {
-  const sorted = [...segs].sort((a, b) => (b.key ? 1 : 0) - (a.key ? 1 : 0) || a.createdAt - b.createdAt);
-  const out = [], seenPart = new Set();
-  for (const s of sorted) {
-    if (out.length >= n) break;
-    const p = participantsForRange(s.docId, s.s, s.e).join(',');
-    if (!s.key && seenPart.has(p) && sorted.some(x => !out.includes(x) && !seenPart.has(participantsForRange(x.docId, x.s, x.e).join(',')))) continue;
-    out.push(s); seenPart.add(p);
-  }
-  for (const s of sorted) { if (out.length >= n) break; if (!out.includes(s)) out.push(s); }
-  return out;
+// Illustrative extracts: only those the researcher marked as key (★), oldest first, up to n. Choosing which
+// extracts illustrate a theme is an analytic decision, so nothing is filled in automatically.
+function keyExtracts(segs, n) {
+  return segs.filter(s => s.key).sort((a, b) => a.createdAt - b.createdAt).slice(0, n);
 }
 function extractCite(seg, L) {
   const p = participantLabels(participantsForRange(seg.docId, seg.s, seg.e));
@@ -96,8 +88,8 @@ function getTableSpec(id, opts = exportOptions()) {
         [T('exp.r.length'), datasetLengthText(L)],
         [T('exp.r.dataPrep'), state.meta.dataPrep || '—'],
         [T('exp.r.participants'), String(nPart)],
-        [T('exp.r.extracts'), String(state.segments.length)],
-        [T('exp.r.codes'), String(state.codes.length)],
+        // numbers of extracts and codes say nothing about quality: only with the prevalence option
+        ...(opts.includeCounts ? [[T('exp.r.extracts'), String(state.segments.length)], [T('exp.r.codes'), String(state.codes.length)]] : []),
         [T('exp.r.themes'), T('exp.v.themes', { t: themes.length, s: subs })],
         [T('exp.r.status'), statusLine],
         [T('exp.r.journal'), String(journal)],
@@ -111,27 +103,32 @@ function getTableSpec(id, opts = exportOptions()) {
     const parts = countedParticipants().sort(byLabel);
     // RTARG: situate the participant group without compromising anonymity — aggregate by default
     if (!opts.participantRows) {
+      const smallCells = []; // values only one participant has: may identify them when combined with the context
       const rows = keys.map(k => {
         const tally = new Map();
         for (const p of parts) { const v = String((p.attributes || {})[k] || '').trim() || T('exp.v.notStated'); tally.set(v, (tally.get(v) || 0) + 1); }
         const vals = [...tally.entries()].sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true }));
+        if (parts.length > 1) for (const [v, n] of vals) if (n === 1 && v !== T('exp.v.notStated')) smallCells.push(`${k}: ${v}`);
         return [k, vals.map(([v, n]) => T('exp.v.tally', { v, n })).join(L === 'ja' ? '、' : ', ')];
       });
       return {
         title: numbered('exp.participants.titleAgg'),
         note: T('exp.participants.noteAgg'),
         headers: [T('exp.h.characteristic'), T('exp.h.groupN', { n: parts.length })],
-        rows: rows.length ? rows : [[T('exp.r.participants'), String(parts.length)]]
+        rows: rows.length ? rows : [[T('exp.r.participants'), String(parts.length)]],
+        smallCells // shown as a hint in the preview only, never exported
       };
     }
     return {
       title: numbered('exp.participants.title'),
       note: T('exp.participants.noteRows'),
-      headers: [T('exp.h.participant'), ...keys, T('exp.h.documents'), T('exp.h.extracts')],
+      // extracts per participant is a prevalence count: only with the prevalence option
+      headers: [T('exp.h.participant'), ...keys, T('exp.h.documents'), ...(opts.includeCounts ? [T('exp.h.extracts')] : [])],
       rows: parts.map(p => {
-        const segs = state.segments.filter(s => participantsForRange(s.docId, s.s, s.e).includes(p.id));
         const docs = new Set(state.ptags.filter(t => t.participantId === p.id).map(t => t.docId).concat(state.docs.filter(d => d.defaultParticipantId === p.id).map(d => d.id)));
-        return [p.label, ...keys.map(k => (p.attributes || {})[k] || '—'), String(docs.size), String(segs.length)];
+        const row = [p.label, ...keys.map(k => (p.attributes || {})[k] || '—'), String(docs.size)];
+        if (opts.includeCounts) row.push(String(state.segments.filter(s => participantsForRange(s.docId, s.s, s.e).includes(p.id)).length));
+        return row;
       })
     };
   }
@@ -147,7 +144,7 @@ function getTableSpec(id, opts = exportOptions()) {
         subs.length ? '' : '—',
         t.definition || '—',
         own.map(c => c.name).join('; ') || '—',
-        pickExtracts(ownSegs, opts.maxExtracts).map(s => extractCite(s, L)).join('\n') || '—'
+        keyExtracts(ownSegs, opts.maxExtracts).map(s => extractCite(s, L)).join('\n') || T('exp.v.noKeyExtract')
       ]);
       for (const s of subs) {
         rows.push([
@@ -155,7 +152,7 @@ function getTableSpec(id, opts = exportOptions()) {
           `${s.name}${setAside(s.status)}`,
           s.definition || '—',
           codesForTheme(s.id, false).map(c => c.name).join('; ') || '—',
-          pickExtracts(segmentsForTheme(s.id, false), opts.maxExtracts).map(x => extractCite(x, L)).join('\n') || '—'
+          keyExtracts(segmentsForTheme(s.id, false), opts.maxExtracts).map(x => extractCite(x, L)).join('\n') || T('exp.v.noKeyExtract')
         ]);
       }
     }
@@ -188,11 +185,16 @@ function getTableSpec(id, opts = exportOptions()) {
     return {
       title: numbered('exp.codelist.title'),
       note: T('exp.codelist.note'),
-      headers: [T('exp.h.code'), T('exp.h.description'), T('exp.h.themes'), T('exp.h.extractsShort'), T('exp.h.participants'), T('exp.h.documents')],
+      // counts per code only with the prevalence option, like everywhere else
+      headers: [T('exp.h.code'), T('exp.h.description'), T('exp.h.themes'), ...(opts.includeCounts ? [T('exp.h.extractsShort'), T('exp.h.participants'), T('exp.h.documents')] : [])],
       rows: sortedCodes().map(c => {
-        const segs = segmentsForCode(c.id);
-        const cov = coverage(segs);
-        return [c.name, c.description || '—', c.themeIds.map(t => themeById(t)?.name).filter(Boolean).join('; ') || '—', String(segs.length), String(cov.participants.size), String(cov.docs.size)];
+        const row = [c.name, c.description || '—', c.themeIds.map(t => themeById(t)?.name).filter(Boolean).join('; ') || '—'];
+        if (opts.includeCounts) {
+          const segs = segmentsForCode(c.id);
+          const cov = coverage(segs);
+          row.push(String(segs.length), String(cov.participants.size), String(cov.docs.size));
+        }
+        return row;
       })
     };
   }
@@ -274,7 +276,12 @@ function renderExportView() {
   document.getElementById('csvBtn').disabled = isNarr;
   document.getElementById('copyTableLabel').textContent = tr(isNarr ? 'exp.copyText' : 'exp.copy');
   if (isNarr) renderNarrativeEditor();
-  else document.getElementById('exportPreview').innerHTML = specToHtml(getTableSpec(state.exportTable));
+  else {
+    const spec = getTableSpec(state.exportTable);
+    // Gentle anonymity hint for the group summary (not part of the table, never exported)
+    const small = spec.smallCells?.length ? `<div class="mb-3 text-[11px] text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2"><i class="ph ph-lightbulb"></i> ${escapeHtml(tr('hint.smallCells', { list: spec.smallCells.join(', ') }))}</div>` : '';
+    document.getElementById('exportPreview').innerHTML = small + specToHtml(spec);
+  }
 }
 
 // ========================================================
@@ -289,10 +296,14 @@ function narrativeThemes(opts = exportOptions()) {
   return out;
 }
 
-const narrativeSavers = {};
+const narrativeSavers = {}; // key → { timer, fn }
 function saveNarrativeSoon(key, fn) {
-  clearTimeout(narrativeSavers[key]);
-  narrativeSavers[key] = setTimeout(fn, 600);
+  clearTimeout(narrativeSavers[key]?.timer);
+  narrativeSavers[key] = { fn, timer: setTimeout(() => { delete narrativeSavers[key]; fn(); }, 600) };
+}
+// Writes what is still waiting (the tab is being hidden or closed)
+function flushNarrativeSaves() {
+  for (const [key, { timer, fn }] of Object.entries(narrativeSavers)) { clearTimeout(timer); delete narrativeSavers[key]; fn(); }
 }
 
 function renderNarrativeEditor() {

@@ -118,9 +118,12 @@ function openParticipantEditor(pid) {
     pushUndo(['undo.deleteParticipant', { label: p.label }], ['participants', 'ptags', 'docs']);
     const gone = state.ptags.filter(t => t.participantId === pid).map(t => t.id);
     state.ptags = state.ptags.filter(t => t.participantId !== pid);
-    await dbDeleteMany('ptags', gone);
-    for (const d of state.docs) if (d.defaultParticipantId === pid) { d.defaultParticipantId = null; await dbPut('docs', d); }
+    const docs = state.docs.filter(d => d.defaultParticipantId === pid);
+    for (const d of docs) d.defaultParticipantId = null;
     state.participants = state.participants.filter(x => x.id !== pid);
+    commitUndo();
+    await dbDeleteMany('ptags', gone);
+    await dbPutMany('docs', docs);
     await dbDelete('participants', pid);
     await recordLog({ category: 'participants', ak: 'log.parDeleted', ap: { label: p.label } });
     modal.classList.add('hidden');
@@ -452,6 +455,7 @@ async function detectSpeakers() {
     for (const i of idxs) add.push({ id: uid('pt'), docId: doc.id, s: doc.blocks[i].s, e: doc.blocks[i].e, participantId: p.id });
   }
   state.ptags = keep.concat(add);
+  commitUndo();
   await dbDeleteMany('ptags', removed);
   await dbPutMany('ptags', add);
   await recordLog({ category: 'participants', ak: 'log.speakersDetected', ap: { doc: doc.name }, detail: [...found.keys()].join(', ') });
@@ -469,6 +473,7 @@ async function deleteActiveDocument() {
   state.segments = state.segments.filter(s => s.docId !== doc.id);
   state.ptags = state.ptags.filter(t => t.docId !== doc.id);
   state.docs = state.docs.filter(d => d.id !== doc.id);
+  commitUndo();
   await dbDeleteMany('segments', segIds);
   await dbDeleteMany('ptags', ptIds);
   await dbDelete('docs', doc.id);
@@ -626,6 +631,7 @@ async function mergeCodes(sourceId, targetId, reason = '') {
   for (const t of src.themeIds) if (!tgt.themeIds.includes(t)) tgt.themeIds.push(t);
   if (src.description && !tgt.description.includes(src.description)) tgt.description = [tgt.description, `[from “${src.name}”] ${src.description}`].filter(Boolean).join('\n');
   state.codes = state.codes.filter(x => x.id !== sourceId);
+  commitUndo();
   await dbPutMany('segments', changed);
   await dbPut('codes', tgt);
   await dbDelete('codes', sourceId);
@@ -646,6 +652,7 @@ async function deleteCode(codeId, reason = '') {
   }
   state.segments = state.segments.filter(s => !removed.includes(s));
   state.codes = state.codes.filter(x => x.id !== codeId);
+  commitUndo();
   await dbPutMany('segments', changed);
   await dbDeleteMany('segments', removed.map(s => s.id));
   await dbDelete('codes', codeId);
@@ -710,6 +717,7 @@ function renderSegmentPanel() {
 async function deleteSegment(seg) {
   pushUndo(['undo.removeExtract', {}], ['segments']);
   state.segments = state.segments.filter(s => s.id !== seg.id);
+  commitUndo();
   await dbDelete('segments', seg.id);
   await recordLog({ category: 'coding', ak: 'log.extractRemoved', detail: `${seg.codeIds.map(c => codeById(c)?.name).filter(Boolean).join(', ')} · “${clip(seg.text, 120)}”` });
   state.activeSegId = null;
@@ -779,6 +787,7 @@ async function resizeSegment(seg, s, e) {
   } else {
     seg.s = s; seg.e = e; seg.text = doc.text.slice(s, e);
   }
+  commitUndo();
   state.activeSegId = keep.id;
   clearPendingSelection();
   renderViewer(); renderDocList(); renderCodebook(); renderSegmentPanel();
@@ -1009,6 +1018,7 @@ async function splitCode(sourceId, segIds, name, { keep = false, sameThemes = tr
     if (!s.codeIds.includes(tgt.id)) s.codeIds.push(tgt.id);
     changed.push(s);
   }
+  commitUndo();
   renderAll();
   await dbPut('codes', tgt);
   await dbPutMany('segments', changed);

@@ -214,7 +214,7 @@ async function importFiles(fileList) {
     const kind = fileKind(f.name);
     if (!kind) { showToast(tr('imp.skipped', { file: f.name }), 'error'); continue; }
     if (kind === 'qdpx') {
-      try { await importQdpx(f); } catch (e) { console.error(e); showToast(tr('imp.failed', { file: f.name, msg: e.message }), 'error'); }
+      try { await importQdpx(f); } catch (e) { commitUndo(); renderAll(); console.error(e); showToast(tr('imp.failed', { file: f.name, msg: e.message }), 'error'); }
       continue;
     }
     if (state.docs.some(d => d.name === f.name)) {

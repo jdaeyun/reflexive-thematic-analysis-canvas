@@ -43,15 +43,20 @@ function renderHeader() {
 }
 const TA_SITE_URL = 'https://jdaeyun.github.io/reflexive-thematic-analysis-canvas/';
 
-// "Last backup: 3 days ago" in the header. Deliberately passive: no prompt, no colour change, nothing that
-// interrupts the analysis. Hidden on an empty project.
+// "Last backup: 3 days ago" in the header. Quiet: no prompt, nothing that interrupts the analysis. It only turns
+// amber once there is data and no backup from the last week, and its tooltip says where the project lives.
+const BACKUP_STALE_MS = 7 * 24 * 3600 * 1000;
 function renderLastBackup() {
   const el = document.getElementById('lastBackupLabel');
   if (!el) return;
   const ts = state.meta.lastBackupAt;
+  const stale = state.docs.length > 0 && (!ts || Date.now() - ts > BACKUP_STALE_MS);
   el.classList.toggle('hidden', !ts && !state.docs.length);
+  el.classList.toggle('text-amber-700', stale);
+  el.classList.toggle('text-slate-400', !stale);
   el.textContent = ts ? tr('hdr.lastBackup', { when: relativeTime(ts) }) : tr('hdr.noBackup');
-  el.title = ts ? tr('hdr.lastBackupTitle', { time: fmtTime(ts) }) : tr('hdr.backupTitle');
+  const where = tr(location.protocol === 'file:' ? 'hdr.storageFile' : 'hdr.storageWeb');
+  el.title = `${ts ? tr('hdr.lastBackupTitle', { time: fmtTime(ts) }) : tr('hdr.backupTitle')}\n${where}`;
 }
 function relativeTime(ts) {
   const sec = Math.max(0, (Date.now() - ts) / 1000);
@@ -114,13 +119,19 @@ async function restoreProject(file) {
   // 'thematic-analysis-canvas': backups made before the app was renamed (v0.1 beta)
   if (!['reflexive-thematic-analysis-canvas', 'thematic-analysis-canvas'].includes(data.app)) { alert(tr('restore.notBackup')); return; }
   if (!confirm(tr('restore.confirm', { name: data.meta?.name || file.name }))) return;
-  for (const c of COLLECTIONS) { state[c] = Array.isArray(data[c]) ? data[c] : []; await dbReplaceAll(c, state[c]); }
-  state.meta = { ...state.meta, ...(data.meta || {}), id: 'project' };
+  const clean = sanitizeProjectData(data);
+  for (const c of COLLECTIONS) state[c] = clean.collections[c];
+  state.meta = clean.meta;
+  state.logs.sort((a, b) => a.ts - b.ts);
+  state.docs.sort((a, b) => a.createdAt - b.createdAt);
+  repairReferences(); // state only: everything is written in full below
+  for (const c of COLLECTIONS) await dbReplaceAll(c, state[c]);
   await saveMeta();
   await recordLog({ category: 'system', ak: 'log.restored', ap: { file: file.name } });
   state.undoStack = [];
   state.activeDocId = state.docs[0]?.id || null;
   state.activeSegId = null;
+  state.pendingSel = null;
   renderAll();
   showToast(tr('toast.restored'), 'success');
 }
@@ -128,7 +139,7 @@ async function resetProject() {
   if (!confirm(tr('reset.confirm1'))) return;
   if (!confirm(tr('reset.confirm2'))) return;
   for (const c of COLLECTIONS) { state[c] = []; await dbReplaceAll(c, []); }
-  state.meta = { id: 'project', name: '', question: '', approach: 'reflexive', createdAt: Date.now() };
+  state.meta = defaultMeta();
   await saveMeta();
   state.undoStack = [];
   state.activeDocId = null; state.activeSegId = null; state.pendingSel = null;
@@ -176,6 +187,26 @@ function setupColumnResize() {
 // ========================================================
 // STARTUP
 // ========================================================
+// Icon-only buttons and links are named by their tooltip for screen readers (kept in step when the tooltip
+// changes, e.g. after switching language). Elements with their own aria-label are left alone.
+function setupAccessibleNames() {
+  const label = (el) => {
+    if (!el.matches('button[title], a[title]')) return;
+    if (el.hasAttribute('aria-label') && !el.dataset.autoAria) return;
+    if (el.textContent.trim() && !el.dataset.autoAria) return;
+    el.setAttribute('aria-label', el.title);
+    el.dataset.autoAria = '1';
+  };
+  const scan = (root) => { if (root.nodeType !== 1) return; label(root); root.querySelectorAll('button[title], a[title]').forEach(label); };
+  scan(document.body);
+  new MutationObserver(records => {
+    for (const r of records) {
+      if (r.type === 'attributes') label(r.target);
+      else r.addedNodes.forEach(scan);
+    }
+  }).observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['title'] });
+}
+
 function setupShellEvents() {
   for (const [k, t] of Object.entries(TABS)) document.getElementById(t.btn).onclick = () => switchTab(k);
   document.getElementById('projectBtn').onclick = openProjectModal;
@@ -226,11 +257,39 @@ function setupShellEvents() {
     await importFiles(e.dataTransfer.files);
   });
 
+  // Dialogs remember whether something was typed since they opened (Esc asks before discarding it)
+  // They are also announced as dialogs, named after their title line.
+  document.querySelectorAll('.ta-modal').forEach(m => {
+    const mark = () => { m.dataset.dirty = '1'; };
+    m.addEventListener('input', mark);
+    m.addEventListener('change', mark);
+    m.setAttribute('role', 'dialog');
+    m.setAttribute('aria-modal', 'true');
+    new MutationObserver(() => {
+      if (m.classList.contains('hidden')) return;
+      m.dataset.dirty = '';
+      const title = m.querySelector('.font-bold');
+      if (title) m.setAttribute('aria-label', title.textContent.trim());
+    }).observe(m, { attributes: true, attributeFilter: ['class'] });
+  });
+  setupAccessibleNames();
+
+  // Text typed in the last moment before closing the tab is written straight away
+  window.addEventListener('pagehide', flushNarrativeSaves);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushNarrativeSaves(); });
+
   document.addEventListener('keydown', (e) => {
     const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName);
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !typing) { e.preventDefault(); performUndo(); }
     if (e.key === 'Escape') {
-      document.querySelectorAll('.ta-modal:not(.hidden)').forEach(m => m.classList.add('hidden'));
+      // Only the topmost dialog closes; one with unsaved edits asks first
+      const open = [...document.querySelectorAll('.ta-modal:not(.hidden)')];
+      if (open.length) {
+        const top = open[open.length - 1];
+        if (top.dataset.dirty === '1' && !confirm(tr('modal.discardConfirm'))) return;
+        top.classList.add('hidden');
+        return;
+      }
       closeJournal();
       document.getElementById('notePrompt').classList.add('hidden');
       if (state.pendingSel) clearPendingSelection();
