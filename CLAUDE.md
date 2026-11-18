@@ -80,6 +80,12 @@ Renamed from Thematic Analysis Canvas in the v0.1 beta: Restore still accepts ba
   (before awaiting any writes). Undo keeps only the items that change touched and puts back just those, merging with
   later edits, then `repairReferences()` drops dangling ids — so work done after the change is never rolled back.
   `'meta'` can be listed as a collection (compared field by field, e.g. `mapLinks`).
+- Large projects (a survey with thousands of answers and respondents) must stay fast: no scan of all segments / ptags
+  per line, code or participant inside a render. `byId` and `participantsForRange()` use cached indexes (checked on
+  use, ptag index dropped at the next microtask); the viewer sorts items into lines once and replaces only lines whose
+  HTML changed; long lists and selects are written with `setHtml()` (skips unchanged markup — every write to such an
+  element must go through it); `.ta-block` has `content-visibility: auto`.
+- Imported text is Unicode NFC (`textToDoc`, CSV) — never normalise afterwards (offsets); `.qdpx` text is kept as is.
 - Update `state` and re-render first, then persist (`await dbPut…`). A render that lands after the user has
   started a new text selection would wipe it.
 - Escape every user value interpolated into HTML with `escapeHtml()`. Data from outside (Restore) goes through

@@ -52,12 +52,17 @@ function openDocument(docId, flashSegId = null) {
 function renderParticipantList() {
   const el = document.getElementById('participantList');
   if (!state.participants.length) {
-    el.innerHTML = `<div class="text-[11px] text-slate-400 px-2 py-2 leading-relaxed">${escapeHtml(tr('par.empty'))}</div>`;
+    setHtml(el, `<div class="text-[11px] text-slate-400 px-2 py-2 leading-relaxed">${escapeHtml(tr('par.empty'))}</div>`);
     return;
   }
   const hasSel = !!state.pendingSel;
-  el.innerHTML = [...state.participants].sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true })).map(p => {
-    const nDocs = new Set(state.ptags.filter(t => t.participantId === p.id).map(t => t.docId).concat(state.docs.filter(d => d.defaultParticipantId === p.id).map(d => d.id))).size;
+  // Documents per participant, counted once (not one scan of every speaker range per participant)
+  const docsOf = new Map();
+  const addDoc = (pid, docId) => { if (!docsOf.has(pid)) docsOf.set(pid, new Set()); docsOf.get(pid).add(docId); };
+  for (const t of state.ptags) addDoc(t.participantId, t.docId);
+  for (const d of state.docs) if (d.defaultParticipantId) addDoc(d.defaultParticipantId, d.id);
+  const html = [...state.participants].sort((a, b) => LABEL_ORDER.compare(a.label, b.label)).map(p => {
+    const nDocs = docsOf.get(p.id)?.size || 0;
     const attrs = Object.entries(p.attributes || {}).map(([k, v]) => `${k}: ${v}`).join(' · ');
     return `<div class="par-item group flex items-center space-x-1.5 px-2 py-1 rounded-md hover:bg-slate-50 text-xs" draggable="true" data-par="${p.id}" title="${escapeHtml(attrs || tr('par.dragHint'))}">
       <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background:${p.color}"></span>
@@ -67,6 +72,7 @@ function renderParticipantList() {
       <button class="par-edit opacity-0 group-hover:opacity-100 text-slate-400 hover:text-slate-700 cursor-pointer" title="${escapeHtml(tr('par.edit'))}"><i class="ph ph-pencil-simple"></i></button>
     </div>`;
   }).join('');
+  if (!setHtml(el, html)) return; // unchanged: rows and their listeners stay
   el.querySelectorAll('.par-item').forEach(row => {
     const pid = row.dataset.par;
     row.addEventListener('dragstart', e => { e.dataTransfer.setData('text/x-ta-participant', pid); e.dataTransfer.effectAllowed = 'copy'; });
@@ -143,31 +149,60 @@ function renderDocHeader() {
   document.getElementById('docTitle').textContent = doc.name;
   document.getElementById('docMeta').textContent = tr(doc.kind === 'csv' ? 'doc.metaCsv' : 'doc.meta', { kind: doc.kind.toUpperCase(), enc: encodingLabel(doc.encoding), chars: doc.text.length.toLocaleString(localeOf()), n: doc.blocks.length });
   const sel = document.getElementById('docDefaultParticipant');
-  sel.innerHTML = `<option value="">${escapeHtml(tr('doc.noneOption'))}</option>` + state.participants.map(p => `<option value="${p.id}" ${doc.defaultParticipantId === p.id ? 'selected' : ''}>${escapeHtml(p.label)}</option>`).join('');
+  setHtml(sel, `<option value="">${escapeHtml(tr('doc.noneOption'))}</option>` + state.participants.map(p => `<option value="${p.id}" ${doc.defaultParticipantId === p.id ? 'selected' : ''}>${escapeHtml(p.label)}</option>`).join(''));
   const note = document.getElementById('docNote');
   if (document.activeElement !== note) note.value = doc.note || '';
   document.getElementById('docNoteDot').classList.toggle('hidden', !doc.note);
 }
 
+// HTML of each line as last rendered: a re-render of the same document only replaces the lines that changed
+let viewerRendered = { docId: null, html: [] };
 function renderViewer(resetScroll = false) {
   renderDocHeader();
   const body = document.getElementById('viewerBody');
   const scroller = document.getElementById('viewerScroll');
   const doc = docById(state.activeDocId);
-  if (!doc) { body.innerHTML = ''; return; }
-  const top = scroller.scrollTop;
-  const segs = state.segments.filter(s => s.docId === doc.id);
-  const pts = state.ptags.filter(p => p.docId === doc.id);
+  if (!doc) { body.innerHTML = ''; viewerRendered = { docId: null, html: [] }; return; }
   const showLabels = doc.kind === 'csv';
   const hits = [];
   state.searchHits.forEach((h, i) => { if (h.docId === doc.id) hits.push({ s: h.s, e: h.e, i }); });
-  body.innerHTML = doc.blocks.map((b, bi) => renderBlock(doc, b, bi, segs, pts, showLabels, hits)).join('');
-  scroller.scrollTop = resetScroll ? 0 : top;
+  // Sort extracts, speaker ranges and search hits into their lines once (not one scan of everything per line)
+  const perBlock = (items) => {
+    const out = doc.blocks.map(() => []);
+    for (const x of items) {
+      for (let bi = Math.max(0, lastStartingBefore(doc.blocks, x.e)); bi >= 0 && bi < doc.blocks.length; bi--) {
+        const b = doc.blocks[bi];
+        if (b.s >= x.e) continue;
+        if (b.e <= x.s) break;
+        out[bi].push(x);
+      }
+    }
+    for (const list of out) list.reverse(); // back in document order
+    return out;
+  };
+  const segs = perBlock(state.segments.filter(s => s.docId === doc.id));
+  const pts = perBlock(state.ptags.filter(p => p.docId === doc.id));
+  const blockHits = perBlock(hits);
+  const html = doc.blocks.map((b, bi) => renderBlock(doc, b, bi, segs[bi], pts[bi], showLabels, blockHits[bi]));
+  const prev = viewerRendered;
+  viewerRendered = { docId: doc.id, html };
+  if (prev.docId === doc.id && prev.html.length === html.length && body.children.length === html.length) {
+    const tpl = document.createElement('template');
+    html.forEach((h, i) => {
+      if (h === prev.html[i]) return;
+      tpl.innerHTML = h;
+      body.children[i].replaceWith(tpl.content.firstElementChild);
+    });
+    if (resetScroll) scroller.scrollTop = 0; // otherwise the scroll position is untouched (and no layout is forced)
+    return;
+  }
+  const top = resetScroll ? 0 : scroller.scrollTop; // read only here: reading it forces a layout
+  body.innerHTML = html.join('');
+  scroller.scrollTop = top;
 }
 
-function renderBlock(doc, b, bi, segs, pts, showLabels, hits = []) {
-  const inBlock = segs.filter(s => s.s < b.e && s.e > b.s);
-  const blockHits = hits.filter(h => h.s < b.e && h.e > b.s);
+// inBlock / bp / blockHits: the extracts, speaker ranges and search hits that overlap this line
+function renderBlock(doc, b, bi, inBlock, bp, showLabels, blockHits = []) {
   const cuts = new Set([b.s, b.e]);
   for (const s of inBlock) { cuts.add(Math.max(s.s, b.s)); cuts.add(Math.min(s.e, b.e)); }
   for (const h of blockHits) { cuts.add(Math.max(h.s, b.s)); cuts.add(Math.min(h.e, b.e)); }
@@ -195,7 +230,6 @@ function renderBlock(doc, b, bi, segs, pts, showLabels, hits = []) {
   }
 
   // Gutter: participant(s) of this line (explicit tag, else document default in grey)
-  const bp = pts.filter(p => p.s < b.e && p.e > b.s);
   let gutter = '';
   if (bp.length) {
     const ids = [...new Set(bp.map(p => p.participantId))];
@@ -527,7 +561,7 @@ function renderCodebook() {
   const hasSel = !!state.pendingSel;
   el.innerHTML = codes.map(c => {
     const segs = segmentsForCode(c.id);
-    const cov = coverage(segs);
+    const cov = state.showCounts ? coverage(segs) : null; // only shown with the counts toggle
     const open = state.openCodeExtracts.has(c.id);
     const themes = c.themeIds.map(t => themeById(t)?.name).filter(Boolean);
     return `<div class="code-item rounded-md border ${hasSel ? 'border-indigo-200 hover:bg-indigo-50' : 'border-transparent hover:bg-slate-50'}" data-code="${c.id}">
@@ -825,7 +859,7 @@ function foldedDocText(doc) {
 const SEARCH_MAX_HITS = 2000;
 function computeSearchHits() {
   const prev = state.searchHits[state.searchIdx];
-  const q = foldForSearch(state.textQuery.replace(/\s+/g, ' ').trim());
+  const q = foldForSearch(state.textQuery.normalize('NFC').replace(/\s+/g, ' ').trim()); // documents are NFC (textToDoc)
   const hits = [];
   if (q) {
     const allowed = extractFilterParticipants();
@@ -1044,7 +1078,7 @@ function renderExtractFilters() {
       keys.get(k).add(val);
     }
   }
-  const pars = [...countedParticipants()].sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true }));
+  const pars = [...countedParticipants()].sort((a, b) => LABEL_ORDER.compare(a.label, b.label));
   // A filter whose group no longer exists is dropped
   if (state.extractFilter && !(extractFilterParticipants() || new Set()).size) state.extractFilter = null;
   const cur = extractFilterValue();
@@ -1053,12 +1087,13 @@ function renderExtractFilters() {
     + (pars.length ? `<optgroup label="${escapeHtml(tr('xf.participant'))}">${pars.map(p => { const val = `par\u0001${p.id}`; return `<option value="${escapeHtml(val)}" ${val === cur ? 'selected' : ''}>${escapeHtml(p.label)}</option>`; }).join('')}</optgroup>` : '');
   document.querySelectorAll('.extract-filter-host').forEach(host => {
     const on = !!state.extractFilter;
-    host.innerHTML = `<div class="flex items-center gap-1">
+    const changed = setHtml(host, `<div class="flex items-center gap-1">
         <i class="ph ph-funnel text-[11px] ${on ? 'text-amber-600' : 'text-slate-400'}"></i>
         <select class="extract-filter flex-1 min-w-0 text-[11px] border rounded px-1 py-0.5 ${on ? 'bg-amber-50 border-amber-300 text-amber-900 font-semibold' : 'bg-white border-slate-200 text-slate-600'}" title="${escapeHtml(tr('xf.title'))}">${opts}</select>
         ${on ? `<button class="extract-filter-clear text-slate-400 hover:text-slate-700 cursor-pointer" title="${escapeHtml(tr('xf.clear'))}"><i class="ph ph-x text-[11px]"></i></button>` : ''}
       </div>
-      ${on ? `<div class="text-[10px] text-amber-800 leading-snug mt-0.5">${escapeHtml(tr('xf.note'))}</div>` : ''}`;
+      ${on ? `<div class="text-[10px] text-amber-800 leading-snug mt-0.5">${escapeHtml(tr('xf.note'))}</div>` : ''}`);
+    if (!changed) return; // unchanged: the select and its listeners stay
     host.querySelector('.extract-filter').onchange = (e) => setExtractFilter(e.target.value);
     host.querySelector('.extract-filter-clear')?.addEventListener('click', () => setExtractFilter(''));
   });

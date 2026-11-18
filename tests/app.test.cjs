@@ -263,3 +263,65 @@ test('Escape closes only the top dialog and asks before discarding typed text', 
   assert.equal(await page.isVisible('#projectModal'), true);
   await close();
 });
+
+test('imported text is NFC, and a decomposed search query still finds it', async () => {
+  const { page, close } = await openApp();
+  const r = await page.evaluate(async () => {
+    const raw = 'P1: がんばる'; // か゛ん は゛る (decomposed)
+    const { text, blocks } = textToDoc(raw);
+    await addDocument({ name: 'nfd.txt', kind: 'txt', encoding: 'UTF-8', text, blocks });
+    state.textQuery = 'ばる'; // decomposed query
+    computeSearchHits();
+    return { text, hits: state.searchHits.length };
+  });
+  assert.equal(r.text, 'P1: がんばる');
+  assert.equal(r.hits, 1);
+  await close();
+});
+
+test('the bundled .doc sample is read as text', async () => {
+  const { page, close } = await openApp();
+  const b64 = require('node:fs').readFileSync(path.join(__dirname, '..', 'samples', 'interview_P02.doc')).toString('base64');
+  const text = await page.evaluate((b64) => {
+    const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+    return parseDocBinary(bytes.buffer);
+  }, b64);
+  assert.ok(text.length > 100);
+  assert.doesNotMatch(text, /[\u0000-\u0008\u000e-\u001f]/);
+  await close();
+});
+
+test('participants of a range follow speaker ranges, also right after tagging in the same task', async () => {
+  const { page, close } = await openApp();
+  const ids = await seed(page);
+  const r = await page.evaluate(async ({ docId }) => {
+    const p1 = await ensureParticipant('P1'), p2 = await ensureParticipant('P2');
+    await tagParticipant(p1.id, { docId, s: 0, e: 57 });
+    const before = participantLabels(participantsForRange(docId, 30, 40));
+    // same synchronous run: the cached index must notice the new ranges
+    state.ptags = [
+      { id: 'pt_a', docId, s: 0, e: 30, participantId: p1.id },
+      { id: 'pt_x', docId, s: 30, e: 40, participantId: p2.id },
+      { id: 'pt_b', docId, s: 40, e: 57, participantId: p1.id }
+    ];
+    const after = participantLabels(participantsForRange(docId, 30, 40));
+    const across = participantLabels(participantsForRange(docId, 25, 45));
+    return { before, after, across };
+  }, ids);
+  assert.deepEqual(r, { before: 'P1', after: 'P2', across: 'P1, P2' });
+  await close();
+});
+
+test('re-rendering the viewer replaces only changed lines and shows new coding', async () => {
+  const { page, close } = await openApp();
+  const ids = await seed(page);
+  const r = await page.evaluate(async ({ docId, b }) => {
+    switchTab('code');
+    const lines = [...document.querySelectorAll('#viewerBody .ta-block')];
+    await applyCodeToRange(b, { docId, s: 62, e: 79 }); // third line
+    const now = [...document.querySelectorAll('#viewerBody .ta-block')];
+    return { kept0: now[0] === lines[0], replaced2: now[2] !== lines[2], coded: !!now[2].querySelector('.seg') };
+  }, ids);
+  assert.deepEqual(r, { kept0: true, replaced2: true, coded: true });
+  await close();
+});
