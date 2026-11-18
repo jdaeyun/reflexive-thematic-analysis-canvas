@@ -57,7 +57,7 @@
       <tr><td>The four tabs</td><td>1. Familiarise &amp; Code (phases 1–2) / 2. Themes (phases 3–5) / 3. Audit &amp; Journal / 4. Writing up (phase 6)</td></tr>
       <tr><td><span class="ui">Researcher</span></td><td>Your name or initials, recorded with coding, decisions and journal entries.</td></tr>
       <tr><td><span class="ui">Journal</span></td><td>Opens the reflexive journal (<kbd>Ctrl</kbd>+<kbd>J</kbd>).</td></tr>
-      <tr><td>↶</td><td>Undo (<kbd>Ctrl</kbd>+<kbd>Z</kbd>): up to 20 larger changes such as deleting, merging, splitting or importing.</td></tr>
+      <tr><td>↶</td><td>Undo (<kbd>Ctrl</kbd>+<kbd>Z</kbd>): up to 20 larger changes such as deleting, merging, splitting or importing. Only that change is undone: coding and other work done after it stays.</td></tr>
       <tr><td>Last backup</td><td>A quiet note of how long ago you last backed up.</td></tr>
       <tr><td><span class="ui">Backup</span></td><td>Saves the whole project as a <code>.json</code> file.</td></tr>
       <tr><td>Gear</td><td>Language, Coding highlights, Restore backup, New / Reset.</td></tr>
@@ -120,8 +120,9 @@
     <h3>Board</h3>
     <ul>
       <li><strong>Create a theme</strong>: type in <span class="ui">New candidate theme…</span> and click <span class="ui">Theme</span>. Subthemes: <span class="ui">+ Subtheme</span> on a card (one level).</li>
-      <li><strong>Add codes</strong>: drag from the code pool onto a card. Drag between cards to move; click × or drop it back on the pool to remove. A code can sit in several themes.</li>
-      <li><strong>Status</strong>: <span class="ui">Candidate</span> (phase 3), <span class="ui">Reviewed</span> (phase 4), <span class="ui">Defined</span> (phase 5), <span class="ui">Set aside</span>. A theme needs a definition before it can be defined. Changing the status offers a small, optional box to say why.</li>
+      <li><strong>Add codes</strong>: drag from the code pool onto a card, or pick one from <span class="ui">+ Add a code…</span> on the card (works with a keyboard or touch). Drag between cards to move; click × or drop it back on the pool to remove. A code can sit in several themes.</li>
+      <li><strong>A theme is not a box of codes</strong>: themes are built by reading and interpreting extracts, and codes are a tool for that. Re-read the extracts once codes are in a theme; if only some of a code's extracts belong to another theme, <a href="#tab1">split the code</a>.</li>
+      <li><strong>Status</strong>: <span class="ui">Candidate</span>, <span class="ui">Reviewed</span>, <span class="ui">Defined</span>, <span class="ui">Set aside</span>. Not a sequence of steps: a status moves back as well as forward. Changing the status offers a small, optional box to say why. A theme marked defined without a definition gets a gentle hint on its card.</li>
       <li><strong>Phase 4 · Review against the data</strong>: two checks (all coded extracts / the full dataset) and review notes.</li>
       <li><strong>Phase 5 · Define &amp; name</strong>: the central organising concept, scope and boundaries, and relation to other themes.</li>
       <li><strong>Show extracts</strong>: every extract of the theme and its subthemes, key extracts first. Click one to go back to the text.</li>
@@ -156,8 +157,8 @@
     <div class="table-wrap"><table>
       <tr><th>Table</th><th>Contents</th><th>Default</th></tr>
       <tr><td>Analysis summary</td><td>Research question, approach, orientation, dataset size and length, data preparation, number and status of themes</td><td>Included</td></tr>
-      <tr><td>Table 1. Participants</td><td>Characteristics of the participant group (values and counts per attribute). Can list participants one by one (check anonymity)</td><td>Group summary</td></tr>
-      <tr><td>Table 2. Themes &amp; extracts</td><td>Themes and subthemes, definitions, illustrative extracts</td><td>Included</td></tr>
+      <tr><td>Table 1. Participants</td><td>Characteristics of the participant group (values and counts per attribute). Values only one participant has are pointed out on screen (not in the export). Can list participants one by one (check anonymity)</td><td>Group summary</td></tr>
+      <tr><td>Table 2. Themes &amp; extracts</td><td>Themes and subthemes, definitions, illustrative extracts (only the key extracts marked ★ in tab 1; none are picked automatically)</td><td>Included</td></tr>
       <tr><td>Theme × participant</td><td>Contribution of participants to themes</td><td>Not included</td></tr>
       <tr><td>Code list</td><td>Codes as an analytic record</td><td>Not included</td></tr>
       <tr><td>Appendix A. Audit trail</td><td>Interpretive decisions and journal (single coding actions optional)</td><td>Included</td></tr>
@@ -187,8 +188,8 @@
     <ul>
       <li>Your data is stored only in the browser you are using (IndexedDB). Nothing is sent to a server. Changes are saved as you go (<span class="ui">Saved</span> at the top).</li>
       <li><strong>One project per browser.</strong> To switch, back up, use <span class="ui">New / Reset</span>, and later <span class="ui">Restore backup</span>.</li>
-      <li><strong>Each place you open the app from has its own storage.</strong> The online version (this site), the offline version (a file you double-click), different browsers and private windows all keep separate data.</li>
-      <li>Clearing the browser's site data (cookies and site data) deletes the project. <strong>Back up regularly.</strong> The top bar quietly shows how long ago you last did.</li>
+      <li><strong>Each place you open the app from has its own storage.</strong> The online version (this site), the offline version (a file you double-click), different browsers and private windows all keep separate data. With the offline version, some browsers no longer find earlier data once the folder holding <code>ta_canvas.html</code> is moved: back up before moving it.</li>
+      <li>Clearing the browser's site data (cookies and site data) deletes the project. <strong>Back up regularly.</strong> The top bar quietly shows how long ago you last did (in amber once there is data and no backup from the last week).</li>
       <li>A backup (<code>.json</code>) contains the full text of your documents. Store it as carefully as your raw data.</li>
     </ul>
 
@@ -220,8 +221,8 @@
     <details class="faq"><summary>Is my data sent anywhere?</summary><p>No. Even the online version only loads the app; your data is never sent. It is stored only in your browser.</p></details>
     <details class="faq"><summary>Can it calculate inter-coder agreement (e.g. kappa)?</summary><p>No. In reflexive TA coding is interpretive, and agreement is not a marker of quality (Braun &amp; Clarke, 2019, 2022). If you need agreement for a codebook approach, use other software.</p></details>
     <details class="faq"><summary>Can AI code or summarise my data?</summary><p>No, by design. Reading and interpreting the data is the researcher's work.</p></details>
-    <details class="faq"><summary>I need prevalence in my paper. Can I get it?</summary><p>Tick <span class="ui">Include prevalence</span> in the Writing up tab to export participants per theme and the theme × participant table. Reflexive TA does not justify themes by frequency, so consider whether it serves your argument first.</p></details>
-    <details class="faq"><summary>Does it work on a tablet or phone?</summary><p>It will display, but selecting text and dragging are central to the app, so a desktop browser is recommended.</p></details>
+    <details class="faq"><summary>I need prevalence in my paper. Can I get it?</summary><p>Tick <span class="ui">Include prevalence</span> in the Writing up tab to export participants per theme and the theme × participant table (the numbers of extracts and codes in the summary, and the counts in the participant table and code list, appear only then too). Reflexive TA does not justify themes by frequency, so consider whether it serves your argument first.</p></details>
+    <details class="faq"><summary>Does it work on a tablet or phone?</summary><p>It will display. Codes can be added to themes without dragging, but coding relies on selecting text, so a desktop browser is recommended.</p></details>
     <details class="faq"><summary>Can I work on several projects?</summary><p>One browser holds one project. Switch with Backup and Restore, or use a different browser for each project.</p></details>
     <details class="faq"><summary>The highlights on coded text are too bright.</summary><p>Under the gear menu, set <span class="ui">Coding highlights</span> to <span class="ui">Soft (easier on the eyes)</span> or <span class="ui">Underline only</span>. It changes only how highlights look, not your data or the colours of your codes.</p></details>
     <details class="faq"><summary>My text shows garbled characters.</summary><p>.txt and .csv files are detected as UTF-8, UTF-16 or Shift_JIS. If text is still garbled, re-save the file as UTF-8 and import it again.</p></details>

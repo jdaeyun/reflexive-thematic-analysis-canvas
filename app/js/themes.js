@@ -122,6 +122,7 @@ function looksLikeTopicLabel(name) {
 function themeHintsHtml(t, depth, subs) {
   const hints = [];
   if ((t.status === 'reviewed' || t.status === 'defined') && looksLikeTopicLabel(t.name)) hints.push(tr('hint.themeName'));
+  if (t.status === 'defined' && !(t.definition || '').trim()) hints.push(tr('hint.noDefinition'));
   if (depth === 0 && subs.length > 3) hints.push(tr('hint.subthemes', { n: subs.length }));
   return hints.map(h => `<div class="mx-3 mt-1 text-[10px] text-amber-800 bg-amber-50 border border-amber-100 rounded px-2 py-1 leading-snug"><i class="ph ph-lightbulb"></i> ${escapeHtml(h)}</div>`).join('');
 }
@@ -141,7 +142,7 @@ function themeCardHtml(t, depth, idx, total) {
       <i class="ph ${depth ? 'ph-arrow-elbow-down-right' : 'ph-shapes'} text-slate-400"></i>
       <input class="theme-name flex-1 min-w-0 text-sm font-bold text-slate-900 bg-transparent border-b border-transparent hover:border-slate-200 focus:border-indigo-500 focus:outline-none px-0.5" value="${escapeHtml(t.name)}" placeholder="${escapeHtml(tr(depth ? 'theme.subNamePh' : 'theme.namePh'))}">
       <select class="theme-status text-[11px] font-bold border rounded-md px-1 py-0.5 cursor-pointer ${st.cls}" title="${escapeHtml(tr('theme.statusTitle'))}">
-        ${Object.keys(THEME_STATUS).map(k => `<option value="${k}" ${t.status === k ? 'selected' : ''}>${escapeHtml(statusLabel(k))}${k !== 'discarded' ? ` (${escapeHtml(tr(`status.${k}.phase`))})` : ''}</option>`).join('')}
+        ${Object.keys(THEME_STATUS).map(k => `<option value="${k}" ${t.status === k ? 'selected' : ''}>${escapeHtml(statusLabel(k))}</option>`).join('')}
       </select>
       ${depth === 0 ? `<button class="theme-up text-slate-300 hover:text-slate-700 cursor-pointer ${idx === 0 ? 'invisible' : ''}" title="${escapeHtml(tr('theme.up'))}"><i class="ph ph-caret-up"></i></button>
       <button class="theme-down text-slate-300 hover:text-slate-700 cursor-pointer ${idx === total - 1 ? 'invisible' : ''}" title="${escapeHtml(tr('theme.down'))}"><i class="ph ph-caret-down"></i></button>` : ''}
@@ -153,8 +154,13 @@ function themeCardHtml(t, depth, idx, total) {
     <div class="theme-drop mx-3 mt-2 min-h-[38px] rounded-lg border-2 border-dashed border-slate-200 p-1.5 flex flex-wrap gap-1 content-start" title="${escapeHtml(tr('theme.dropHere'))}">
       ${ownCodes.length ? ownCodes.map(c => `<span class="theme-code inline-flex items-center gap-1 text-[11px] pl-1.5 pr-1 py-0.5 rounded border bg-white cursor-grab" draggable="true" data-code="${c.id}" style="border-color:${c.color}" title="${escapeHtml(c.description || tr('theme.dragToMove'))}">
         <span class="w-2 h-2 rounded-sm" style="background:${c.color}"></span>${escapeHtml(c.name)}${state.showCounts ? ` <span class="text-slate-400">${segmentsForCode(c.id).length}</span>` : ''}
-        <button class="theme-code-remove text-slate-300 hover:text-rose-600 cursor-pointer" title="${escapeHtml(tr('theme.removeCode'))}"><i class="ph ph-x text-[10px]"></i></button></span>`).join('') : `<span class="text-[11px] text-slate-400 px-1 py-1">${escapeHtml(tr('theme.dropHere'))}</span>`}
+        <button class="theme-code-remove text-slate-300 hover:text-rose-600 cursor-pointer" title="${escapeHtml(tr('theme.removeCode'))}" aria-label="${escapeHtml(tr('theme.removeCode'))}: ${escapeHtml(c.name)}"><i class="ph ph-x text-[10px]"></i></button></span>`).join('') : `<span class="text-[11px] text-slate-400 px-1 py-1">${escapeHtml(tr('theme.dropHere'))}</span>`}
     </div>
+    ${(() => {
+      // Same as dragging a code here, for keyboard and touch
+      const addable = sortedCodes().filter(c => !c.themeIds.includes(t.id));
+      return addable.length ? `<div class="px-3 mt-1"><select class="theme-add-code w-full text-[11px] border border-slate-200 rounded px-1.5 py-0.5 bg-white text-slate-600 cursor-pointer" aria-label="${escapeHtml(tr('theme.addCode'))}"><option value="">${escapeHtml(tr('theme.addCode'))}</option>${addable.map(c => `<option value="${c.id}">${escapeHtml(c.name)}${c.themeIds.length ? ' ·' : ''}</option>`).join('')}</select></div>` : '';
+    })()}
 
     <details class="mx-3 mt-2 group" ${t.status !== 'candidate' ? 'open' : ''}>
       <summary class="text-[11px] font-bold text-sky-700 cursor-pointer select-none">${escapeHtml(tr('theme.phase4'))} ${t.checkedExtracts && t.checkedDataset ? '✓' : ''}</summary>
@@ -195,18 +201,20 @@ function bindThemeCards(root) {
       await recordLog({ category: 'themes', ak: t.parentId ? 'log.subRenamed' : 'log.themeRenamed', from: t.name, to: v });
       t.name = v; await dbPut('themes', t); renderThemeToolbar();
     });
+    one('.theme-add-code')?.addEventListener('change', async (e) => {
+      if (e.target.value) await addCodeToTheme(e.target.value, tid, null);
+    });
     one('.theme-status').addEventListener('change', async (e) => {
       const v = e.target.value;
-      if (v === 'defined' && !(t.definition || '').trim()) {
-        alert(tr('theme.needDefinition'));
-        e.target.value = t.status; return;
-      }
       const from = t.status;
       t.status = v;
       renderThemesView();
       await dbPut('themes', t);
       const entry = await recordLog({ category: 'themes', ak: 'log.statusChanged', ap: { theme: t.name }, from, to: v, ft: 'status', snapshot: takeSnapshot() });
-      promptNote({ title: tr('prompt.status', { theme: clip(t.name, 40), from: statusLabel(from), to: statusLabel(v) }), logEntry: entry });
+      // Moving a theme back is part of the recursive process, not a step backwards: say so in the prompt
+      const rank = { candidate: 0, reviewed: 1, defined: 2 };
+      const back = v in rank && from in rank && rank[v] < rank[from];
+      promptNote({ title: tr('prompt.status', { theme: clip(t.name, 40), from: statusLabel(from), to: statusLabel(v) }), placeholder: back ? tr('prompt.statusBackPh') : undefined, logEntry: entry });
     });
     one('.theme-up')?.addEventListener('click', () => moveTheme(tid, -1));
     one('.theme-down')?.addEventListener('click', () => moveTheme(tid, 1));
@@ -315,14 +323,19 @@ async function deleteTheme(themeId) {
   if (!t) return;
   const subs = state.themes.filter(x => x.parentId === themeId);
   if (!confirm(tr('theme.confirmDelete', { theme: t.name, n: subs.length }))) return;
-  pushUndo(['undo.deleteTheme', { theme: t.name }], ['themes', 'codes']);
+  pushUndo(['undo.deleteTheme', { theme: t.name }], ['themes', 'codes', 'meta']);
   for (const s of subs) s.parentId = null;
-  await dbPutMany('themes', subs);
   const changed = state.codes.filter(c => c.themeIds.includes(themeId));
   for (const c of changed) c.themeIds = c.themeIds.filter(x => x !== themeId);
-  await dbPutMany('codes', changed);
   state.themes = state.themes.filter(x => x.id !== themeId);
+  // links on the thematic map that touched this theme go with it (back again on undo)
+  const linksBefore = Array.isArray(state.meta.mapLinks) ? state.meta.mapLinks.length : 0;
+  if (linksBefore) state.meta.mapLinks = state.meta.mapLinks.filter(l => l.from !== themeId && l.to !== themeId);
+  commitUndo();
+  await dbPutMany('themes', subs);
+  await dbPutMany('codes', changed);
   await dbDelete('themes', themeId);
+  if (linksBefore !== (state.meta.mapLinks || []).length) await saveMeta();
   renderThemesView();
   const entry = await recordLog({ category: 'themes', ak: t.parentId ? 'log.subDeleted' : 'log.themeDeleted', ap: { theme: t.name }, dk: 'log.d.returned', dp: { n: changed.length }, snapshot: takeSnapshot() });
   promptNote({ title: tr('prompt.deleted', { theme: clip(t.name, 40) }), logEntry: entry });

@@ -6,7 +6,9 @@
     "vendor": "node tools/copy-vendor.mjs",
     "css": "tailwindcss -c tailwind.config.js -i tools/tailwind.input.css -o app/vendor/tailwind/tailwind.css --minify",
     "build": "npm run vendor && npm run css",
-    "serve": "http-server . -p 8080 -c-1"
+    "serve": "http-server . -p 8080 -c-1",
+    "test": "node --test tests/*.test.cjs",
+    "citation": "node tools/sync-citation.mjs"
   },
   "devDependencies": {
     "@phosphor-icons/web": "2.1.1",
@@ -14,6 +16,7 @@
     "http-server": "14.1.1",
     "mammoth": "1.13.0",
     "papaparse": "5.7.0",
-    "tailwindcss": "3.4.17"
+    "tailwindcss": "3.4.17",
+    "playwright": "1.56.1"
   }
 }

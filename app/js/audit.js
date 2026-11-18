@@ -106,6 +106,7 @@ function renderAuditView() {
     if (!confirm(tr('audit.confirmDelete'))) return;
     pushUndo(['undo.deleteJournal', {}], ['logs']);
     state.logs = state.logs.filter(l => l.id !== b.dataset.log);
+    commitUndo();
     await dbDelete('logs', b.dataset.log);
     updateAuditBadge();
     renderAuditView();

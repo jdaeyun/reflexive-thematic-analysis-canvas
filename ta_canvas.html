@@ -188,7 +188,7 @@
         <input id="poolSearch" data-i18n-ph="code.filterPh" placeholder="Filter codes…" class="w-full text-[11px] border border-slate-200 rounded px-2 py-1 bg-white focus:outline-none focus:border-slate-400">
         <label class="flex items-center gap-1.5 text-[11px] text-slate-600"><input type="checkbox" id="poolUnassignedOnly" checked> <span data-i18n="pool.onlyFree">Only codes not yet in a theme</span></label>
         <div class="extract-filter-host"></div>
-        <div class="text-[10px] text-slate-400" data-i18n="pool.help">Drag codes into themes. Drop a theme's code back here to remove it. Click a code to read its extracts.</div>
+        <div class="text-[10px] text-slate-400" data-i18n="pool.help">Drag codes into themes (or use + Add a code… on a theme card). Drop a theme's code back here to remove it. Click a code to read its extracts.</div>
       </div>
       <div id="codePool" class="flex-1 overflow-y-auto px-3 pb-3 space-y-1.5"></div>
     </aside>
@@ -501,7 +501,7 @@
       <div class="flex items-center gap-2">
         <i class="ph ph-tree-structure text-indigo-600"></i>
         <div id="snapshotTitle" class="text-base font-bold text-slate-900"></div>
-        <button data-close-modal class="ml-auto text-slate-400 hover:text-slate-700 cursor-pointer"><i class="ph ph-x"></i></button>
+        <button data-close-modal class="ml-auto text-slate-400 hover:text-slate-700 cursor-pointer" data-i18n-title="common.close" title="Close"><i class="ph ph-x"></i></button>
       </div>
       <div id="snapshotEntry" class="text-[11px] text-slate-500 mt-1"></div>
       <div id="snapshotChanges" class="mt-3 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2"></div>

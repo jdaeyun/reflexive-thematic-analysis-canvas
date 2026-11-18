@@ -508,6 +508,7 @@ async function importQdpx(file) {
   await dbPutMany('segments', newSegs);
   await dbPutMany('ptags', ptags);
   await dbPutMany('participants', state.participants);
+  commitUndo();
   await recordLog({ category: 'import', ak: 'log.refiImported', ap: { file: file.name }, dk: 'log.d.refiImported', dp: { origin, d: newDocs.length, x: newSegs.length, c: newCodes.length, t: newThemes.length } });
 
   // Memos not attached to anything become journal entries (marked as imported)

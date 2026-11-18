@@ -61,6 +61,7 @@ async function dbPutMany(store, items) {
     for (const it of items) os.put(it);
     tx.oncomplete = () => { flashSaveStatus('saved'); resolve(); };
     tx.onerror = () => { flashSaveStatus('error'); reject(tx.error); };
+    tx.onabort = () => { flashSaveStatus('error'); reject(tx.error || new Error('IndexedDB transaction aborted')); };
   });
 }
 async function dbGetAll(store) {
@@ -77,7 +78,8 @@ async function dbDelete(store, key) {
     const tx = db.transaction(store, 'readwrite');
     tx.objectStore(store).delete(key);
     tx.oncomplete = () => { flashSaveStatus('saved'); resolve(); };
-    tx.onerror = () => reject(tx.error);
+    tx.onerror = () => { flashSaveStatus('error'); reject(tx.error); };
+    tx.onabort = () => { flashSaveStatus('error'); reject(tx.error || new Error('IndexedDB transaction aborted')); };
   });
 }
 async function dbDeleteMany(store, keys) {
@@ -88,7 +90,8 @@ async function dbDeleteMany(store, keys) {
     const os = tx.objectStore(store);
     for (const k of keys) os.delete(k);
     tx.oncomplete = () => { flashSaveStatus('saved'); resolve(); };
-    tx.onerror = () => reject(tx.error);
+    tx.onerror = () => { flashSaveStatus('error'); reject(tx.error); };
+    tx.onabort = () => { flashSaveStatus('error'); reject(tx.error || new Error('IndexedDB transaction aborted')); };
   });
 }
 async function dbReplaceAll(store, items) {
@@ -100,6 +103,7 @@ async function dbReplaceAll(store, items) {
     for (const it of items) os.put(it);
     tx.oncomplete = () => { flashSaveStatus('saved'); resolve(); };
     tx.onerror = () => { flashSaveStatus('error'); reject(tx.error); };
+    tx.onabort = () => { flashSaveStatus('error'); reject(tx.error || new Error('IndexedDB transaction aborted')); };
   });
 }
 
@@ -108,7 +112,7 @@ async function dbReplaceAll(store, items) {
 // ========================================================
 const state = {
   researcherId: localStorage.getItem('ta_researcher_id') || '',
-  meta: { id: 'project', name: '', question: '', approach: 'reflexive', createdAt: Date.now() },
+  meta: { id: 'project', name: '', question: '', approach: 'reflexive', createdAt: Date.now() }, // = defaultMeta()
   docs: [],         // { id, name, kind: 'txt'|'csv'|'docx'|'doc', encoding, text, blocks: [{ s, e, label }], defaultParticipantId, note, createdAt }
   segments: [],     // { id, docId, s, e, text, codeIds: [], memo, key: bool, createdBy, createdAt }
   ptags: [],        // { id, docId, s, e, participantId }
@@ -327,29 +331,142 @@ function updateAuditBadge() {
 }
 
 // ========================================================
-// UNDO (snapshots of whole collections — the data is small text)
+// UNDO (per-item differences, so later work is never rolled back)
 // ========================================================
-// label: [messageKey, params] so the undo button follows the current language
+// pushUndo(label, collections) right before a destructive change, commitUndo() once the change is in `state`.
+// Only the items the change touched are kept (before / after); undo puts back exactly those, merging with
+// anything edited since (later edits win, arrays such as codeIds are merged), then repairs references.
+// label: [messageKey, params] so the undo button follows the current language. 'meta' may be listed as a
+// collection: its fields are compared one by one (e.g. mapLinks when a theme is deleted).
+function undoSnapshot(coll) {
+  const m = new Map();
+  if (coll === 'meta') {
+    for (const [k, v] of Object.entries(state.meta)) m.set(k, JSON.stringify(v));
+    return m;
+  }
+  for (const it of state[coll]) m.set(it.id, JSON.stringify(it));
+  return m;
+}
 function pushUndo(label, collections) {
-  const data = {};
-  for (const c of collections) data[c] = JSON.parse(JSON.stringify(state[c]));
-  state.undoStack.push({ label, data });
+  commitUndo(); // an earlier change left open (should not happen): close it with what is in state now
+  const before = {};
+  for (const c of collections) before[c] = undoSnapshot(c);
+  state.undoStack.push({ label, before, diff: null });
   if (state.undoStack.length > 20) state.undoStack.shift();
   updateUndoButton();
 }
+function commitUndo() {
+  const top = state.undoStack[state.undoStack.length - 1];
+  if (!top || top.diff) return;
+  const diff = {};
+  for (const [coll, before] of Object.entries(top.before)) {
+    const after = undoSnapshot(coll);
+    const d = new Map();
+    for (const [id, b] of before) if (after.get(id) !== b) d.set(id, { b, a: after.get(id) });
+    for (const [id, a] of after) if (!before.has(id)) d.set(id, { b: undefined, a });
+    if (d.size) diff[coll] = d;
+  }
+  top.diff = diff;
+  delete top.before;
+}
+// Three-way merge of one item: fields changed since the undone step keep their current value;
+// arrays of plain values get the step's additions removed and its removals put back.
+function undoMergeItem(before, after, current) {
+  const out = { ...current };
+  for (const k of new Set([...Object.keys(before), ...Object.keys(after), ...Object.keys(current)])) {
+    const b = before[k], a = after[k], c = current[k];
+    const sb = JSON.stringify(b), sa = JSON.stringify(a), sc = JSON.stringify(c);
+    if (sb === sa) continue;           // the step did not touch this field
+    if (sc === sa) {                   // untouched since: put back
+      if (b === undefined) delete out[k]; else out[k] = JSON.parse(sb);
+    } else if (Array.isArray(b) && Array.isArray(a) && Array.isArray(c) && [...b, ...a, ...c].every(x => x === null || typeof x !== 'object')) {
+      const added = a.filter(x => !b.includes(x)), removed = b.filter(x => !a.includes(x));
+      const merged = c.filter(x => !added.includes(x));
+      for (const x of removed) if (!merged.includes(x)) merged.push(x);
+      out[k] = merged;
+    }                                  // otherwise a later edit wins
+  }
+  return out;
+}
 async function performUndo() {
+  commitUndo();
   const last = state.undoStack.pop();
   updateUndoButton();
   if (!last) return;
-  for (const [coll, items] of Object.entries(last.data)) {
-    state[coll] = items;
-    await dbReplaceAll(coll, items);
+  for (const [coll, d] of Object.entries(last.diff || {})) {
+    if (coll === 'meta') {
+      const cur = {};
+      for (const [k, { b, a }] of d) cur[k] = { b: b === undefined ? undefined : JSON.parse(b), a: a === undefined ? undefined : JSON.parse(a) };
+      const before = {}, after = {};
+      for (const [k, v] of Object.entries(cur)) { if (v.b !== undefined) before[k] = v.b; if (v.a !== undefined) after[k] = v.a; }
+      const current = {};
+      for (const k of Object.keys(cur)) if (state.meta[k] !== undefined) current[k] = state.meta[k];
+      const merged = undoMergeItem(before, after, current);
+      for (const k of Object.keys(cur)) { if (merged[k] === undefined) delete state.meta[k]; else state.meta[k] = merged[k]; }
+      await saveMeta();
+      continue;
+    }
+    const puts = [], dels = [];
+    for (const [id, { b, a }] of d) {
+      const i = state[coll].findIndex(x => x.id === id);
+      if (b === undefined) {                       // created by the step: remove
+        if (i >= 0) { state[coll].splice(i, 1); dels.push(id); }
+      } else if (a === undefined || i < 0) {       // deleted by the step: put back
+        if (i >= 0) state[coll].splice(i, 1);
+        const item = JSON.parse(b);
+        state[coll].push(item); puts.push(item);
+      } else {                                     // changed by the step: merge
+        const item = undoMergeItem(JSON.parse(b), JSON.parse(a), state[coll][i]);
+        state[coll][i] = item; puts.push(item);
+      }
+    }
+    await dbPutMany(coll, puts);
+    await dbDeleteMany(coll, dels);
   }
+  state.docs.sort((a, b) => a.createdAt - b.createdAt);
+  state.logs.sort((a, b) => a.ts - b.ts);
+  await persistRepairs(repairReferences());
   await recordLog({ category: 'system', ak: 'log.undid', ap: { lk: last.label[0], lp: last.label[1] || {} } });
   if (state.activeDocId && !docById(state.activeDocId)) state.activeDocId = state.docs[0]?.id || null;
   state.activeSegId = null;
   renderAll();
   showToast(tr('toast.undone', { label: tr(last.label[0], last.label[1] || {}) }), 'success');
+}
+
+// Removes references to items that no longer exist (after an undo or a restore). Returns what changed.
+function repairReferences() {
+  const put = { docs: [], segments: [], ptags: [], codes: [], themes: [] };
+  const del = { segments: [], ptags: [] };
+  const docIds = new Set(state.docs.map(d => d.id)), codeIds = new Set(state.codes.map(c => c.id));
+  const themeIds = new Set(state.themes.map(t => t.id)), parIds = new Set(state.participants.map(p => p.id));
+  state.segments = state.segments.filter(s => {
+    if (!docIds.has(s.docId)) { del.segments.push(s.id); return false; }
+    const kept = s.codeIds.filter(c => codeIds.has(c));
+    if (!kept.length) { del.segments.push(s.id); return false; }
+    if (kept.length !== s.codeIds.length) { s.codeIds = kept; put.segments.push(s); }
+    return true;
+  });
+  state.ptags = state.ptags.filter(t => {
+    if (docIds.has(t.docId) && parIds.has(t.participantId)) return true;
+    del.ptags.push(t.id); return false;
+  });
+  for (const c of state.codes) {
+    const kept = c.themeIds.filter(t => themeIds.has(t));
+    if (kept.length !== c.themeIds.length) { c.themeIds = kept; put.codes.push(c); }
+  }
+  for (const t of state.themes) if (t.parentId && !themeIds.has(t.parentId)) { t.parentId = null; put.themes.push(t); }
+  for (const d of state.docs) if (d.defaultParticipantId && !parIds.has(d.defaultParticipantId)) { d.defaultParticipantId = null; put.docs.push(d); }
+  if (Array.isArray(state.meta.mapLinks)) {
+    const n = state.meta.mapLinks.length;
+    state.meta.mapLinks = state.meta.mapLinks.filter(l => themeIds.has(l.from) && themeIds.has(l.to));
+    if (state.meta.mapLinks.length !== n) put.meta = true;
+  }
+  return { put, del };
+}
+async function persistRepairs({ put, del }) {
+  for (const [coll, items] of Object.entries(put)) if (coll !== 'meta') await dbPutMany(coll, items);
+  for (const [coll, ids] of Object.entries(del)) await dbDeleteMany(coll, ids);
+  if (put.meta) await saveMeta();
 }
 function updateUndoButton() {
   const btn = document.getElementById('undoBtn');
@@ -371,6 +488,56 @@ async function loadAll() {
   for (const c of state.codes) if (!Array.isArray(c.themeIds)) c.themeIds = [];
   for (const s of state.segments) if (!Array.isArray(s.codeIds)) s.codeIds = [];
 }
+function defaultMeta() {
+  return { id: 'project', name: '', question: '', approach: 'reflexive', createdAt: Date.now() };
+}
+
+// Checks a backup (or any project data from outside) before it goes into state: ids end up in HTML attributes and
+// colours in style attributes, so both must have a safe shape. Drops what cannot be used, then repairs references.
+const SAFE_ID = /^[A-Za-z0-9_.:-]{1,100}$/;
+const HEX_COLOR = /^#[0-9a-f]{6}$/i;
+function sanitizeProjectData(data) {
+  const str = v => (typeof v === 'string' ? v : v == null ? '' : String(v));
+  const int = v => (Number.isFinite(Number(v)) ? Math.max(0, Math.floor(Number(v))) : NaN);
+  const num = (v, d) => (Number.isFinite(Number(v)) ? Number(v) : d);
+  const ids = v => (Array.isArray(v) ? [...new Set(v.filter(x => typeof x === 'string' && SAFE_ID.test(x)))] : []);
+  const optId = v => (typeof v === 'string' && SAFE_ID.test(v) ? v : null);
+  const plain = v => (v && typeof v === 'object' && !Array.isArray(v));
+  const list = (c) => (Array.isArray(data?.[c]) ? data[c] : []).filter(x => plain(x) && typeof x.id === 'string' && SAFE_ID.test(x.id));
+  const out = {};
+  out.docs = list('docs').filter(d => typeof d.text === 'string').map(d => {
+    const n = d.text.length;
+    const blocks = (Array.isArray(d.blocks) ? d.blocks : []).filter(plain).map(b => ({ ...b, s: int(b.s), e: int(b.e), label: str(b.label) }))
+      .filter(b => b.s <= b.e && b.e <= n);
+    return { ...d, name: str(d.name), kind: str(d.kind), blocks: blocks.length ? blocks : [{ s: 0, e: n, label: '' }], defaultParticipantId: optId(d.defaultParticipantId), note: str(d.note), createdAt: num(d.createdAt, 0) };
+  });
+  const docLen = new Map(out.docs.map(d => [d.id, d.text.length]));
+  const inDoc = x => docLen.has(x.docId) && Number.isFinite(x.s) && Number.isFinite(x.e) && x.s < x.e && x.e <= docLen.get(x.docId);
+  out.segments = list('segments').map(x => ({ ...x, s: int(x.s), e: int(x.e), text: str(x.text), codeIds: ids(x.codeIds), memo: str(x.memo), key: !!x.key, createdAt: num(x.createdAt, 0) })).filter(inDoc);
+  out.ptags = list('ptags').map(x => ({ ...x, s: int(x.s), e: int(x.e), participantId: optId(x.participantId) })).filter(x => inDoc(x) && x.participantId);
+  out.codes = list('codes').map((c, i) => ({ ...c, name: str(c.name).trim() || '—', description: str(c.description), color: HEX_COLOR.test(c.color || '') ? c.color : CODE_COLORS[i % CODE_COLORS.length], themeIds: ids(c.themeIds), createdAt: num(c.createdAt, i) }));
+  out.themes = list('themes').map((t, i) => ({ ...t, name: str(t.name), parentId: optId(t.parentId), status: THEME_STATUS[t.status] ? t.status : 'candidate', definition: str(t.definition), reviewNote: str(t.reviewNote), narrative: str(t.narrative), createdAt: num(t.createdAt, i) }));
+  out.participants = list('participants').map((p, i) => {
+    const attributes = {};
+    if (plain(p.attributes)) for (const [k, v] of Object.entries(p.attributes)) attributes[str(k)] = str(v);
+    return { ...p, label: str(p.label).trim() || '—', role: p.role === 'interviewer' ? 'interviewer' : 'participant', attributes, color: HEX_COLOR.test(p.color || '') ? p.color : PARTICIPANT_COLORS[i % PARTICIPANT_COLORS.length], createdAt: num(p.createdAt, i) };
+  });
+  out.logs = list('logs').map(l => ({ ...l, ts: num(l.ts, 0), category: str(l.category), action: str(l.action), detail: str(l.detail), from: str(l.from), to: str(l.to), by: str(l.by), linkedLogId: optId(l.linkedLogId) || undefined }));
+  // Project setup: built from the defaults, never merged with the project that was open before
+  const meta = defaultMeta();
+  if (plain(data?.meta)) {
+    for (const [k, v] of Object.entries(data.meta)) {
+      if (k === 'id' || k === 'mapLinks') continue;
+      if (v === null || ['string', 'number', 'boolean'].includes(typeof v)) meta[k] = v;
+    }
+    if (Array.isArray(data.meta.mapLinks)) {
+      meta.mapLinks = data.meta.mapLinks.filter(l => plain(l) && SAFE_ID.test(str(l.id)) && optId(l.from) && optId(l.to)).map(l => ({ id: l.id, from: l.from, to: l.to, label: str(l.label) }));
+    }
+  }
+  meta.approach = 'reflexive';
+  return { collections: out, meta };
+}
+
 async function saveMeta() {
   await dbPut('meta', state.meta);
 }

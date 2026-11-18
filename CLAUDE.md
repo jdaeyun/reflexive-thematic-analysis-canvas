@@ -30,6 +30,7 @@ app/js/app.js          startup (DOMContentLoaded), tabs, project setup, backup /
 samples/               fictional test files in every supported format; samples/tutorial/{ja,en}: practice data for the 101
 site/                  website (GitHub Pages): {ja,en}/index.html (landing), 101.html (tutorial), guide.html (reference);
                        assets/site.css; assets/img/{ja,en}/*.webp screenshots. Plain HTML, no build step
+tests/app.test.cjs     browser tests (Playwright, file://): undo, restore, exports, status, Esc …; `npm test`, CI: .github/workflows/test.yml
 tools/site-screenshots.cjs  rebuilds the screenshots from samples/tutorial (needs Playwright + Python Pillow)
 docs/rtarg-mapping*.md how the app maps to the RTARG (Braun & Clarke 2024); update it when a change affects reporting
 ```
@@ -75,10 +76,14 @@ Renamed from Thematic Analysis Canvas in the v0.1 beta: Restore still accepts ba
   highlight opacities in renderers. Closing never discards the draft (dot on the Journal button + edge handle).
 - Reflexive notes are never required: no blocking dialogs asking for a note. Use `promptNote()` (small,
   self-dismissing) after significant decisions only, never after single coding actions.
-- Before destructive changes call `pushUndo(label, [collections])` (snapshots whole collections).
+- Before destructive changes call `pushUndo(label, [collections])`, and `commitUndo()` as soon as the change is in `state`
+  (before awaiting any writes). Undo keeps only the items that change touched and puts back just those, merging with
+  later edits, then `repairReferences()` drops dangling ids — so work done after the change is never rolled back.
+  `'meta'` can be listed as a collection (compared field by field, e.g. `mapLinks`).
 - Update `state` and re-render first, then persist (`await dbPut…`). A render that lands after the user has
   started a new text selection would wipe it.
-- Escape every user value interpolated into HTML with `escapeHtml()`.
+- Escape every user value interpolated into HTML with `escapeHtml()`. Data from outside (Restore) goes through
+  `sanitizeProjectData()` first: ids must match `SAFE_ID`, colours `HEX_COLOR`; meta is built from `defaultMeta()`.
 - Exports are built from `getTableSpec(id)`; change the spec, not the renderers separately.
 - The extract filter (`state.extractFilter`, `filterSegments()`) only narrows what is read: never apply it to counts,
   the theme structure or exports.
@@ -87,7 +92,9 @@ Renamed from Thematic Analysis Canvas in the v0.1 beta: Restore still accepts ba
 - Stay coherent with reflexive TA: prevalence counts are hidden by default (`state.showCounts`, counts toggle) and
   left out of exports unless `optCounts`; the code list is a record, not a codebook (`optCodeList`, off by default);
   phase 6 is the analytic narrative first, tables second; the participant table summarises the group unless
-  `optParticipantRows` (RTARG: no line-by-line demographics). Hints are gentle and never block. Do not add features that treat frequency, agreement
+  `optParticipantRows` (RTARG: no line-by-line demographics); every count in a table follows `optCounts`. Illustrative
+  extracts are only the key extracts the researcher marked (★), never filled in automatically. Statuses are not a
+  sequence (no phase numbers on them; moving back is normal). Hints are gentle and never block (no `alert` gates). Do not add features that treat frequency, agreement
   or a fixed codebook as markers of quality.
 - Every UI string goes through `tr(key, params)` with the message in BOTH `I18N.en` and `I18N.ja` (app/js/i18n.js);
   static HTML uses data-i18n / data-i18n-html / data-i18n-ph / data-i18n-title. Do not name a local variable `tr`.
@@ -101,7 +108,8 @@ Node.js LTS required. `npm install`, then `npm run build` (= `npm run vendor`: c
 app/vendor and write THIRD_PARTY_NOTICES.md; `npm run css`: Tailwind CLI scans ta_canvas.html + app/js/**/*.js).
 Re-run `npm run css` after using a Tailwind class that appears nowhere else. Write class names in full
 (no string concatenation) so the scanner can see them. `npm run serve` serves http://localhost:8080.
-Test both ways after changes: http and double-clicking ta_canvas.html (file://).
+Test both ways after changes: http and double-clicking ta_canvas.html (file://). `npm test` runs the browser tests
+(after `npm install` and `npx playwright install chromium`); add a test when fixing a bug.
 
 ## Website (site/)
 
@@ -113,6 +121,7 @@ UI or changes how something works, update BOTH languages of the 101 and the guid
 
 ## Releases
 
-Update `app/version.js` and `CITATION.cff` (same version and date), commit, then publish a GitHub release
+Update `app/version.js` only: CITATION.cff follows (GitHub Actions `sync-citation.yml` commits it after the push;
+locally `npm run citation`). Wait for that commit, then publish a GitHub release
 tagged `vX.Y.Z`. `.github/workflows/offline-zip.yml` checks the versions and attaches
 `reflexive-thematic-analysis-canvas-offline.zip` (app + samples + README) to the release.

@@ -1,0 +1,30 @@
+# When app/version.js changes, copy its version and release date into CITATION.cff and commit that on the same branch.
+# Works for edits made on github.com as well as pushed from a computer. (A commit pushed with GITHUB_TOKEN does not
+# start further workflow runs, so this cannot loop.)
+name: Sync CITATION.cff with app/version.js
+
+on:
+  push:
+    paths:
+      - app/version.js
+
+permissions:
+  contents: write   # needed to commit CITATION.cff
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node tools/sync-citation.mjs
+      - name: Commit CITATION.cff if it changed
+        run: |
+          if git diff --quiet -- CITATION.cff; then exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git add CITATION.cff
+          git commit -m "Sync CITATION.cff with app/version.js"
+          git push
