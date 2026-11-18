@@ -121,6 +121,7 @@ UI or changes how something works, update BOTH languages of the 101 and the guid
 
 ## Releases
 
-Update `app/version.js` and `CITATION.cff` (same version and date), commit, then publish a GitHub release
+Update `app/version.js` only: CITATION.cff follows (GitHub Actions `sync-citation.yml` commits it after the push;
+locally `npm run citation`). Wait for that commit, then publish a GitHub release
 tagged `vX.Y.Z`. `.github/workflows/offline-zip.yml` checks the versions and attaches
 `reflexive-thematic-analysis-canvas-offline.zip` (app + samples + README) to the release.
