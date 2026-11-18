@@ -50,7 +50,8 @@ Renamed from Thematic Analysis Canvas in the v0.1 beta: Restore still accepts ba
 - `participants`: `{ label, role: 'participant'|'interviewer', attributes }`. Interviewers are excluded from
   counts (`countedParticipants()`, `coverage()`).
 - `codes`: `{ name, description, color, themeIds[] }` (a code may sit in several themes).
-- `themes`: `{ name, parentId, status: candidate|reviewed|defined|discarded, definition, reviewNote, checkedExtracts, checkedDataset, order, narrative }`.
+- `themes`: `{ name, parentId, status: candidate|reviewed|defined|discarded, definition, reviewNote, order, narrative }`
+  (`checkedExtracts` / `checkedDataset` may exist in older data; no longer shown or used).
   `narrative` = the phase 6 analytic write-up for the theme; `mapX`/`mapY` = position on the thematic map (layout only).
 - `meta` (project setup): `{ name, question, approach: 'reflexive', theory, orientInductive, orientLatent, dataPrep,
   storyline (overview), conclusions (general discussion), mapLinks: [{ id, from, to, label }] }`.
@@ -100,7 +101,8 @@ Renamed from Thematic Analysis Canvas in the v0.1 beta: Restore still accepts ba
   phase 6 is the analytic narrative first, tables second; the participant table summarises the group unless
   `optParticipantRows` (RTARG: no line-by-line demographics); every count in a table follows `optCounts`. Illustrative
   extracts are only the key extracts the researcher marked (★), never filled in automatically. Statuses are not a
-  sequence (no phase numbers on them; moving back is normal). Hints are gentle and never block (no `alert` gates). Do not add features that treat frequency, agreement
+  sequence (no phase numbers on them; moving back is normal). No numerical rules of thumb (how many themes /
+  subthemes, name length) and no tick-box review: ask questions instead. Hints are gentle and never block (no `alert` gates). Do not add features that treat frequency, agreement
   or a fixed codebook as markers of quality.
 - Every UI string goes through `tr(key, params)` with the message in BOTH `I18N.en` and `I18N.ja` (app/js/i18n.js);
   static HTML uses data-i18n / data-i18n-html / data-i18n-ph / data-i18n-title. Do not name a local variable `tr`.

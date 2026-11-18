@@ -325,3 +325,27 @@ test('re-rendering the viewer replaces only changed lines and shows new coding',
   assert.deepEqual(r, { kept0: true, replaced2: true, coded: true });
   await close();
 });
+
+test('theme review uses questions: no checkboxes, no counting thresholds', async () => {
+  const { page, close } = await openApp();
+  const ids = await seed(page);
+  const r = await page.evaluate(async () => {
+    for (let i = 0; i < 12; i++) await createTheme('Theme ' + i);
+    const parent = state.themes[0];
+    for (let i = 0; i < 5; i++) await createTheme('Sub ' + i, parent.id);
+    switchTab('themes');
+    const board = () => document.getElementById('themeBoard').textContent;
+    const beforeReview = board().includes(tr('hint.themesQ'));
+    parent.status = 'reviewed';
+    renderThemesView();
+    return {
+      checkboxes: document.querySelectorAll('#themeBoard input[type=checkbox]').length,
+      beforeReview,
+      afterReview: board().includes(tr('hint.themesQ')),
+      subQ: board().includes(tr('hint.subthemesQ')),
+      noNumbersInQuestions: !/\d/.test(tr('hint.themesQ') + tr('hint.subthemesQ') + tr('theme.nameQ'))
+    };
+  });
+  assert.deepEqual(r, { checkboxes: 0, beforeReview: false, afterReview: true, subQ: true, noNumbersInQuestions: true });
+  await close();
+});

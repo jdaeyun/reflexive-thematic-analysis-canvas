@@ -117,7 +117,7 @@ const state = {
   segments: [],     // { id, docId, s, e, text, codeIds: [], memo, key: bool, createdBy, createdAt }
   ptags: [],        // { id, docId, s, e, participantId }
   codes: [],        // { id, name, description, color, themeIds: [], createdAt, order }
-  themes: [],       // { id, name, parentId, status: 'candidate'|'reviewed'|'defined'|'discarded', definition, reviewNote, checkedExtracts, checkedDataset, order, createdAt }
+  themes: [],       // { id, name, parentId, status: 'candidate'|'reviewed'|'defined'|'discarded', definition, reviewNote, order, createdAt } (checkedExtracts / checkedDataset: older data, no longer used)
   participants: [], // { id, label, role: 'participant'|'interviewer', attributes: { key: value }, color, createdAt }
   logs: [],         // { id, ts, category, action, detail, from, to, by }
   activeTab: 'code',
