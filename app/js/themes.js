@@ -124,6 +124,56 @@ function themeHintsHtml(t) {
   return hints.map(h => `<div class="mx-3 mt-1 text-[10px] text-amber-800 bg-amber-50 border border-amber-100 rounded px-2 py-1 leading-snug"><i class="ph ph-lightbulb"></i> ${escapeHtml(h)}</div>`).join('');
 }
 
+// The theme starts from its central organising concept, not from its codes: the definition (or a question when there is
+// none yet) sits under the name; clicking it opens the definition box.
+function themeConceptHtml(t) {
+  const def = (t.definition || '').trim();
+  return `<div class="px-3 mt-1"><button type="button" class="theme-concept block w-full text-left text-[11px] leading-snug cursor-pointer hover:underline decoration-slate-300" title="${escapeHtml(tr('theme.conceptTitle'))}">
+    ${def ? `<span class="text-slate-600 italic">${escapeHtml(clip(def, 220))}</span>` : `<span class="text-slate-400"><i class="ph ph-target"></i> ${escapeHtml(tr('theme.conceptQ'))}</span>`}</button></div>`;
+}
+// Extracts of the theme; those that reach it through its own codes can be set aside from it (review, phase 4)
+function themeExtractListHtml(t, segs) {
+  const own = themeOwnSegmentIds(t.id);
+  return `<div class="mx-3 mb-3 space-y-1 max-h-72 overflow-y-auto">${segs.map(s => `<div class="flex items-start gap-1">
+    <div class="flex-1 min-w-0">${extractLinkHtml(s)}</div>
+    ${own.has(s.id) ? `<button type="button" class="theme-setaside shrink-0 mt-1 text-slate-300 hover:text-amber-700 cursor-pointer" data-seg="${s.id}" title="${escapeHtml(tr('theme.setAsideTitle'))}"><i class="ph ph-minus-circle"></i></button>` : '<span class="w-3.5 shrink-0"></span>'}
+  </div>`).join('')}</div>`;
+}
+function themeSetAsideHtml(t) {
+  const segs = setAsideSegmentsForTheme(t.id);
+  if (!segs.length) return '';
+  return `<details class="mx-3 mb-2.5">
+    <summary class="text-[11px] font-semibold text-amber-800 cursor-pointer select-none">${escapeHtml(tr('theme.setAsideList', { n: segs.length }))}</summary>
+    <div class="mt-1 text-[10px] text-slate-500 leading-snug">${escapeHtml(tr('theme.setAsideHelp'))}</div>
+    <div class="mt-1 space-y-1 max-h-60 overflow-y-auto">${segs.map(s => `<div class="flex items-start gap-1 opacity-75">
+      <div class="flex-1 min-w-0">${extractLinkHtml(s)}</div>
+      <button type="button" class="theme-putback shrink-0 mt-1 text-[10px] font-semibold text-indigo-700 hover:underline cursor-pointer" data-seg="${s.id}">${escapeHtml(tr('theme.putBack'))}</button>
+    </div>`).join('')}</div>
+  </details>`;
+}
+
+async function setAsideExtract(themeId, segId) {
+  const t = themeById(themeId), seg = state.segments.find(s => s.id === segId);
+  if (!t || !seg) return;
+  pushUndo(['undo.setAside', {}], ['themes']);
+  t.excludedSegIds = [...new Set([...(t.excludedSegIds || []), segId])];
+  commitUndo();
+  renderThemesView();
+  await dbPut('themes', t);
+  const entry = await recordLog({ category: 'themes', ak: 'log.extractSetAside', ap: { theme: t.name }, detail: `“${clip(seg.text, 120)}”` });
+  promptNote({ title: tr('prompt.setAside', { theme: clip(t.name, 40) }), placeholder: tr('prompt.setAsidePh'), logEntry: entry });
+}
+async function putBackExtract(themeId, segId) {
+  const t = themeById(themeId), seg = state.segments.find(s => s.id === segId);
+  if (!t || !seg) return;
+  pushUndo(['undo.putBack', {}], ['themes']);
+  t.excludedSegIds = (t.excludedSegIds || []).filter(id => id !== segId);
+  commitUndo();
+  renderThemesView();
+  await dbPut('themes', t);
+  await recordLog({ category: 'themes', ak: 'log.extractPutBack', ap: { theme: t.name }, detail: `“${clip(seg.text, 120)}”` });
+}
+
 function themeCardHtml(t, depth, idx, total) {
   const st = THEME_STATUS[t.status] || THEME_STATUS.candidate;
   const ownCodes = codesForTheme(t.id, false);
@@ -146,9 +196,11 @@ function themeCardHtml(t, depth, idx, total) {
       <button class="theme-delete text-slate-300 hover:text-rose-600 cursor-pointer" title="${escapeHtml(tr(depth ? 'theme.deleteSub' : 'theme.delete'))}"><i class="ph ph-trash"></i></button>
     </div>
     <div class="px-3 text-[10px] text-slate-500 mt-0.5">${escapeHtml(tr('n.codes', { n: ownCodes.length }))}${subs.length ? ` + ${escapeHtml(tr('n.subthemes', { n: subs.length }))}` : ''}${state.showCounts ? ` · ${escapeHtml(tr('n.extracts', { n: segs.length }))} · <b>${escapeHtml(tr('n.participantsOf', { n: cov.participants.size, of: nPart }))}</b> · ${escapeHtml(tr('n.documents', { n: cov.docs.size }))}` : ''}</div>
+    ${themeConceptHtml(t)}
     ${themeHintsHtml(t)}
 
-    <div class="theme-drop mx-3 mt-2 min-h-[38px] rounded-lg border-2 border-dashed border-slate-200 p-1.5 flex flex-wrap gap-1 content-start" title="${escapeHtml(tr('theme.dropHere'))}">
+    <div class="mx-3 mt-2 text-[10px] font-semibold text-slate-400">${escapeHtml(tr('theme.codesLabel'))}</div>
+    <div class="theme-drop mx-3 mt-0.5 min-h-[38px] rounded-lg border-2 border-dashed border-slate-200 p-1.5 flex flex-wrap gap-1 content-start" title="${escapeHtml(tr('theme.dropHere'))}">
       ${ownCodes.length ? ownCodes.map(c => `<span class="theme-code inline-flex items-center gap-1 text-[11px] pl-1.5 pr-1 py-0.5 rounded border bg-white cursor-grab" draggable="true" data-code="${c.id}" style="border-color:${c.color}" title="${escapeHtml(c.description || tr('theme.dragToMove'))}">
         <span class="w-2 h-2 rounded-sm" style="background:${c.color}"></span>${escapeHtml(c.name)}${state.showCounts ? ` <span class="text-slate-400">${segmentsForCode(c.id).length}</span>` : ''}
         <button class="theme-code-remove text-slate-300 hover:text-rose-600 cursor-pointer" title="${escapeHtml(tr('theme.removeCode'))}" aria-label="${escapeHtml(tr('theme.removeCode'))}: ${escapeHtml(c.name)}"><i class="ph ph-x text-[10px]"></i></button></span>`).join('') : `<span class="text-[11px] text-slate-400 px-1 py-1">${escapeHtml(tr('theme.dropHere'))}</span>`}
@@ -176,7 +228,8 @@ function themeCardHtml(t, depth, idx, total) {
       <button class="theme-toggle-extracts text-[11px] font-semibold text-indigo-700 hover:underline cursor-pointer" ${shown.length ? '' : 'disabled'}>${escapeHtml(tr(open ? 'theme.hideExtracts' : 'theme.showExtracts', { n: shown.length }))}${state.extractFilter ? ` · ${escapeHtml(extractFilterLabel())}` : ''}</button>
       ${depth === 0 ? `<button class="theme-add-sub text-[11px] text-slate-500 hover:text-slate-800 cursor-pointer">${escapeHtml(tr('theme.addSub'))}</button>` : ''}
     </div>
-    ${open ? `<div class="mx-3 mb-3 space-y-1 max-h-72 overflow-y-auto">${keyFirst.map(s => extractLinkHtml(s)).join('')}</div>` : ''}
+    ${open ? themeExtractListHtml(t, keyFirst) : ''}
+    ${themeSetAsideHtml(t)}
     ${subs.length ? `<div class="px-3 pb-3"><div class="text-[11px] text-slate-500 leading-snug"><i class="ph ph-lightbulb"></i> ${escapeHtml(tr('hint.subthemesQ'))}</div>${subs.map(s => themeCardHtml(s, 1, 0, 0)).join('')}</div>` : ''}
   </div>`;
 }
@@ -235,6 +288,15 @@ function bindThemeCards(root) {
       const back = v in rank && from in rank && rank[v] < rank[from];
       promptNote({ title: tr('prompt.status', { theme: clip(t.name, 40), from: statusLabel(from), to: statusLabel(v) }), placeholder: back ? tr('prompt.statusBackPh') : undefined, logEntry: entry });
     });
+    one('.theme-concept').addEventListener('click', () => {
+      const d = own('.theme-details').find(x => x.dataset.k === 'def');
+      if (!d) return;
+      d.open = true;
+      themeDetailsState.set(`${tid}:def`, true);
+      own('.theme-def')[0]?.focus();
+    });
+    own('.theme-setaside').forEach(b => b.addEventListener('click', (e) => { e.stopPropagation(); setAsideExtract(tid, b.dataset.seg); }));
+    own('.theme-putback').forEach(b => b.addEventListener('click', (e) => { e.stopPropagation(); putBackExtract(tid, b.dataset.seg); }));
     one('.theme-up')?.addEventListener('click', () => moveTheme(tid, -1));
     one('.theme-down')?.addEventListener('click', () => moveTheme(tid, 1));
     one('.theme-delete').addEventListener('click', () => deleteTheme(tid));

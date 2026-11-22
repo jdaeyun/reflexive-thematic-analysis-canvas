@@ -242,7 +242,8 @@ test('REFI-QDA export and import round-trip the coded extracts', async () => {
   const r = await page.evaluate(async () => {
     const before = state.segments.map(s => s.text).sort();
     const blob = buildQdpx();
-    for (const c of COLLECTIONS) { state[c] = []; await dbReplaceAll(c, []); }
+    for (const c of COLLECTIONS) state[c] = [];
+    await dbReplaceProject({}, state.meta);
     await importQdpx(new File([blob], 'p.qdpx'));
     return { before, after: state.segments.map(s => s.text).sort(), codes: state.codes.map(c => c.name).sort() };
   });
@@ -554,5 +555,250 @@ test('theme review uses questions: no checkboxes, no counting thresholds', async
     };
   });
   assert.deepEqual(r, { checkboxes: 0, beforeReview: false, afterReview: true, subQ: true, noNumbersInQuestions: true });
+  await close();
+});
+
+// ---- Review follow-ups ----
+
+test('a restore that fails while writing leaves the current project unchanged, in memory and in the browser', async () => {
+  const { page, close } = await openApp();
+  const alerts = [];
+  page.removeAllListeners('dialog');
+  page.on('dialog', d => { if (d.type() === 'alert') alerts.push(d.message()); d.accept(); });
+  await seed(page);
+  const r = await page.evaluate(async () => {
+    const before = { codes: state.codes.map(c => c.name).sort(), segs: state.segments.length };
+    // An item the browser refuses to store, half-way through the backup
+    const put = IDBObjectStore.prototype.put;
+    IDBObjectStore.prototype.put = function (v, ...rest) {
+      if (v && v.id === 'code_boom') throw new DOMException('simulated quota error', 'QuotaExceededError');
+      return put.call(this, v, ...rest);
+    };
+    const backup = {
+      app: 'reflexive-thematic-analysis-canvas', meta: { name: 'Other project' },
+      docs: [{ id: 'doc_9', name: 'y.txt', kind: 'txt', text: 'other text', blocks: [{ s: 0, e: 10 }], createdAt: 1 }],
+      codes: [{ id: 'code_ok', name: 'fine', color: '#123456' }, { id: 'code_boom', name: 'boom', color: '#123456' }],
+      segments: [], themes: [], participants: [], ptags: [], logs: []
+    };
+    await restoreProject(new File([JSON.stringify(backup)], 'b.json'));
+    IDBObjectStore.prototype.put = put;
+    const stored = { codes: (await dbGetAll('codes')).map(c => c.name).sort(), segs: (await dbGetAll('segments')).length, docs: (await dbGetAll('docs')).map(d => d.name) };
+    return { before, mem: { codes: state.codes.map(c => c.name).sort(), segs: state.segments.length, name: state.meta.name }, stored };
+  });
+  assert.deepEqual(r.mem.codes, r.before.codes);
+  assert.equal(r.mem.segs, r.before.segs);
+  assert.notEqual(r.mem.name, 'Other project');
+  assert.deepEqual(r.stored.codes, r.before.codes);
+  assert.equal(r.stored.segs, r.before.segs);
+  assert.deepEqual(r.stored.docs, ['d.txt']);
+  assert.equal(alerts.length, 1);
+  assert.match(alerts[0], /simulated quota error/);
+  await close();
+});
+
+test('deleting a journal entry leaves a trace without its text', async () => {
+  const { page, close } = await openApp();
+  await page.evaluate(async () => {
+    await recordLog({ category: 'journal', ak: 'jt.memo', detail: 'a private thought' });
+    state.auditFilter = 'all';
+    switchTab('audit');
+  });
+  await page.click('.log-del');
+  await page.waitForFunction(() => state.logs.some(l => l.ak === 'log.journalDeleted')); // written after the delete is stored
+  await page.evaluate(() => renderAuditView());
+  const r = await page.evaluate(() => ({
+    texts: state.logs.map(l => l.detail),
+    trace: state.logs.filter(l => l.ak === 'log.journalDeleted').map(l => logAction(l, 'en')),
+    traceDeletable: !!document.querySelector('.log-del')
+  }));
+  assert.ok(!r.texts.includes('a private thought'));
+  assert.equal(r.trace.length, 1);
+  assert.match(r.trace[0], /Deleted a journal entry \(Reflexive memo, written .+\); its text is not kept/);
+  assert.equal(r.traceDeletable, false);
+  await close();
+});
+
+test('the orientation can be described in words: logged and shown in the analysis summary', async () => {
+  const { page, close } = await openApp();
+  const r = await page.evaluate(async () => {
+    openProjectModal();
+    document.getElementById('projOrientInd').value = 'mostlyInductive';
+    document.getElementById('projOrientNote').value = 'Started close to participants’ words';
+    await saveProjectModal();
+    const spec = getTableSpec('summary');
+    const row = spec.rows.find(x => x[0] === tr('exp.r.orientation'));
+    return { row: row && row[1], label: tr('orient.ind.mostlyInductive'), logged: state.logs.some(l => l.ak === 'log.meta.orientNote') };
+  });
+  assert.equal(r.row, `${r.label}\nStarted close to participants’ words`);
+  assert.ok(r.logged);
+  await close();
+});
+
+test('the phase strip names the phases without numbers', async () => {
+  const { page, close } = await openApp();
+  const labels = await page.evaluate(() => [...document.querySelectorAll('.phase-step')].map(s => s.textContent.trim()));
+  assert.ok(labels.length >= 6);
+  assert.ok(labels.every(t => !/\d/.test(t)), labels.join(' | '));
+  await close();
+});
+
+// ---- A theme is not a box of codes ----
+
+test('an extract can be left out of a theme: lists, coverage and exports follow; undo and put back work', async () => {
+  const { page, close } = await openApp();
+  const ids = await seed(page);
+  const r = await page.evaluate(async ({ docId, a }) => {
+    await applyCodeToRange(a, { docId, s: 62, e: 79 }); // a second extract with code A (P2)
+    await createTheme('Feeling alone');
+    document.getElementById('notePrompt').classList.add('hidden');
+    const t = state.themes[0];
+    await addCodeToTheme(a, t.id, null);
+    const segP2 = state.segments.find(s => s.s === 62);
+    segP2.key = true;
+    const before = segmentsForTheme(t.id).length;
+    await setAsideExtract(t.id, segP2.id);
+    document.getElementById('notePrompt').classList.add('hidden');
+    const after = segmentsForTheme(t.id).map(s => s.s);
+    const aside = setAsideSegmentsForTheme(t.id).map(s => s.s);
+    const table = getTableSpec('themes', { ...exportOptions(), maxExtracts: 5 });
+    const tableText = JSON.stringify(table.rows);
+    const logged = state.logs.some(l => l.ak === 'log.extractSetAside');
+    await performUndo();
+    const undone = segmentsForTheme(t.id).length;
+    await setAsideExtract(t.id, segP2.id);
+    await putBackExtract(t.id, segP2.id);
+    return { before, after, aside, inTable: tableText.includes('Nobody listened'), logged, undone, putBack: segmentsForTheme(t.id).length, stillCoded: segP2.codeIds.includes(a) };
+  }, ids);
+  assert.equal(r.before, 2);
+  assert.deepEqual(r.after, [4]);
+  assert.deepEqual(r.aside, [62]);
+  assert.equal(r.inTable, false); // a key extract left out of the theme is not illustrative of it
+  assert.ok(r.logged);
+  assert.equal(r.undone, 2);
+  assert.equal(r.putBack, 2);
+  assert.ok(r.stillCoded);
+  await close();
+});
+
+test('a theme card starts from its central organising concept', async () => {
+  const { page, close } = await openApp();
+  await seedTheme(page);
+  const q = await page.textContent('.theme-concept');
+  assert.ok(q.includes(await page.evaluate(() => tr('theme.conceptQ'))));
+  await page.click('.theme-concept');
+  assert.equal(await page.evaluate(() => document.activeElement.classList.contains('theme-def')), true);
+  await page.fill('.theme-def', 'Being alone as a stage people pass through');
+  await page.evaluate(() => renderThemeBoard());
+  assert.ok((await page.textContent('.theme-concept')).includes('Being alone as a stage'));
+  await close();
+});
+
+// ---- Backup without document texts ----
+
+async function splitBackup(page) {
+  return page.evaluate(async () => {
+    const files = {};
+    const orig = downloadBlob;
+    downloadBlob = async (blob, name) => { files[name.replace(/^.*_(analysis|texts)\.json$/, '$1')] = await blob.text(); };
+    await backupWithoutTexts();
+    await new Promise(r => setTimeout(r, 50));
+    downloadBlob = orig;
+    return files;
+  });
+}
+
+test('a backup without texts keeps no document text or quoted extract, and restores with its texts file', async () => {
+  const { page, close } = await openApp();
+  const ids = await seed(page);
+  await page.evaluate(async ({ docId }) => { await tagParticipant((await ensureParticipant('P1')).id, { docId, s: 0, e: 26 }); }, ids);
+  const files = await splitBackup(page);
+  assert.ok(files.analysis && files.texts);
+  assert.ok(!files.analysis.includes('felt alone'), 'no document text or quote in the analysis file');
+  assert.ok(files.texts.includes('felt alone'));
+  const r = await page.evaluate(async (files) => {
+    const before = { segs: state.segments.map(s => s.text).sort(), codes: state.codes.length };
+    await dbReplaceProject({}, defaultMeta());
+    for (const c of COLLECTIONS) state[c] = [];
+    const p = restoreProject(new File([files.analysis], 'x_analysis.json'));
+    await new Promise(r => setTimeout(r, 100));
+    const shown = !document.getElementById('reconnectModal').classList.contains('hidden');
+    const okBefore = document.getElementById('reconnectOk').disabled;
+    const input = document.getElementById('reconnectInput');
+    const dt = new DataTransfer();
+    dt.items.add(new File([files.texts], 'x_texts.json'));
+    input.files = dt.files;
+    input.dispatchEvent(new Event('change'));
+    await new Promise(r => setTimeout(r, 100));
+    const okAfter = document.getElementById('reconnectOk').disabled;
+    document.getElementById('reconnectOk').click();
+    await p;
+    return { shown, okBefore, okAfter, before, after: { segs: state.segments.map(s => s.text).sort(), codes: state.codes.length }, stored: (await dbGetAll('docs'))[0].text };
+  }, files);
+  assert.equal(r.shown, true);
+  assert.equal(r.okBefore, true);
+  assert.equal(r.okAfter, false);
+  assert.deepEqual(r.after, r.before);
+  assert.match(r.stored, /felt alone/);
+  await close();
+});
+
+test('a backup without texts also reconnects to the original .txt file, whatever its name', async () => {
+  const { page, close } = await openApp();
+  await page.evaluate(async () => {
+    const raw = 'P1: I felt alone at first.\nP2: Nobody listened.';
+    const { text, blocks } = textToDoc(raw);
+    const doc = await addDocument({ name: 'interview.txt', kind: 'txt', encoding: 'UTF-8', text, blocks });
+    await applyCodeToRange(makeCode('A').code.id, { docId: doc.id, s: 4, e: 26 });
+  });
+  const files = await splitBackup(page);
+  const r = await page.evaluate(async (files) => {
+    const p = restoreProject(new File([files.analysis], 'x_analysis.json'));
+    await new Promise(r => setTimeout(r, 100));
+    const input = document.getElementById('reconnectInput');
+    const dt = new DataTransfer();
+    dt.items.add(new File(['P1: I felt alone at first.\nP2: Nobody listened.'], 'renamed.txt', { type: 'text/plain' }));
+    input.files = dt.files;
+    input.dispatchEvent(new Event('change'));
+    await new Promise(r => setTimeout(r, 100));
+    document.getElementById('reconnectOk').click();
+    await p;
+    return { docs: state.docs.map(d => d.name), seg: state.segments[0]?.text };
+  }, files);
+  assert.deepEqual(r.docs, ['interview.txt']);
+  assert.equal(r.seg, 'I felt alone at first.');
+  await close();
+});
+
+test('REFI-QDA export asks first and writes extracts left out of a theme into a note on its set', async () => {
+  const { page, close } = await openApp();
+  const asked = [];
+  page.removeAllListeners('dialog');
+  page.on('dialog', d => { asked.push(d.message()); d.accept(); });
+  const ids = await seed(page);
+  const r = await page.evaluate(async ({ a }) => {
+    await createTheme('Feeling alone');
+    document.getElementById('notePrompt').classList.add('hidden');
+    const t = state.themes[0];
+    await addCodeToTheme(a, t.id, null);
+    await setAsideExtract(t.id, state.segments.find(s => s.codeIds.includes(a)).id);
+    document.getElementById('notePrompt').classList.add('hidden');
+    let saved = null;
+    const orig = downloadBlob;
+    downloadBlob = (blob) => { saved = blob; };
+    await downloadQdpx();
+    downloadBlob = orig;
+    const entries = zipEntries(await saved.arrayBuffer());
+    const qde = [...entries.values()].find(e => /\.qde$/.test(e.name));
+    const xml = new DOMParser().parseFromString(new TextDecoder().decode(await qde.read()), 'application/xml');
+    const set = xml.getElementsByTagName('Set')[0];
+    const order = [...set.children].map(c => c.localName);
+    const noteGuids = [...set.getElementsByTagName('MemberNote')].map(n => n.getAttribute('targetGUID'));
+    const notes = [...xml.getElementsByTagName('Note')].filter(n => noteGuids.includes(n.getAttribute('guid'))).map(n => n.textContent);
+    return { order, notes };
+  }, ids);
+  assert.equal(asked.length, 1);
+  assert.match(asked[0], /moving the coded data|移す/);
+  assert.deepEqual(r.order, ['MemberCode', 'MemberNote']); // Description? MemberCode* MemberSource* MemberNote* (schema order)
+  assert.ok(r.notes.some(n => n.includes('I felt alone at first.')));
   await close();
 });

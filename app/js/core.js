@@ -94,13 +94,42 @@ async function dbDeleteMany(store, keys) {
     tx.onabort = () => { flashSaveStatus('error'); reject(tx.error || new Error('IndexedDB transaction aborted')); };
   });
 }
-async function dbReplaceAll(store, items) {
+// Fingerprint of a document's text (length + two 32-bit hashes), used to reconnect a backup made without document
+// texts to the texts file or the original files. Not a security measure: it only tells whether two texts are the same.
+function textFingerprint(text) {
+  const s = String(text || '');
+  let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+  for (let i = 0; i < s.length; i++) {
+    const c = s.charCodeAt(i);
+    h1 = Math.imul(h1 ^ c, 2654435761);
+    h2 = Math.imul(h2 ^ c, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return `${s.length}:${(h2 >>> 0).toString(16).padStart(8, '0')}${(h1 >>> 0).toString(16).padStart(8, '0')}`;
+}
+
+// Replaces the whole project (every collection + meta) in ONE transaction: if anything fails (quota, a bad item),
+// IndexedDB rolls all of it back and the project that was there stays as it was. Used by Restore and Reset.
+async function dbReplaceProject(collections, meta) {
   const db = await initDB();
   return new Promise((resolve, reject) => {
-    const tx = db.transaction(store, 'readwrite');
-    const os = tx.objectStore(store);
-    os.clear();
-    for (const it of items) os.put(it);
+    const tx = db.transaction(TA_STORES, 'readwrite');
+    try {
+      for (const c of COLLECTIONS) {
+        const os = tx.objectStore(c);
+        os.clear();
+        for (const it of collections[c] || []) os.put(it);
+      }
+      const ms = tx.objectStore('meta');
+      ms.clear();
+      ms.put(meta);
+    } catch (e) {
+      try { tx.abort(); } catch (err) { /* already aborted */ }
+      flashSaveStatus('error');
+      reject(e);
+      return;
+    }
     tx.oncomplete = () => { flashSaveStatus('saved'); resolve(); };
     tx.onerror = () => { flashSaveStatus('error'); reject(tx.error); };
     tx.onabort = () => { flashSaveStatus('error'); reject(tx.error || new Error('IndexedDB transaction aborted')); };
@@ -319,9 +348,28 @@ function codesForTheme(themeId, includeSub = true) {
   const ids = includeSub ? themeAndDescendantIds(themeId) : [themeId];
   return sortedCodes().filter(c => c.themeIds.some(t => ids.includes(t)));
 }
+// A theme is not a box of codes: an extract coded with one of its codes belongs to it unless the researcher set
+// that extract aside from this theme (theme.excludedSegIds — a review decision, logged). With includeSub, a subtheme's
+// extracts follow the subtheme's own decisions. Every count, list and export goes through these two functions.
+function themeOwnSegmentIds(themeId) {
+  const t = themeById(themeId);
+  const out = new Set(t?.excludedSegIds || []);
+  const codeIds = new Set(codesForTheme(themeId, false).map(c => c.id));
+  const ids = new Set();
+  for (const s of state.segments) if (!out.has(s.id) && s.codeIds.some(c => codeIds.has(c))) ids.add(s.id);
+  return ids;
+}
 function segmentsForTheme(themeId, includeSub = true) {
-  const codeIds = new Set(codesForTheme(themeId, includeSub).map(c => c.id));
-  return state.segments.filter(s => s.codeIds.some(c => codeIds.has(c)));
+  const ids = new Set();
+  for (const id of includeSub ? themeAndDescendantIds(themeId) : [themeId]) for (const x of themeOwnSegmentIds(id)) ids.add(x);
+  return state.segments.filter(s => ids.has(s.id));
+}
+// Extracts of the theme's own codes that were set aside from it (shown on the card so they can be put back)
+function setAsideSegmentsForTheme(themeId) {
+  const out = new Set(themeById(themeId)?.excludedSegIds || []);
+  if (!out.size) return [];
+  const codeIds = new Set(codesForTheme(themeId, false).map(c => c.id));
+  return state.segments.filter(s => out.has(s.id) && s.codeIds.some(c => codeIds.has(c)));
 }
 function coverage(segments) {
   const parts = new Set(), docs = new Set();
@@ -549,7 +597,13 @@ function repairReferences() {
     const kept = c.themeIds.filter(t => themeIds.has(t));
     if (kept.length !== c.themeIds.length) { c.themeIds = kept; put.codes.push(c); }
   }
-  for (const t of state.themes) if (t.parentId && !themeIds.has(t.parentId)) { t.parentId = null; put.themes.push(t); }
+  const segIds = new Set(state.segments.map(s => s.id));
+  for (const t of state.themes) {
+    let changed = false;
+    if (t.parentId && !themeIds.has(t.parentId)) { t.parentId = null; changed = true; }
+    if (Array.isArray(t.excludedSegIds) && t.excludedSegIds.some(id => !segIds.has(id))) { t.excludedSegIds = t.excludedSegIds.filter(id => segIds.has(id)); changed = true; }
+    if (changed) put.themes.push(t);
+  }
   for (const d of state.docs) if (d.defaultParticipantId && !parIds.has(d.defaultParticipantId)) { d.defaultParticipantId = null; put.docs.push(d); }
   if (Array.isArray(state.meta.mapLinks)) {
     const n = state.meta.mapLinks.length;
@@ -611,7 +665,7 @@ function sanitizeProjectData(data) {
   out.segments = list('segments').map(x => ({ ...x, s: int(x.s), e: int(x.e), text: str(x.text), codeIds: ids(x.codeIds), memo: str(x.memo), key: !!x.key, createdAt: num(x.createdAt, 0) })).filter(inDoc);
   out.ptags = list('ptags').map(x => ({ ...x, s: int(x.s), e: int(x.e), participantId: optId(x.participantId) })).filter(x => inDoc(x) && x.participantId);
   out.codes = list('codes').map((c, i) => ({ ...c, name: str(c.name).trim() || '—', description: str(c.description), color: HEX_COLOR.test(c.color || '') ? c.color : CODE_COLORS[i % CODE_COLORS.length], themeIds: ids(c.themeIds), createdAt: num(c.createdAt, i) }));
-  out.themes = list('themes').map((t, i) => ({ ...t, name: str(t.name), parentId: optId(t.parentId), status: THEME_STATUS[t.status] ? t.status : 'candidate', definition: str(t.definition), reviewNote: str(t.reviewNote), narrative: str(t.narrative), createdAt: num(t.createdAt, i) }));
+  out.themes = list('themes').map((t, i) => ({ ...t, name: str(t.name), parentId: optId(t.parentId), status: THEME_STATUS[t.status] ? t.status : 'candidate', excludedSegIds: ids(t.excludedSegIds), definition: str(t.definition), reviewNote: str(t.reviewNote), narrative: str(t.narrative), createdAt: num(t.createdAt, i) }));
   out.participants = list('participants').map((p, i) => {
     const attributes = {};
     if (plain(p.attributes)) for (const [k, v] of Object.entries(p.attributes)) attributes[str(k)] = str(v);

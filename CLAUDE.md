@@ -56,12 +56,14 @@ Renamed from Thematic Analysis Canvas in the v0.1 beta: Restore still accepts ba
 - `participants`: `{ label, role: 'participant'|'interviewer', attributes }`. Interviewers are excluded from
   counts (`countedParticipants()`, `coverage()`).
 - `codes`: `{ name, description, color, themeIds[] }` (a code may sit in several themes).
-- `themes`: `{ name, parentId, status: candidate|reviewed|defined|discarded, definition, reviewNote, order, narrative }`
+- `themes`: `{ name, parentId, status: candidate|reviewed|defined|discarded, definition, reviewNote, order, narrative, excludedSegIds[] }`
   (`checkedExtracts` / `checkedDataset` may exist in older data; no longer shown or used).
+  `excludedSegIds` = extracts the researcher left out of this theme although they carry its codes (a theme is not a box of
+  codes): `segmentsForTheme()` / `themeOwnSegmentIds()` apply it, so every list, count and export follows. Not representable in .qdpx.
   `narrative` = the phase 6 analytic write-up for the theme; `mapX`/`mapY` = position on the thematic map (layout only).
-- `meta` (project setup): `{ name, question, approach: 'reflexive', theory, orientInductive, orientLatent, dataPrep,
+- `meta` (project setup): `{ name, question, approach: 'reflexive', theory, orientInductive, orientLatent, orientNote, dataPrep,
   storyline (overview), conclusions (general discussion), mapLinks: [{ id, from, to, label }], lastBackupAt }`.
-- `logs`: audit trail and journal `{ ts, category, action, detail, from, to, by, reason?, ctx?, snapshot?, linkedLogId? }`.
+- `logs`: the analysis record (formerly "audit trail"; internal names keep `audit`) and the journal `{ ts, category, action, detail, from, to, by, reason?, ctx?, snapshot?, linkedLogId? }`.
   `reason` = optional "why" for a decision; `ctx` = what was on screen (doc / extract / quote / theme);
   `snapshot` = theme tree + code names and counts (no extract text), taken on journal notes and theme status
   changes / deletes; `linkedLogId` = a note written about another entry.
@@ -97,6 +99,13 @@ Renamed from Thematic Analysis Canvas in the v0.1 beta: Restore still accepts ba
   HTML changed; long lists and selects are written with `setHtml()` (skips unchanged markup — every write to such an
   element must go through it); `.ta-block` has `content-visibility: auto`.
 - Imported text is Unicode NFC (`textToDoc`, CSV) — never normalise afterwards (offsets); `.qdpx` text is kept as is.
+- Restore and Reset replace the whole project with `dbReplaceProject()` (one IndexedDB transaction over every store):
+  if writing fails, nothing changes in the browser and the project in memory is put back (test "a restore that fails").
+- Backup without document texts (gear menu, `backupWithoutTexts()`): `…_analysis.json` (`textless: true`; docs carry
+  `textFingerprint` instead of `text`; segment texts and the quotes in `QUOTING_LOGS` / journal context are emptied) +
+  `…_texts.json`. Restore asks for the texts file or the original .txt/.docx/.doc (`reconnectTexts()`, matched by
+  `textFingerprint()`); unmatched documents are left out only after the user confirms. Add a log key that quotes data to `QUOTING_LOGS`.
+- Deleting a journal entry removes its text but records `log.journalDeleted` (type and date only), which cannot be deleted.
 - Update `state` and re-render first, then persist (`await dbPut…`). A render that lands after the user has
   started a new text selection would wipe it.
 - Escape every user value interpolated into HTML with `escapeHtml()`. Data from outside (Restore) goes through
@@ -104,7 +113,9 @@ Renamed from Thematic Analysis Canvas in the v0.1 beta: Restore still accepts ba
 - Exports are built from `getTableSpec(id)`; change the spec, not the renderers separately.
 - The extract filter (`state.extractFilter`, `filterSegments()`) only narrows what is read: never apply it to counts,
   the theme structure or exports.
-- `.qdpx` export must keep validating against the REFI-QDA Project 1.0 schema (element order matters). Import always
+- `.qdpx` export must keep validating against the REFI-QDA Project 1.0 schema (element order matters: in a Set,
+  Description? MemberCode* MemberSource* MemberNote*). It is for moving coded data, not the analysis: it asks first (full
+  texts inside), themes are sets of codes, and extracts left out of a theme go into a MemberNote. Import always
   adds to the current project, behind one `pushUndo`.
 - Write class names in full (no string concatenation such as `'bg-' + color`) so the Tailwind scanner can see them.
 
@@ -133,6 +144,8 @@ Renamed from Thematic Analysis Canvas in the v0.1 beta: Restore still accepts ba
 - Coding highlights follow `markerStyle()` (MARKER_STYLES in core.js; gear menu, `ta_marker_style`): never hard-code
   highlight opacities in renderers.
 - A section of a theme card the user opened or closed by hand stays that way across re-renders (`themeDetailsState`).
+- A theme card starts from its central organising concept (`themeConceptHtml`: the definition, or a question); its codes
+  are labelled as what informs the theme.
 
 ### Stance (reflexive TA)
 
@@ -143,7 +156,8 @@ Renamed from Thematic Analysis Canvas in the v0.1 beta: Restore still accepts ba
   tables second; the participant table summarises the group unless `optParticipantRows` (RTARG: no line-by-line
   demographics); every count in a table follows `optCounts`. Illustrative extracts are only the key extracts the
   researcher marked (★), never filled in automatically. Statuses are not a sequence (no phase numbers on them; moving
-  back is normal). No numerical rules of thumb (how many themes / subthemes, name length) and no tick-box review:
+  back is normal; the phase strip and theme-card sections name the phases without numbers, so the screen does not read as
+  a sequence of steps). No numerical rules of thumb (how many themes / subthemes, name length) and no tick-box review:
   ask questions instead. Hints are gentle and never block (no `alert` gates). Do not add features that treat frequency,
   agreement or a fixed codebook as markers of quality.
 - Wording (Big Q, reflexive TA), in UI text (both languages), logs, exports, samples, the site (including rtarg.html) and the README.
@@ -156,10 +170,12 @@ Renamed from Thematic Analysis Canvas in the v0.1 beta: Restore still accepts ba
   | inter-coder agreement / reliability, kappa, consensus coding; 一致率・信頼性・合意 | discussion, critical friend, reflexive conversation; 話し合い・批判的な友人 |
   | accurate / correct / valid coding, verify, validate (an interpretation); 正確・妥当・検証 | interpretation grounded in the data, coherent, well-evidenced; データに根ざした解釈 |
   | bias (subjectivity as something to remove); バイアス・偏り | subjectivity as a resource, positionality; 主観は分析の資源・ポジショナリティ |
-  | codebook (for the code list) | code list (analytic record); コード一覧（分析の記録） |
+  | codebook (for the code list) | code list (analytic record); コード一覧（分析を終えた時点） |
   | frequency / "most participants" as evidence of importance | meaning and significance for the question; counts only on request |
   | member checking, triangulation (as validation) | member reflections, critical friends |
   | Results / Findings (write-up heading) | Analysis; 分析 |
+  | audit trail (a confirmability / verification notion); 監査証跡 | analysis record; 分析の記録 (tab: Record & Journal / 分析の記録・ジャーナル) |
+  | extract filter as a way to compare groups | reading accounts in their context (it never shows or tests group differences) |
 
   Legitimate uses stay: saying what the app does NOT do and why (scope notes, FAQ, the project-setup note), the RTARG
   mapping quoting the guidelines, "validates against the REFI-QDA schema", "store it like raw data" (data protection),

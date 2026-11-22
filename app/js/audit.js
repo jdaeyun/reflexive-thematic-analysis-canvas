@@ -85,7 +85,7 @@ function renderAuditView() {
       <div class="flex items-center gap-2 text-[10px] text-slate-400">
         <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded font-bold ${c.cls}"><i class="ph ${c.icon}"></i>${escapeHtml(categoryLabel(l.category))}</span>
         <span>${fmtTime(l.ts)}</span>${l.by ? `<span>· ${escapeHtml(l.by)}</span>` : ''}
-        ${l.category === 'journal' ? `<button class="log-del ml-auto text-slate-300 hover:text-rose-600 cursor-pointer" data-log="${l.id}" title="${escapeHtml(tr('audit.deleteEntry'))}"><i class="ph ph-trash"></i></button>` : ''}
+        ${l.category === 'journal' && l.ak !== 'log.journalDeleted' ? `<button class="log-del ml-auto text-slate-300 hover:text-rose-600 cursor-pointer" data-log="${l.id}" title="${escapeHtml(tr('audit.deleteEntry'))}"><i class="ph ph-trash"></i></button>` : ''}
       </div>
       ${linked ? `<div class="mt-1 text-[10px] text-slate-500"><i class="ph ph-link-simple"></i> ${escapeHtml(tr('audit.about'))}: ${escapeHtml(clip(logAction(linked), 100))} <span class="text-slate-400">(${fmtTime(linked.ts)})</span></div>` : ''}
       <div class="text-xs text-slate-800 mt-1 font-medium whitespace-pre-wrap">${escapeHtml(logAction(l))}</div>
@@ -105,10 +105,13 @@ function renderAuditView() {
   list.querySelectorAll('.log-note').forEach(b => b.onclick = () => openJournal({ linkedLogId: b.dataset.log, type: 'decision' }));
   list.querySelectorAll('.log-del').forEach(b => b.onclick = async () => {
     if (!confirm(tr('audit.confirmDelete'))) return;
+    const gone = state.logs.find(l => l.id === b.dataset.log);
     pushUndo(['undo.deleteJournal', {}], ['logs']);
     state.logs = state.logs.filter(l => l.id !== b.dataset.log);
     commitUndo();
     await dbDelete('logs', b.dataset.log);
+    // The note itself is gone, but not silently: the record keeps that a note of this type and date was removed
+    if (gone) await recordLog({ category: 'journal', ak: 'log.journalDeleted', ap: { type: gone.ak || '', time: gone.ts } });
     updateAuditBadge();
     renderAuditView();
   });

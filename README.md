@@ -1,6 +1,6 @@
 # 🏷️ Reflexive Thematic Analysis Canvas
 
-**Version 0.9.1 (beta)**
+**Version 0.9.2 (beta)**
 
 **Reflexive Thematic Analysis Canvas** is an open-source, zero-backend browser workspace for **reflexive thematic analysis** (Braun & Clarke) of qualitative text data. It follows the six phases of reflexive TA and produces tables you can put straight into a manuscript.
 
@@ -27,19 +27,19 @@
    * Select text and click a code, type a new code and press Enter, or drag a code onto a line. Codes can overlap, and one extract can carry several codes. In-vivo codes, key extracts and memos are supported.
    * **Search all documents** (Ctrl/⌘+F): matches are listed with their context and highlighted in the text; Enter / Shift+Enter step through them.
    * **Change an extract's range**: select new text and choose *Use as the range of the open extract*, or widen it to the whole line. Codes, memo and key mark stay with the extract.
-   * **Merge and split codes**: *Split…* moves the extracts you tick to a new (or another) code, with an optional reason for the audit trail.
+   * **Merge and split codes**: *Split…* moves the extracts you tick to a new (or another) code, with an optional reason for the analysis record.
    * **Read extracts group by group**: filter the extracts in the code list, the code pool and theme cards by a participant attribute (e.g. *Age: 40s*) or by one participant. This is for reading across groups; counts and exports are not affected.
    * **Speakers are a separate layer.** “Detect speakers” tags lines that start with `P01：`, `A:` and so on. Interviewers and moderators are tagged but not counted as participants. CSV rows become participants, and other columns become their attributes.
    * Familiarisation notes for each document.
 2. **Themes (Phases 3–5)**
    One board for generating, reviewing and defining themes, plus a **thematic map** where you arrange themes and name the relationships between them (exported as .svg and as a figure in the Word write-up). Drag codes into candidate themes and subthemes. Each theme moves through **Candidate → Reviewed → Defined** (or *Set aside*), with review checks against the coded extracts and the full dataset, review notes and a definition. It also shows how many participants each theme draws on.
-3. **Audit & Journal**
+3. **Record & Journal**
    Every interpretive change (codes created, renamed, merged or deleted; theme changes; status, definitions) is logged automatically, next to a timestamped reflexive journal.
 4. **Writing up (Phase 6)**
    Writing is part of the analysis, so the first view is a writing space: an overview of the analysis and an analytic narrative for each theme and subtheme, with the theme's extracts at hand to illustrate and support your interpretation. Supporting tables follow:
    * Analysis summary, participants, and themes with definitions and illustrative extracts
    * Optional, off by default: prevalence (participants per theme, theme × participant) and the code list
-   * Appendix A: audit trail and reflexive journal
+   * Appendix A: analysis record and reflexive journal
 
    Export the narrative and tables as rich copy, Markdown or **Word (`.docx`)**, tables as CSV, and all coded extracts as long-format CSV.
 
@@ -47,9 +47,9 @@
 
 The app reads and writes the [REFI-QDA](https://www.qdasoftware.org) project exchange format (`.qdpx`), supported by ATLAS.ti, MAXQDA, NVivo, QDA Miner, Quirkos and others. Exported files validate against the REFI-QDA Project 1.0 schema.
 
-* **Export** (*Writing up → REFI-QDA project (.qdpx)*): documents, codes, coded extracts and their memos, participants (cases) with attributes, themes and subthemes (as sets of codes, with the definition as description and the analytic narrative as a note), familiarisation notes, and journal entries (as notes).
+* **Export** (*Writing up → REFI-QDA project (.qdpx)*) moves the coded data, not the analysis: documents (in full), codes, coded extracts and their memos, participants (cases) with attributes, themes and subthemes (as sets of codes, with the definition as description and the analytic narrative as a note; extracts left out of a theme are listed in a further note), familiarisation notes, and journal entries (as notes). The app asks before saving, since the file contains every document in full.
 * **Import** (*Import*, or drop the file): everything is **added** to the current project. Codes and participants with the same name are joined. Code folders from other software and sets of codes become **candidate** themes, for you to review. Memos not attached to a document or extract go into the reflexive journal, marked as imported. One click on Undo removes the whole import.
-* **Not included:** the audit trail, theme status and review notes, and the thematic map have no place in the standard. Keep using **Backup** (`.json`) for a complete copy of the project.
+* **Not included:** the analysis record, theme status and review notes, and the thematic map have no place in the standard. Keep using **Backup** (`.json`) for a complete copy of the project.
 
 > ⚠️ **Not yet tested with ATLAS.ti, MAXQDA or NVivo.** The export validates against the official schema and the import was tested with hand-made files, but each program interprets the standard a little differently (for example how it counts text positions, or which parts of a project it exports). Check the result after moving a project, keep a backup, and please report what works and what does not in [Issues](https://github.com/jdaeyun/reflexive-thematic-analysis-canvas/issues), naming the program and its version.
 
@@ -85,7 +85,7 @@ On import, every file is turned into fixed plain text, one block per line or ans
 * Or serve the folder: `npm run serve` (after `npm install`), then open http://localhost:8080/ta_canvas.html.
 * Try it with the fictional files in [`samples/`](samples/). [`samples/tutorial/`](samples/tutorial/) holds the practice dataset for the [101 tutorial](https://jdaeyun.github.io/reflexive-thematic-analysis-canvas/en/101.html) in English and Japanese.
 
-**Backups:** use **Backup** in the top bar regularly (the top bar quietly shows when you last did). Clearing the browser's site data deletes the project. The backup `.json` contains the full text of your documents, so store it like raw data.
+**Backups:** use **Backup** in the top bar regularly (the top bar quietly shows when you last did). Clearing the browser's site data deletes the project. The backup `.json` contains the full text of your documents, so store it like raw data. *Backup without document texts* (gear menu) saves the analysis and the texts as two files, so the texts can stay on approved storage; see [Sensitive data](https://jdaeyun.github.io/reflexive-thematic-analysis-canvas/en/guide.html#sensitive) in the guide.
 
 ## 🏗️ Architecture
 
