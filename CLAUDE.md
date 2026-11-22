@@ -20,7 +20,8 @@ app/js/i18n.js         tr(), applyI18n(), setLanguage(); English + Japanese dict
 app/css/ta_canvas.css  app-specific CSS (everything else is Tailwind classes)
 app/js/core.js         IndexedDB, `state`, lookups, participantsForRange(), coverage(), recordLog(),
                        bindPendingCommit() / saveSoon() / flushAllPendingSaves(), undo, repairReferences(), sanitizeProjectData()
-app/js/importers.js    .txt/.csv/.docx/.doc → fixed plain text + blocks; CSV column dialog; built-in .doc reader (.qdpx → refi-qda.js)
+app/js/importers.js    .txt/.csv/.docx/.doc → fixed plain text + blocks (readPlainText); CSV column dialog (buildOnly for corrections); .doc reader
+app/js/revise.js       "Replace with a corrected version": diff old/new text, carry coding over, reason required (see Data model)
 app/js/coding.js       Tab 1 (phases 1–2): documents, participants, viewer, selection, codebook, extract panel,
                        full-text search, extract range changes, splitting codes, extract filter (also used in tab 2)
 app/js/themes.js       Tab 2 (phases 3–5): code pool, theme board, status / review / definition, gentle RTARG hints
@@ -31,7 +32,8 @@ app/js/export.js       Tab 4 (phase 6): analytic narrative editor (first view) +
 app/js/refi-qda.js     REFI-QDA .qdpx export / import (built-in zip writer/reader; positions in code points, not UTF-16)
 app/js/app.js          startup (DOMContentLoaded → window.taReady), tabs, project setup, backup / restore / reset, drag & drop,
                        shortcuts, dialogs (focus, Esc), other-tab warning, auto-growing textareas
-samples/               fictional test files in every supported format; samples/tutorial/{ja,en}: practice data for the 101
+samples/               fictional test files in every supported format; samples/tutorial/{ja,en}: practice data for the 101;
+                       samples/revision/{ja,en}: an original and a corrected .docx (tools/make-revision-samples.cjs), used by the tests
 site/                  website (GitHub Pages): {ja,en}/index.html (landing), 101.html (tutorial; 入門 in Japanese), guide.html (reference),
                        rtarg.html (how the app maps to the RTARG, Braun & Clarke 2024: update it when a change affects reporting);
                        assets/site.css; assets/img/{ja,en}/*.webp screenshots. Plain HTML, no build step
@@ -48,7 +50,12 @@ Renamed from Thematic Analysis Canvas in the v0.1 beta: Restore still accepts ba
 `thematic-analysis-canvas`. The old IndexedDB (`ThematicAnalysisCanvasDB`) is not migrated.
 
 - `docs`: `{ id, name, kind, encoding, text, blocks: [{ s, e, label }], defaultParticipantId, note }`.
-  `text` is fixed at import. Never change it afterwards: everything else points at character offsets in it.
+  `text` is fixed at import: everything else points at character offsets in it. The only way it changes is
+  `applyRevision()` (revise.js, "Replace with a corrected version"): it aligns old and new text (exact diff, lines then
+  characters, `mergeNearbyChanges`), moves extracts and speaker tags with `offsetMapper()`, removes extracts whose text
+  was deleted, records the reason (`log.docRevised`), and writes everything with `dbReplaceProject()`. Reason
+  "pseudonym": the old wording is scrubbed from `QUOTING_LOGS` / journal context (and the researcher's own texts if
+  chosen), never logged, and undo is cleared. Never edit `text` any other way.
 - `segments` (coded extracts): `{ docId, s, e, text, codeIds[], memo, key }`. Segments may overlap.
   One segment per exact range; applying another code to the same range adds to `codeIds`.
 - `ptags` (speaker layer): `{ docId, s, e, participantId }`. One participant per character: tagging cuts
@@ -75,7 +82,7 @@ Renamed from Thematic Analysis Canvas in the v0.1 beta: Restore still accepts ba
 ### Code
 
 - Classic `<script>` files sharing one global scope (not ES modules, so `file://` works). Keep the load order
-  in `ta_canvas.html` (version → prefs → i18n → core → importers → coding → themes → thematic-map → audit → journal → export → refi-qda → app).
+  in `ta_canvas.html` (version → prefs → i18n → core → importers → coding → revise → themes → thematic-map → audit → journal → export → refi-qda → app).
   Top-level code may only call functions from earlier files; anything else runs inside handlers or DOMContentLoaded.
 - Never call `localStorage` directly: use `lsGet / lsSet / lsRemove` (prefs.js). Reading it throws when storage is
   blocked, and the app must still start (test "starts when localStorage is blocked").

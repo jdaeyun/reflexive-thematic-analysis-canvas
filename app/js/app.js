@@ -121,7 +121,7 @@ async function backupProject() {
 // the document texts. Keep the texts file where the data must stay. Restoring the analysis file asks for the texts
 // file or the original .txt / .docx / .doc files and reconnects them by fingerprint. What the researcher wrote
 // (memos, definitions, narratives, journal) stays in the analysis file and may quote the data.
-const QUOTING_LOGS = new Set(['log.coded', 'log.uncoded', 'log.tagged', 'log.extractRemoved', 'log.extractResized', 'log.extractSetAside', 'log.extractPutBack']);
+const QUOTING_LOGS = new Set(['log.coded', 'log.uncoded', 'log.tagged', 'log.extractRemoved', 'log.extractResized', 'log.extractSetAside', 'log.extractPutBack', 'log.docRevised']);
 function stripLogQuotes(l) {
   const out = { ...l };
   if (QUOTING_LOGS.has(l.ak)) { out.detail = ''; out.from = ''; out.to = ''; }
@@ -159,12 +159,8 @@ async function textsFromFile(f) {
     const d = JSON.parse(new TextDecoder().decode(buf));
     return d?.app === 'reflexive-thematic-analysis-canvas-texts' && Array.isArray(d.docs) ? d.docs.filter(x => typeof x?.text === 'string').map(x => x.text) : [];
   }
-  let raw = '';
-  if (kind === 'txt') raw = decodeTextBytes(buf).text;
-  else if (kind === 'docx' && typeof mammoth !== 'undefined') raw = (await mammoth.extractRawText({ arrayBuffer: buf })).value;
-  else if (kind === 'doc') raw = parseDocBinary(buf);
-  else return [];
-  return [textToDoc(raw).text];
+  if (!['txt', 'docx', 'doc'].includes(kind)) return [];
+  return [textToDoc((await readPlainText(buf, kind)).raw).text];
 }
 function reconnectTexts(data) {
   const modal = document.getElementById('reconnectModal');
@@ -548,6 +544,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupShellEvents();
   setupColumnResize();
   setupCodingEvents();
+  setupRevisionEvents();
   setupThemeEvents();
   setupMapEvents();
   setupAuditEvents();

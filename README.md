@@ -31,6 +31,7 @@
    * **Read extracts group by group**: filter the extracts in the code list, the code pool and theme cards by a participant attribute (e.g. *Age: 40s*) or by one participant. This is for reading across groups; counts and exports are not affected.
    * **Speakers are a separate layer.** “Detect speakers” tags lines that start with `P01：`, `A:` and so on. Interviewers and moderators are tagged but not counted as participants. CSV rows become participants, and other columns become their attributes.
    * Familiarisation notes for each document.
+   * **Correct a transcript after coding** (a missed pseudonym, a transcription error): correct the original file and choose *Replace with a corrected version*. The old and new texts are aligned exactly, coded extracts and speaker tags are carried over, and the reason goes into the analysis record; for a missed pseudonym the old wording is removed from the project.
 2. **Themes (Phases 3–5)**
    One board for generating, reviewing and defining themes, plus a **thematic map** where you arrange themes and name the relationships between them (exported as .svg and as a figure in the Word write-up). Drag codes into candidate themes and subthemes. Each theme moves through **Candidate → Reviewed → Defined** (or *Set aside*), with review checks against the coded extracts and the full dataset, review notes and a definition. It also shows how many participants each theme draws on.
 3. **Record & Journal**
