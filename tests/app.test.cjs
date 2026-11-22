@@ -242,7 +242,8 @@ test('REFI-QDA export and import round-trip the coded extracts', async () => {
   const r = await page.evaluate(async () => {
     const before = state.segments.map(s => s.text).sort();
     const blob = buildQdpx();
-    for (const c of COLLECTIONS) { state[c] = []; await dbReplaceAll(c, []); }
+    for (const c of COLLECTIONS) state[c] = [];
+    await dbReplaceProject({}, state.meta);
     await importQdpx(new File([blob], 'p.qdpx'));
     return { before, after: state.segments.map(s => s.text).sort(), codes: state.codes.map(c => c.name).sort() };
   });
@@ -554,5 +555,89 @@ test('theme review uses questions: no checkboxes, no counting thresholds', async
     };
   });
   assert.deepEqual(r, { checkboxes: 0, beforeReview: false, afterReview: true, subQ: true, noNumbersInQuestions: true });
+  await close();
+});
+
+// ---- Review follow-ups ----
+
+test('a restore that fails while writing leaves the current project unchanged, in memory and in the browser', async () => {
+  const { page, close } = await openApp();
+  const alerts = [];
+  page.removeAllListeners('dialog');
+  page.on('dialog', d => { if (d.type() === 'alert') alerts.push(d.message()); d.accept(); });
+  await seed(page);
+  const r = await page.evaluate(async () => {
+    const before = { codes: state.codes.map(c => c.name).sort(), segs: state.segments.length };
+    // An item the browser refuses to store, half-way through the backup
+    const put = IDBObjectStore.prototype.put;
+    IDBObjectStore.prototype.put = function (v, ...rest) {
+      if (v && v.id === 'code_boom') throw new DOMException('simulated quota error', 'QuotaExceededError');
+      return put.call(this, v, ...rest);
+    };
+    const backup = {
+      app: 'reflexive-thematic-analysis-canvas', meta: { name: 'Other project' },
+      docs: [{ id: 'doc_9', name: 'y.txt', kind: 'txt', text: 'other text', blocks: [{ s: 0, e: 10 }], createdAt: 1 }],
+      codes: [{ id: 'code_ok', name: 'fine', color: '#123456' }, { id: 'code_boom', name: 'boom', color: '#123456' }],
+      segments: [], themes: [], participants: [], ptags: [], logs: []
+    };
+    await restoreProject(new File([JSON.stringify(backup)], 'b.json'));
+    IDBObjectStore.prototype.put = put;
+    const stored = { codes: (await dbGetAll('codes')).map(c => c.name).sort(), segs: (await dbGetAll('segments')).length, docs: (await dbGetAll('docs')).map(d => d.name) };
+    return { before, mem: { codes: state.codes.map(c => c.name).sort(), segs: state.segments.length, name: state.meta.name }, stored };
+  });
+  assert.deepEqual(r.mem.codes, r.before.codes);
+  assert.equal(r.mem.segs, r.before.segs);
+  assert.notEqual(r.mem.name, 'Other project');
+  assert.deepEqual(r.stored.codes, r.before.codes);
+  assert.equal(r.stored.segs, r.before.segs);
+  assert.deepEqual(r.stored.docs, ['d.txt']);
+  assert.equal(alerts.length, 1);
+  assert.match(alerts[0], /simulated quota error/);
+  await close();
+});
+
+test('deleting a journal entry leaves a trace without its text', async () => {
+  const { page, close } = await openApp();
+  await page.evaluate(async () => {
+    await recordLog({ category: 'journal', ak: 'jt.memo', detail: 'a private thought' });
+    state.auditFilter = 'all';
+    switchTab('audit');
+  });
+  await page.click('.log-del');
+  await page.waitForFunction(() => state.logs.some(l => l.ak === 'log.journalDeleted')); // written after the delete is stored
+  await page.evaluate(() => renderAuditView());
+  const r = await page.evaluate(() => ({
+    texts: state.logs.map(l => l.detail),
+    trace: state.logs.filter(l => l.ak === 'log.journalDeleted').map(l => logAction(l, 'en')),
+    traceDeletable: !!document.querySelector('.log-del')
+  }));
+  assert.ok(!r.texts.includes('a private thought'));
+  assert.equal(r.trace.length, 1);
+  assert.match(r.trace[0], /Deleted a journal entry \(Reflexive memo, written .+\); its text is not kept/);
+  assert.equal(r.traceDeletable, false);
+  await close();
+});
+
+test('the orientation can be described in words: logged and shown in the analysis summary', async () => {
+  const { page, close } = await openApp();
+  const r = await page.evaluate(async () => {
+    openProjectModal();
+    document.getElementById('projOrientInd').value = 'mostlyInductive';
+    document.getElementById('projOrientNote').value = 'Started close to participants’ words';
+    await saveProjectModal();
+    const spec = getTableSpec('summary');
+    const row = spec.rows.find(x => x[0] === tr('exp.r.orientation'));
+    return { row: row && row[1], label: tr('orient.ind.mostlyInductive'), logged: state.logs.some(l => l.ak === 'log.meta.orientNote') };
+  });
+  assert.equal(r.row, `${r.label}\nStarted close to participants’ words`);
+  assert.ok(r.logged);
+  await close();
+});
+
+test('the phase strip names the phases without numbers', async () => {
+  const { page, close } = await openApp();
+  const labels = await page.evaluate(() => [...document.querySelectorAll('.phase-step')].map(s => s.textContent.trim()));
+  assert.ok(labels.length >= 6);
+  assert.ok(labels.every(t => !/\d/.test(t)), labels.join(' | '));
   await close();
 });

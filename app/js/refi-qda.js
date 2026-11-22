@@ -254,6 +254,7 @@ function buildQdpx() {
     state.meta.question && `Research question: ${state.meta.question}`,
     'Approach: reflexive thematic analysis (Braun & Clarke)',
     state.meta.theory && `Theoretical assumptions: ${state.meta.theory}`,
+    orientationText('en') !== '—' && `Orientation: ${orientationText('en')}`,
     state.meta.dataPrep && `Data preparation: ${state.meta.dataPrep}`
   ].filter(Boolean).join('\n');
 

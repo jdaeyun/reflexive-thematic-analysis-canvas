@@ -94,13 +94,27 @@ async function dbDeleteMany(store, keys) {
     tx.onabort = () => { flashSaveStatus('error'); reject(tx.error || new Error('IndexedDB transaction aborted')); };
   });
 }
-async function dbReplaceAll(store, items) {
+// Replaces the whole project (every collection + meta) in ONE transaction: if anything fails (quota, a bad item),
+// IndexedDB rolls all of it back and the project that was there stays as it was. Used by Restore and Reset.
+async function dbReplaceProject(collections, meta) {
   const db = await initDB();
   return new Promise((resolve, reject) => {
-    const tx = db.transaction(store, 'readwrite');
-    const os = tx.objectStore(store);
-    os.clear();
-    for (const it of items) os.put(it);
+    const tx = db.transaction(TA_STORES, 'readwrite');
+    try {
+      for (const c of COLLECTIONS) {
+        const os = tx.objectStore(c);
+        os.clear();
+        for (const it of collections[c] || []) os.put(it);
+      }
+      const ms = tx.objectStore('meta');
+      ms.clear();
+      ms.put(meta);
+    } catch (e) {
+      try { tx.abort(); } catch (err) { /* already aborted */ }
+      flashSaveStatus('error');
+      reject(e);
+      return;
+    }
     tx.oncomplete = () => { flashSaveStatus('saved'); resolve(); };
     tx.onerror = () => { flashSaveStatus('error'); reject(tx.error); };
     tx.onabort = () => { flashSaveStatus('error'); reject(tx.error || new Error('IndexedDB transaction aborted')); };

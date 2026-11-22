@@ -35,7 +35,7 @@
       <li><a href="#files">Supported files</a></li>
       <li><a href="#tab1">Tab 1 Familiarise &amp; Code</a></li>
       <li><a href="#tab2">Tab 2 Themes</a></li>
-      <li><a href="#tab3">Tab 3 Audit &amp; Journal</a></li>
+      <li><a href="#tab3">Tab 3 Record &amp; Journal</a></li>
       <li><a href="#tab4">Tab 4 Writing up</a></li>
       <li><a href="#keys">Keyboard shortcuts</a></li>
       <li><a href="#data">Storage and backups</a></li>
@@ -55,7 +55,7 @@
     <div class="table-wrap"><table>
       <tr><th>Where</th><th>What it does</th></tr>
       <tr><td>Project name (top left)</td><td>Opens Project setup: name, research question, positioning and data preparation, language.</td></tr>
-      <tr><td>The four tabs</td><td>1. Familiarise &amp; Code (phases 1–2) / 2. Themes (phases 3–5) / 3. Audit &amp; Journal / 4. Writing up (phase 6)</td></tr>
+      <tr><td>The four tabs</td><td>1. Familiarise &amp; Code (phases 1–2) / 2. Themes (phases 3–5) / 3. Record &amp; Journal / 4. Writing up (phase 6)</td></tr>
       <tr><td><span class="ui">Researcher</span></td><td>Your name or initials, recorded with coding, decisions and journal entries.</td></tr>
       <tr><td><span class="ui">Journal</span></td><td>Opens the reflexive journal (<kbd>Ctrl</kbd>+<kbd>J</kbd>).</td></tr>
       <tr><td>↶</td><td>Undo (<kbd>Ctrl</kbd>+<kbd>Z</kbd>): up to 20 larger changes such as deleting, merging, splitting or importing. Only that change is undone: coding and other work done after it stays.</td></tr>
@@ -80,7 +80,7 @@
     <h3>Documents and participants</h3>
     <ul>
       <li><strong>Default participant</strong>: who untagged text in a document belongs to. For a one-to-one interview, this is all you need.</li>
-      <li><strong>Detect speakers</strong>: tags lines that start with “Name:” (or “Name：”, also inside brackets) as that speaker. I, Q, Interviewer, Moderator, Facilitator, Researcher and their Japanese equivalents become <strong>interviewers</strong> automatically and are not counted as participants.</li>
+      <li><strong>Detect speakers</strong>: tags lines that start with “Name:” (or “Name：”, also inside brackets) as that speaker. I, Q, Interviewer, Moderator, Facilitator, Researcher and their Japanese equivalents become <strong>interviewers</strong> automatically and are not counted as participants. Their talk can still be coded: interview data are produced together, and a question often shapes how an answer is read.</li>
       <li><strong>Tag by hand</strong>: select text and click <span class="ui">Tag</span> in the participant list, or drag a participant onto a line. Each character has exactly one speaker.</li>
       <li><strong>Edit a participant</strong>: hover and click the pencil to change the label, mark them as interviewer, and add attributes (one <code>key: value</code> per line). Attributes feed Table 1 and the extract filter.</li>
       <li><strong>Notes</strong>: familiarisation notes for each document.</li>
@@ -111,7 +111,7 @@
       <li><strong>Merge</strong>: choose a target and save. Every extract moves to the target and this code disappears.</li>
       <li><strong>Split…</strong>: tick extracts and name the code they should carry (new or existing). Options: <span class="ui">Put the code in the same theme(s)</span> and <span class="ui">Also keep the original code on the ticked extracts</span>.</li>
       <li><strong>Delete</strong>: extracts with no other code are removed too.</li>
-      <li><strong>Why?</strong> (optional): kept in the audit trail as the reason for a rename, merge, split or delete.</li>
+      <li><strong>Why?</strong> (optional): kept in the analysis record as the reason for a rename, merge, split or delete.</li>
     </ul>
 
     <h3>Counts</h3>
@@ -124,13 +124,13 @@
       <li><strong>Add codes</strong>: drag from the code pool onto a card, or pick one from <span class="ui">+ Add a code…</span> on the card (works with a keyboard or touch). Drag between cards to move; click × or drop it back on the pool to remove. A code can sit in several themes.</li>
       <li><strong>A theme is not a box of codes</strong>: themes are built by reading and interpreting extracts, and codes are a tool for that. Re-read the extracts once codes are in a theme; if only some of a code's extracts belong to another theme, <a href="#tab1">split the code</a>.</li>
       <li><strong>Status</strong>: <span class="ui">Candidate</span>, <span class="ui">Reviewed</span>, <span class="ui">Defined</span>, <span class="ui">Set aside</span>. Not a sequence of steps: a status moves back as well as forward. Changing the status offers a small, optional box to say why. A theme marked defined without a definition gets a gentle hint on its card.</li>
-      <li><strong>Phase 4 · Review against the data</strong>: questions at two levels (do the coded extracts cohere / does the theme capture something meaningful in the whole dataset) and review notes. There are no checkboxes; writing a review note puts a ✓ on the heading.</li>
-      <li><strong>Phase 5 · Define &amp; name</strong>: the central organising concept, scope and boundaries, and relation to other themes.</li>
+      <li><strong>Review against the data</strong>: questions at two levels (do the coded extracts cohere / does the theme capture something meaningful in the whole dataset) and review notes. There are no checkboxes; writing a review note puts a ✓ on the heading.</li>
+      <li><strong>Define &amp; name</strong>: the central organising concept, scope and boundaries, and relation to other themes.</li>
       <li><strong>Show extracts</strong>: every extract of the theme and its subthemes, key extracts first. Click one to go back to the text.</li>
       <li>Filter by status, and reorder themes with ↑ ↓.</li>
     </ul>
     <h3>Extract filter</h3>
-    <p><span class="ui">Extracts from everyone</span>, above the code list in tab 1 and the code pool in tab 2, narrows extracts to one attribute value (e.g. Role: Care worker) or one participant, in the code list, theme cards and full-text search. It is for reading across groups: counts, the theme structure and exports are not affected.</p>
+    <p><span class="ui">Extracts from everyone</span>, above the code list in tab 1 and the code pool in tab 2, narrows extracts to one attribute value (e.g. Role: Care worker) or one participant, in the code list, theme cards and full-text search. It is for reading across groups: counts, the theme structure and exports are not affected. Attributes help you read accounts in their context; the filter is not a way to show or test differences between groups, and themes are not explained by variables such as age or role.</p>
     <h3>Gentle hints</h3>
     <p>Theme names (in the phase 5 section), subthemes (when a theme has them) and the number of themes (above the board, once reviewing has begun) come with questions rather than numerical rules of thumb. A theme marked defined without a definition gets a small hint on its card. Hints never block anything.</p>
     <h3>Map</h3>
@@ -140,8 +140,8 @@
       <li><span class="ui">Map (.svg)</span> saves the map; the Word write-up includes it as Figure 1. Themes set aside are not shown.</li>
     </ul>
 
-    <h2 id="tab3">Tab 3 Audit &amp; Journal</h2>
-    <h3>Audit trail (automatic)</h3>
+    <h2 id="tab3">Tab 3 Record &amp; Journal</h2>
+    <h3>Analysis record (automatic)</h3>
     <p>Imports; codes created, renamed, merged, split and deleted; themes created and changed, with their status; review notes and definitions; speaker tags; project setup changes; and single coding actions — each with a time stamp and the researcher's name. By default the list shows interpretive decisions only, without single coding actions. <span class="ui">Add a note</span> attaches a later note to any entry.</p>
     <h3>Reflexive journal</h3>
     <ul>
@@ -162,7 +162,7 @@
       <tr><td>Table 2. Themes &amp; extracts</td><td>Themes and subthemes, definitions, illustrative extracts (only the key extracts marked ★ in tab 1; none are picked automatically)</td><td>Included</td></tr>
       <tr><td>Theme × participant</td><td>Contribution of participants to themes</td><td>Not included</td></tr>
       <tr><td>Code list</td><td>Codes as an analytic record</td><td>Not included</td></tr>
-      <tr><td>Appendix A. Audit trail</td><td>Interpretive decisions and journal (single coding actions optional)</td><td>Included</td></tr>
+      <tr><td>Appendix A. Analysis record</td><td>Interpretive decisions and journal (single coding actions optional)</td><td>Included</td></tr>
     </table></div>
     <p>Tables have their own language setting, so you can produce English tables from a Japanese interface and vice versa.</p>
     <h3>Exports</h3>
@@ -209,7 +209,7 @@
     <ul>
       <li><strong>Export</strong> (tab 4): documents, codes, coded extracts and memos, participants and attributes, themes and subthemes (as sets of codes, with definition and narrative), familiarisation notes, and journal entries.</li>
       <li><strong>Import</strong> (<span class="ui">Import</span>): everything is <strong>added</strong> to the current project. Codes and participants with the same name are joined; code folders and sets of codes from other software become <strong>candidate</strong> themes. Non-text sources (PDF, audio, images) are skipped. One Undo removes the whole import.</li>
-      <li>The audit trail, theme status and review notes, and the map have no place in the standard and are not exported. Use Backup for a complete copy.</li>
+      <li>The analysis record, theme status and review notes, and the map have no place in the standard and are not exported. Use Backup for a complete copy.</li>
     </ul>
     <div class="box note">
       <div class="box-title">⚠️ Not yet tested with other programs</div>

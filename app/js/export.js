@@ -376,7 +376,8 @@ function orientationText(L = LANG) {
   const parts = [];
   if (state.meta.orientInductive) parts.push(tr(`orient.ind.${state.meta.orientInductive}`, {}, L));
   if (state.meta.orientLatent) parts.push(tr(`orient.lat.${state.meta.orientLatent}`, {}, L));
-  return parts.join(' · ') || '—';
+  const note = String(state.meta.orientNote || '').trim(); // the researcher's own account; the choices are only a shorthand
+  return [parts.join(' · '), note].filter(Boolean).join('\n') || '—';
 }
 
 // RTARG: size and scope of the dataset, e.g. range and mean length. Descriptive only — not a marker of quality.

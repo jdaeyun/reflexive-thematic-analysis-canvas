@@ -73,7 +73,7 @@ function relativeTime(ts) {
 // PROJECT SETUP
 // ========================================================
 // Optional reporting fields (RTARG: own your perspectives, orientation to RTA, data preparation)
-const PROJECT_FIELDS = [['projTheory', 'theory'], ['projOrientInd', 'orientInductive'], ['projOrientLat', 'orientLatent'], ['projDataPrep', 'dataPrep']];
+const PROJECT_FIELDS = [['projTheory', 'theory'], ['projOrientInd', 'orientInductive'], ['projOrientLat', 'orientLatent'], ['projOrientNote', 'orientNote'], ['projDataPrep', 'dataPrep']];
 
 function openProjectModal() {
   document.getElementById('projName').value = state.meta.name || '';
@@ -122,14 +122,27 @@ async function restoreProject(file) {
   // 'thematic-analysis-canvas': backups made before the app was renamed (v0.1 beta)
   if (!['reflexive-thematic-analysis-canvas', 'thematic-analysis-canvas'].includes(data.app)) { alert(tr('restore.notBackup')); return; }
   if (!confirm(tr('restore.confirm', { name: data.meta?.name || file.name }))) return;
+  flushAllPendingSaves();
   const clean = sanitizeProjectData(data);
+  // Keep the open project: if writing the backup fails, nothing in the browser changes (one transaction) and
+  // the project in memory is put back as well.
+  const before = { meta: state.meta };
+  for (const c of COLLECTIONS) before[c] = state[c];
   for (const c of COLLECTIONS) state[c] = clean.collections[c];
   state.meta = clean.meta;
   state.logs.sort((a, b) => a.ts - b.ts);
   state.docs.sort((a, b) => a.createdAt - b.createdAt);
   repairReferences(); // state only: everything is written in full below
-  for (const c of COLLECTIONS) await dbReplaceAll(c, state[c]);
-  await saveMeta();
+  try {
+    await dbReplaceProject(state, state.meta);
+  } catch (e) {
+    console.error('restore', e);
+    for (const c of COLLECTIONS) state[c] = before[c];
+    state.meta = before.meta;
+    renderAll();
+    alert(tr('restore.failed', { error: e?.message || String(e) }));
+    return;
+  }
   await recordLog({ category: 'system', ak: 'log.restored', ap: { file: file.name } });
   state.undoStack = [];
   state.activeDocId = state.docs[0]?.id || null;
@@ -141,9 +154,17 @@ async function restoreProject(file) {
 async function resetProject() {
   if (!confirm(tr('reset.confirm1'))) return;
   if (!confirm(tr('reset.confirm2'))) return;
-  for (const c of COLLECTIONS) { state[c] = []; await dbReplaceAll(c, []); }
-  state.meta = defaultMeta();
-  await saveMeta();
+  flushAllPendingSaves();
+  const meta = defaultMeta();
+  try {
+    await dbReplaceProject({}, meta);
+  } catch (e) {
+    console.error('reset', e);
+    alert(tr('reset.failed', { error: e?.message || String(e) }));
+    return;
+  }
+  for (const c of COLLECTIONS) state[c] = [];
+  state.meta = meta;
   state.undoStack = [];
   state.activeDocId = null; state.activeSegId = null; state.pendingSel = null;
   renderAll();
