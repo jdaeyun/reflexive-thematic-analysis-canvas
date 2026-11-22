@@ -85,7 +85,7 @@ On import, every file is turned into fixed plain text, one block per line or ans
 * Or serve the folder: `npm run serve` (after `npm install`), then open http://localhost:8080/ta_canvas.html.
 * Try it with the fictional files in [`samples/`](samples/). [`samples/tutorial/`](samples/tutorial/) holds the practice dataset for the [101 tutorial](https://jdaeyun.github.io/reflexive-thematic-analysis-canvas/en/101.html) in English and Japanese.
 
-**Backups:** use **Backup** in the top bar regularly (the top bar quietly shows when you last did). Clearing the browser's site data deletes the project. The backup `.json` contains the full text of your documents, so store it like raw data.
+**Backups:** use **Backup** in the top bar regularly (the top bar quietly shows when you last did). Clearing the browser's site data deletes the project. The backup `.json` contains the full text of your documents, so store it like raw data. *Backup without document texts* (gear menu) saves the analysis and the texts as two files, so the texts can stay on approved storage; see [Sensitive data](https://jdaeyun.github.io/reflexive-thematic-analysis-canvas/en/guide.html#sensitive) in the guide.
 
 ## 🏗️ Architecture
 

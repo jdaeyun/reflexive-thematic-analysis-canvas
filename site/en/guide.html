@@ -39,6 +39,7 @@
       <li><a href="#tab4">Tab 4 Writing up</a></li>
       <li><a href="#keys">Keyboard shortcuts</a></li>
       <li><a href="#data">Storage and backups</a></li>
+      <li><a href="#sensitive">Sensitive data</a></li>
       <li><a href="#team">Working with others</a></li>
       <li><a href="#refi">Other QDA software</a></li>
       <li><a href="#rtarg">Reporting (RTARG)</a></li>
@@ -122,7 +123,8 @@
     <ul>
       <li><strong>Create a theme</strong>: type in <span class="ui">New candidate theme…</span> and click <span class="ui">Theme</span>. Subthemes: <span class="ui">+ Subtheme</span> on a card (one level).</li>
       <li><strong>Add codes</strong>: drag from the code pool onto a card, or pick one from <span class="ui">+ Add a code…</span> on the card (works with a keyboard or touch). Drag between cards to move; click × or drop it back on the pool to remove. A code can sit in several themes.</li>
-      <li><strong>A theme is not a box of codes</strong>: themes are built by reading and interpreting extracts, and codes are a tool for that. Re-read the extracts once codes are in a theme; if only some of a code's extracts belong to another theme, <a href="#tab1">split the code</a>.</li>
+      <li><strong>A theme is not a box of codes</strong>: themes are built by reading and interpreting extracts, and codes are a tool for that. Under its name, each card shows the theme's central organising concept (or asks for it while there is no definition; click it to write one), and the codes below are what informs the theme.</li>
+      <li><strong>Leaving an extract out of a theme</strong>: once codes are in a theme, re-read its extracts under <strong>Show extracts</strong>. An extract that carries the theme's codes but, as you read it, does not share its central concept can be left out of the theme with ⊖. It keeps its codes; the decision and an optional reason go into the analysis record. Left-out extracts are listed on the card and can be put back. If many of a code's extracts belong elsewhere, <a href="#tab1">split the code</a> instead.</li>
       <li><strong>Status</strong>: <span class="ui">Candidate</span>, <span class="ui">Reviewed</span>, <span class="ui">Defined</span>, <span class="ui">Set aside</span>. Not a sequence of steps: a status moves back as well as forward. Changing the status offers a small, optional box to say why. A theme marked defined without a definition gets a gentle hint on its card.</li>
       <li><strong>Review against the data</strong>: questions at two levels (do the coded extracts cohere / does the theme capture something meaningful in the whole dataset) and review notes. There are no checkboxes; writing a review note puts a ✓ on the heading.</li>
       <li><strong>Define &amp; name</strong>: the central organising concept, scope and boundaries, and relation to other themes.</li>
@@ -194,6 +196,17 @@
       <li>Clearing the browser's site data (cookies and site data) deletes the project. <strong>Back up regularly.</strong> The top bar quietly shows how long ago you last did (in amber once there is data and no backup from the last week).</li>
       <li>A backup (<code>.json</code>) contains the full text of your documents. Store it as carefully as your raw data.</li>
     </ul>
+
+    <h2 id="sensitive">Sensitive data (e.g. in health care)</h2>
+    <ul>
+      <li><strong>Pseudonymise before you import.</strong> Imported text is fixed: it is what you code, quote and export, and it cannot be edited in the app. Names, places and other identifying details must be removed or replaced in the transcripts first.</li>
+      <li><strong>Nothing leaves the computer.</strong> There is no server and no AI; even the online version only loads the app, and your data stays in the browser. Where an institution prefers, unzip the offline version (from the releases page) onto the computer or the internal network and open <code>ta_canvas.html</code> from there.</li>
+      <li><strong>Backup without document texts</strong> (gear menu) saves two files. <code>…_analysis.json</code> holds the project without the text of your documents and without quoted extracts; <code>…_texts.json</code> holds only the texts. Keep the texts file where your data must stay (for example the drive your ethics approval names). To restore, open the analysis file with <span class="ui">Restore backup</span> and choose the texts file, or the original .txt, .docx or .doc files: each text is matched by its content.</li>
+      <li>What you write yourself stays in the analysis file: memos, definitions, analytic narratives and the journal. They may quote your data, so treat that file with care too.</li>
+      <li><strong>Exports contain data.</strong> The write-up (.docx, Markdown), CSV files and the extracts table contain extracts; a REFI-QDA project (.qdpx) contains the full texts.</li>
+      <li><strong>Shared computers</strong>: do not leave a project in a browser that others use. After backing up, use <span class="ui">New / Reset</span>.</li>
+    </ul>
+    <p>Wording you can adapt for an ethics application: “Transcripts were pseudonymised before analysis. The analysis was carried out in Reflexive Thematic Analysis Canvas, a browser application that stores data only in the local browser and sends nothing to a server. Backups of the document texts were kept on [the approved storage], separately from the analysis files.”</p>
 
     <h2 id="team">Working with others</h2>
     <p>In reflexive TA, a second analyst is there to <strong>enrich</strong> the interpretation, not to <strong>check</strong> it. The app therefore has no agreement statistics and no merging of two projects.</p>

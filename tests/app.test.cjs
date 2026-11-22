@@ -641,3 +641,130 @@ test('the phase strip names the phases without numbers', async () => {
   assert.ok(labels.every(t => !/\d/.test(t)), labels.join(' | '));
   await close();
 });
+
+// ---- A theme is not a box of codes ----
+
+test('an extract can be left out of a theme: lists, coverage and exports follow; undo and put back work', async () => {
+  const { page, close } = await openApp();
+  const ids = await seed(page);
+  const r = await page.evaluate(async ({ docId, a }) => {
+    await applyCodeToRange(a, { docId, s: 62, e: 79 }); // a second extract with code A (P2)
+    await createTheme('Feeling alone');
+    document.getElementById('notePrompt').classList.add('hidden');
+    const t = state.themes[0];
+    await addCodeToTheme(a, t.id, null);
+    const segP2 = state.segments.find(s => s.s === 62);
+    segP2.key = true;
+    const before = segmentsForTheme(t.id).length;
+    await setAsideExtract(t.id, segP2.id);
+    document.getElementById('notePrompt').classList.add('hidden');
+    const after = segmentsForTheme(t.id).map(s => s.s);
+    const aside = setAsideSegmentsForTheme(t.id).map(s => s.s);
+    const table = getTableSpec('themes', { ...exportOptions(), maxExtracts: 5 });
+    const tableText = JSON.stringify(table.rows);
+    const logged = state.logs.some(l => l.ak === 'log.extractSetAside');
+    await performUndo();
+    const undone = segmentsForTheme(t.id).length;
+    await setAsideExtract(t.id, segP2.id);
+    await putBackExtract(t.id, segP2.id);
+    return { before, after, aside, inTable: tableText.includes('Nobody listened'), logged, undone, putBack: segmentsForTheme(t.id).length, stillCoded: segP2.codeIds.includes(a) };
+  }, ids);
+  assert.equal(r.before, 2);
+  assert.deepEqual(r.after, [4]);
+  assert.deepEqual(r.aside, [62]);
+  assert.equal(r.inTable, false); // a key extract left out of the theme is not illustrative of it
+  assert.ok(r.logged);
+  assert.equal(r.undone, 2);
+  assert.equal(r.putBack, 2);
+  assert.ok(r.stillCoded);
+  await close();
+});
+
+test('a theme card starts from its central organising concept', async () => {
+  const { page, close } = await openApp();
+  await seedTheme(page);
+  const q = await page.textContent('.theme-concept');
+  assert.ok(q.includes(await page.evaluate(() => tr('theme.conceptQ'))));
+  await page.click('.theme-concept');
+  assert.equal(await page.evaluate(() => document.activeElement.classList.contains('theme-def')), true);
+  await page.fill('.theme-def', 'Being alone as a stage people pass through');
+  await page.evaluate(() => renderThemeBoard());
+  assert.ok((await page.textContent('.theme-concept')).includes('Being alone as a stage'));
+  await close();
+});
+
+// ---- Backup without document texts ----
+
+async function splitBackup(page) {
+  return page.evaluate(async () => {
+    const files = {};
+    const orig = downloadBlob;
+    downloadBlob = async (blob, name) => { files[name.replace(/^.*_(analysis|texts)\.json$/, '$1')] = await blob.text(); };
+    await backupWithoutTexts();
+    await new Promise(r => setTimeout(r, 50));
+    downloadBlob = orig;
+    return files;
+  });
+}
+
+test('a backup without texts keeps no document text or quoted extract, and restores with its texts file', async () => {
+  const { page, close } = await openApp();
+  const ids = await seed(page);
+  await page.evaluate(async ({ docId }) => { await tagParticipant((await ensureParticipant('P1')).id, { docId, s: 0, e: 26 }); }, ids);
+  const files = await splitBackup(page);
+  assert.ok(files.analysis && files.texts);
+  assert.ok(!files.analysis.includes('felt alone'), 'no document text or quote in the analysis file');
+  assert.ok(files.texts.includes('felt alone'));
+  const r = await page.evaluate(async (files) => {
+    const before = { segs: state.segments.map(s => s.text).sort(), codes: state.codes.length };
+    await dbReplaceProject({}, defaultMeta());
+    for (const c of COLLECTIONS) state[c] = [];
+    const p = restoreProject(new File([files.analysis], 'x_analysis.json'));
+    await new Promise(r => setTimeout(r, 100));
+    const shown = !document.getElementById('reconnectModal').classList.contains('hidden');
+    const okBefore = document.getElementById('reconnectOk').disabled;
+    const input = document.getElementById('reconnectInput');
+    const dt = new DataTransfer();
+    dt.items.add(new File([files.texts], 'x_texts.json'));
+    input.files = dt.files;
+    input.dispatchEvent(new Event('change'));
+    await new Promise(r => setTimeout(r, 100));
+    const okAfter = document.getElementById('reconnectOk').disabled;
+    document.getElementById('reconnectOk').click();
+    await p;
+    return { shown, okBefore, okAfter, before, after: { segs: state.segments.map(s => s.text).sort(), codes: state.codes.length }, stored: (await dbGetAll('docs'))[0].text };
+  }, files);
+  assert.equal(r.shown, true);
+  assert.equal(r.okBefore, true);
+  assert.equal(r.okAfter, false);
+  assert.deepEqual(r.after, r.before);
+  assert.match(r.stored, /felt alone/);
+  await close();
+});
+
+test('a backup without texts also reconnects to the original .txt file, whatever its name', async () => {
+  const { page, close } = await openApp();
+  await page.evaluate(async () => {
+    const raw = 'P1: I felt alone at first.\nP2: Nobody listened.';
+    const { text, blocks } = textToDoc(raw);
+    const doc = await addDocument({ name: 'interview.txt', kind: 'txt', encoding: 'UTF-8', text, blocks });
+    await applyCodeToRange(makeCode('A').code.id, { docId: doc.id, s: 4, e: 26 });
+  });
+  const files = await splitBackup(page);
+  const r = await page.evaluate(async (files) => {
+    const p = restoreProject(new File([files.analysis], 'x_analysis.json'));
+    await new Promise(r => setTimeout(r, 100));
+    const input = document.getElementById('reconnectInput');
+    const dt = new DataTransfer();
+    dt.items.add(new File(['P1: I felt alone at first.\nP2: Nobody listened.'], 'renamed.txt', { type: 'text/plain' }));
+    input.files = dt.files;
+    input.dispatchEvent(new Event('change'));
+    await new Promise(r => setTimeout(r, 100));
+    document.getElementById('reconnectOk').click();
+    await p;
+    return { docs: state.docs.map(d => d.name), seg: state.segments[0]?.text };
+  }, files);
+  assert.deepEqual(r.docs, ['interview.txt']);
+  assert.equal(r.seg, 'I felt alone at first.');
+  await close();
+});

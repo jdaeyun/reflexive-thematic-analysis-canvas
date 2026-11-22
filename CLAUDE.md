@@ -56,8 +56,10 @@ Renamed from Thematic Analysis Canvas in the v0.1 beta: Restore still accepts ba
 - `participants`: `{ label, role: 'participant'|'interviewer', attributes }`. Interviewers are excluded from
   counts (`countedParticipants()`, `coverage()`).
 - `codes`: `{ name, description, color, themeIds[] }` (a code may sit in several themes).
-- `themes`: `{ name, parentId, status: candidate|reviewed|defined|discarded, definition, reviewNote, order, narrative }`
+- `themes`: `{ name, parentId, status: candidate|reviewed|defined|discarded, definition, reviewNote, order, narrative, excludedSegIds[] }`
   (`checkedExtracts` / `checkedDataset` may exist in older data; no longer shown or used).
+  `excludedSegIds` = extracts the researcher left out of this theme although they carry its codes (a theme is not a box of
+  codes): `segmentsForTheme()` / `themeOwnSegmentIds()` apply it, so every list, count and export follows. Not representable in .qdpx.
   `narrative` = the phase 6 analytic write-up for the theme; `mapX`/`mapY` = position on the thematic map (layout only).
 - `meta` (project setup): `{ name, question, approach: 'reflexive', theory, orientInductive, orientLatent, orientNote, dataPrep,
   storyline (overview), conclusions (general discussion), mapLinks: [{ id, from, to, label }], lastBackupAt }`.
@@ -99,6 +101,10 @@ Renamed from Thematic Analysis Canvas in the v0.1 beta: Restore still accepts ba
 - Imported text is Unicode NFC (`textToDoc`, CSV) — never normalise afterwards (offsets); `.qdpx` text is kept as is.
 - Restore and Reset replace the whole project with `dbReplaceProject()` (one IndexedDB transaction over every store):
   if writing fails, nothing changes in the browser and the project in memory is put back (test "a restore that fails").
+- Backup without document texts (gear menu, `backupWithoutTexts()`): `…_analysis.json` (`textless: true`; docs carry
+  `textFingerprint` instead of `text`; segment texts and the quotes in `QUOTING_LOGS` / journal context are emptied) +
+  `…_texts.json`. Restore asks for the texts file or the original .txt/.docx/.doc (`reconnectTexts()`, matched by
+  `textFingerprint()`); unmatched documents are left out only after the user confirms. Add a log key that quotes data to `QUOTING_LOGS`.
 - Deleting a journal entry removes its text but records `log.journalDeleted` (type and date only), which cannot be deleted.
 - Update `state` and re-render first, then persist (`await dbPut…`). A render that lands after the user has
   started a new text selection would wipe it.
@@ -136,6 +142,8 @@ Renamed from Thematic Analysis Canvas in the v0.1 beta: Restore still accepts ba
 - Coding highlights follow `markerStyle()` (MARKER_STYLES in core.js; gear menu, `ta_marker_style`): never hard-code
   highlight opacities in renderers.
 - A section of a theme card the user opened or closed by hand stays that way across re-renders (`themeDetailsState`).
+- A theme card starts from its central organising concept (`themeConceptHtml`: the definition, or a question); its codes
+  are labelled as what informs the theme.
 
 ### Stance (reflexive TA)
 

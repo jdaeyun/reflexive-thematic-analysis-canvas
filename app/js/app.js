@@ -116,12 +116,124 @@ async function backupProject() {
   await saveMeta();
   promptNote({ title: tr('prompt.backup'), placeholder: tr('prompt.backupPh'), mode: 'journal', journalType: 'session', ttl: 15000 });
 }
+// Backup without document texts: two files. The analysis file holds the project without the text of the documents
+// (and without the quoted extracts in coded extracts, the record and journal context); the texts file holds only
+// the document texts. Keep the texts file where the data must stay. Restoring the analysis file asks for the texts
+// file or the original .txt / .docx / .doc files and reconnects them by fingerprint. What the researcher wrote
+// (memos, definitions, narratives, journal) stays in the analysis file and may quote the data.
+const QUOTING_LOGS = new Set(['log.coded', 'log.uncoded', 'log.tagged', 'log.extractRemoved', 'log.extractResized', 'log.extractSetAside', 'log.extractPutBack']);
+function stripLogQuotes(l) {
+  const out = { ...l };
+  if (QUOTING_LOGS.has(l.ak)) { out.detail = ''; out.from = ''; out.to = ''; }
+  if (l.ctx) {
+    out.ctx = { ...l.ctx };
+    for (const k of ['extract', 'quote']) if (out.ctx[k]) out.ctx[k] = { ...out.ctx[k], text: '' };
+  }
+  return out;
+}
+async function backupWithoutTexts() {
+  if (!confirm(tr('backupSplit.confirm'))) return;
+  flushAllPendingSaves();
+  state.meta.lastBackupAt = Date.now();
+  const stamp = new Date().toISOString().slice(0, 10);
+  const base = { schema: 1, appVersion: window.TA_CANVAS?.version || '', exportedAt: new Date().toISOString(), exportedBy: state.researcherId || '' };
+  const analysis = { app: 'reflexive-thematic-analysis-canvas', textless: true, ...base, meta: state.meta };
+  for (const c of COLLECTIONS) analysis[c] = state[c];
+  analysis.docs = state.docs.map(({ text, ...d }) => ({ ...d, textFingerprint: textFingerprint(text) }));
+  analysis.segments = state.segments.map(s => ({ ...s, text: '' }));
+  analysis.logs = state.logs.map(stripLogQuotes);
+  const texts = { app: 'reflexive-thematic-analysis-canvas-texts', ...base, docs: state.docs.map(d => ({ id: d.id, name: d.name, textFingerprint: textFingerprint(d.text), text: d.text })) };
+  downloadBlob(new Blob([JSON.stringify(analysis, null, 1)], { type: 'application/json' }), `${safeFileStem()}_${stamp}_analysis.json`);
+  downloadBlob(new Blob([JSON.stringify(texts)], { type: 'application/json' }), `${safeFileStem()}_${stamp}_texts.json`);
+  renderLastBackup();
+  await saveMeta();
+  await recordLog({ category: 'system', ak: 'log.backupSplit' });
+}
+
+// Restoring an analysis file: ask for the texts (texts file or original files) and fill them in by fingerprint.
+// Resolves with the backup data (docs that were not reconnected are left without text and dropped), or null.
+async function textsFromFile(f) {
+  const kind = fileKind(f.name);
+  const buf = await f.arrayBuffer();
+  if (/\.json$/i.test(f.name)) {
+    const d = JSON.parse(new TextDecoder().decode(buf));
+    return d?.app === 'reflexive-thematic-analysis-canvas-texts' && Array.isArray(d.docs) ? d.docs.filter(x => typeof x?.text === 'string').map(x => x.text) : [];
+  }
+  let raw = '';
+  if (kind === 'txt') raw = decodeTextBytes(buf).text;
+  else if (kind === 'docx' && typeof mammoth !== 'undefined') raw = (await mammoth.extractRawText({ arrayBuffer: buf })).value;
+  else if (kind === 'doc') raw = parseDocBinary(buf);
+  else return [];
+  return [textToDoc(raw).text];
+}
+function reconnectTexts(data) {
+  const modal = document.getElementById('reconnectModal');
+  const list = document.getElementById('reconnectList');
+  const input = document.getElementById('reconnectInput');
+  const okBtn = document.getElementById('reconnectOk'), partBtn = document.getElementById('reconnectPartial');
+  const docs = (Array.isArray(data.docs) ? data.docs : []).filter(d => d && typeof d === 'object');
+  const found = new Map(); // doc id → text
+  const render = () => {
+    list.innerHTML = docs.map(d => `<li class="flex items-center gap-2 px-2 py-1 border-b border-slate-100 text-xs">
+      <i class="ph ${found.has(d.id) ? 'ph-check-circle text-emerald-600' : 'ph-circle-dashed text-slate-400'}"></i>
+      <span class="flex-1 min-w-0 truncate">${escapeHtml(d.name || d.id)}</span>
+      <span class="text-[10px] ${found.has(d.id) ? 'text-emerald-700' : 'text-slate-400'}">${escapeHtml(tr(found.has(d.id) ? 'reconnect.ok' : 'reconnect.missing'))}</span></li>`).join('');
+    okBtn.disabled = found.size < docs.length;
+    partBtn.classList.toggle('hidden', found.size === docs.length || found.size === 0);
+  };
+  return new Promise(resolve => {
+    let done = false;
+    const finish = (result) => {
+      if (done) return;
+      done = true;
+      observer.disconnect();
+      modal.classList.add('hidden');
+      input.value = '';
+      resolve(result);
+    };
+    const fill = () => {
+      for (const d of docs) {
+        if (found.has(d.id)) { d.text = found.get(d.id); for (const s of data.segments || []) if (s && s.docId === d.id) s.text = d.text.slice(s.s, s.e); }
+        else delete d.text;
+      }
+      return data;
+    };
+    input.onchange = async () => {
+      let unmatched = 0;
+      for (const f of input.files) {
+        let texts = [];
+        try { texts = await textsFromFile(f); } catch (e) { console.error(e); }
+        let hit = false;
+        for (const text of texts) {
+          const fp = textFingerprint(text);
+          for (const d of docs) if (!found.has(d.id) && d.textFingerprint === fp) { found.set(d.id, text); hit = true; }
+        }
+        if (!hit) unmatched++;
+      }
+      input.value = '';
+      render();
+      if (unmatched) showToast(tr('reconnect.noMatch', { n: unmatched }), 'error');
+    };
+    okBtn.onclick = () => finish(fill());
+    partBtn.onclick = () => { if (confirm(tr('reconnect.partialConfirm', { n: docs.length - found.size }))) finish(fill()); };
+    // Closing the dialog (Cancel, Esc) cancels the restore
+    const observer = new MutationObserver(() => { if (modal.classList.contains('hidden')) finish(null); });
+    render();
+    modal.classList.remove('hidden');
+    observer.observe(modal, { attributes: true, attributeFilter: ['class'] });
+  });
+}
+
 async function restoreProject(file) {
   let data;
   try { data = JSON.parse(await file.text()); } catch (e) { alert(tr('restore.invalidJson')); return; }
   // 'thematic-analysis-canvas': backups made before the app was renamed (v0.1 beta)
   if (!['reflexive-thematic-analysis-canvas', 'thematic-analysis-canvas'].includes(data.app)) { alert(tr('restore.notBackup')); return; }
   if (!confirm(tr('restore.confirm', { name: data.meta?.name || file.name }))) return;
+  if (data.textless) {
+    data = await reconnectTexts(data);
+    if (!data) return;
+  }
   flushAllPendingSaves();
   const clean = sanitizeProjectData(data);
   // Keep the open project: if writing the backup fails, nothing in the browser changes (one transaction) and
@@ -345,6 +457,8 @@ function setupShellEvents() {
     lsSet('ta_researcher_id', state.researcherId);
   });
   document.getElementById('backupBtn').onclick = backupProject;
+  document.getElementById('backupSplitBtn').onclick = backupWithoutTexts;
+  document.getElementById('reconnectChoose').onclick = () => document.getElementById('reconnectInput').click();
   document.getElementById('restoreBtn').onclick = () => document.getElementById('restoreInput').click();
   document.getElementById('restoreInput').onchange = async (e) => { if (e.target.files[0]) await restoreProject(e.target.files[0]); e.target.value = ''; };
   document.getElementById('resetBtn').onclick = resetProject;

@@ -87,6 +87,7 @@
               <option value="underline" data-i18n="marker.underline">Underline only</option>
             </select>
           </label>
+          <button id="backupSplitBtn" class="w-full text-left px-3 py-2 text-xs hover:bg-slate-50 text-slate-700 flex items-center space-x-2 border-b border-slate-100"><i class="ph ph-files"></i><span data-i18n="menu.backupSplit">Backup without document texts…</span></button>
           <button id="restoreBtn" class="w-full text-left px-3 py-2 text-xs hover:bg-slate-50 text-slate-700 flex items-center space-x-2 border-b border-slate-100"><i class="ph ph-upload-simple"></i><span data-i18n="menu.restore">Restore backup</span></button>
           <a id="guideLink" href="https://jdaeyun.github.io/reflexive-thematic-analysis-canvas/" target="_blank" rel="noopener" class="w-full text-left px-3 py-2 text-xs hover:bg-slate-50 text-slate-700 flex items-center space-x-2 border-b border-slate-100"><i class="ph ph-book-open"></i><span data-i18n="menu.guide">Guide &amp; 101 tutorial</span></a>
           <a href="https://github.com/jdaeyun/reflexive-thematic-analysis-canvas" target="_blank" rel="noopener" class="w-full text-left px-3 py-2 text-xs hover:bg-slate-50 text-slate-700 flex items-center space-x-2 border-b border-slate-100"><i class="ph ph-github-logo"></i><span><span data-i18n="menu.about">About &amp; updates</span> <span id="appVersionLabel" class="text-slate-400"></span></span></a>
@@ -439,6 +440,22 @@
       <div class="flex justify-end gap-2">
         <button data-close-modal class="px-3 py-1.5 text-xs rounded-md border border-slate-300 hover:bg-slate-50 cursor-pointer" data-i18n="common.cancel">Cancel</button>
         <button id="splitOk" class="px-3 py-1.5 text-xs font-bold rounded-md bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer disabled:opacity-40 disabled:pointer-events-none">Split</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Restoring a backup made without document texts: reconnect the texts file or the original files -->
+  <div id="reconnectModal" class="ta-modal hidden">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg p-5 max-h-[90vh] flex flex-col gap-3">
+      <div class="flex items-center gap-2"><i class="ph ph-link-simple text-teal-600"></i><div class="text-base font-bold text-slate-900" data-i18n="reconnect.title">Reconnect the document texts</div></div>
+      <p class="text-[11px] text-slate-500 leading-relaxed" data-i18n="reconnect.help">This backup was made without document texts. Choose its texts file (…_texts.json), or the original .txt, .docx or .doc files. Each text is matched by its content, so file names do not matter.</p>
+      <button id="reconnectChoose" type="button" class="self-start px-3 py-1.5 text-xs font-bold rounded-md bg-teal-600 hover:bg-teal-700 text-white cursor-pointer"><i class="ph ph-folder-open"></i> <span data-i18n="reconnect.choose">Choose files…</span></button>
+      <input type="file" id="reconnectInput" multiple accept=".json,.txt,.docx,.doc" class="hidden">
+      <ul id="reconnectList" class="flex-1 min-h-[4rem] overflow-y-auto border border-slate-200 rounded-lg"></ul>
+      <div class="flex justify-end gap-2 flex-wrap">
+        <button data-close-modal class="px-3 py-1.5 text-xs rounded-md border border-slate-300 hover:bg-slate-50 cursor-pointer" data-i18n="common.cancel">Cancel</button>
+        <button id="reconnectPartial" class="hidden px-3 py-1.5 text-xs rounded-md border border-amber-300 text-amber-800 hover:bg-amber-50 cursor-pointer" data-i18n="reconnect.partial">Restore without the missing documents</button>
+        <button id="reconnectOk" class="px-3 py-1.5 text-xs font-bold rounded-md bg-teal-600 hover:bg-teal-700 text-white cursor-pointer disabled:opacity-40 disabled:pointer-events-none" data-i18n="reconnect.restore">Restore</button>
       </div>
     </div>
   </div>
