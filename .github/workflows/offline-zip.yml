@@ -5,6 +5,11 @@ name: Attach offline ZIP to release
 on:
   release:
     types: [published]
+  workflow_dispatch:          # started by sync-version.yml (a release made with GITHUB_TOKEN triggers nothing by itself)
+    inputs:
+      tag:
+        description: Release tag to attach the ZIP to (e.g. v1.0.0)
+        required: true
 
 permissions:
   contents: write   # needed to upload a file to the release
@@ -14,22 +19,28 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
 
       - name: Check that version numbers agree (app/version.js, CITATION.cff, release tag)
+        env:
+          TAG: ${{ inputs.tag || github.ref_name }}
         run: |
           JS_VER=$(grep -oP "version:\s*'\K[^']+" app/version.js)
           JS_DATE=$(grep -oP "released:\s*'\K[^']+" app/version.js)
           CFF_VER=$(grep -oP '^version:\s*"?\K[^"\s]+' CITATION.cff)
           CFF_DATE=$(grep -oP '^date-released:\s*"?\K[^"\s]+' CITATION.cff)
-          echo "version.js: $JS_VER ($JS_DATE) | CITATION.cff: $CFF_VER ($CFF_DATE) | tag: $GITHUB_REF_NAME"
+          echo "version.js: $JS_VER ($JS_DATE) | CITATION.cff: $CFF_VER ($CFF_DATE) | tag: $TAG"
           [ "$JS_VER" = "$CFF_VER" ] || { echo "::error::app/version.js ($JS_VER) and CITATION.cff ($CFF_VER) differ"; exit 1; }
           [ "$JS_DATE" = "$CFF_DATE" ] || { echo "::error::release dates differ ($JS_DATE vs $CFF_DATE)"; exit 1; }
-          [ "${GITHUB_REF_NAME#v}" = "$JS_VER" ] || { echo "::error::release tag $GITHUB_REF_NAME does not match version $JS_VER"; exit 1; }
+          [ "${TAG#v}" = "$JS_VER" ] || { echo "::error::release tag $TAG does not match version $JS_VER"; exit 1; }
 
       - name: Build the ZIP
+        env:
+          TAG: ${{ inputs.tag || github.ref_name }}
         run: |
           # Same file name in every release, so a page can link to .../releases/latest/download/reflexive-thematic-analysis-canvas-offline.zip
-          NAME="reflexive-thematic-analysis-canvas-offline-${GITHUB_REF_NAME}"
+          NAME="reflexive-thematic-analysis-canvas-offline-${TAG}"
           mkdir -p "dist/$NAME"
           cp -r ta_canvas.html app samples CITATION.cff LICENSE "dist/$NAME/"
           cp tools/OFFLINE-README.txt "dist/$NAME/README.txt"
@@ -39,4 +50,5 @@ jobs:
       - name: Upload to the release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "$GITHUB_REF_NAME" "$ZIP" --clobber
+          TAG: ${{ inputs.tag || github.ref_name }}
+        run: gh release upload "$TAG" "$ZIP" --clobber

@@ -353,7 +353,7 @@ async function importQdpx(file) {
   const makeTheme = (name, parentId, definition = '') => {
     const key = name.toLowerCase();
     if (!parentId && themeByName.has(key)) return themeByName.get(key);
-    const t = { id: uid('thm'), name, parentId, status: 'candidate', definition, reviewNote: '', checkedExtracts: false, checkedDataset: false, order: sortedThemes(parentId).length + newThemes.filter(x => x.parentId === parentId).length, createdAt: Date.now() };
+    const t = { id: uid('thm'), name, parentId, status: 'candidate', definition, reviewNote: '', order: sortedThemes(parentId).length + newThemes.filter(x => x.parentId === parentId).length, createdAt: Date.now() };
     state.themes.push(t);
     newThemes.push(t);
     if (!parentId) themeByName.set(key, t);

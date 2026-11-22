@@ -20,6 +20,7 @@ I18N.en = {
   'undo.title': 'Undo: {label} (Ctrl+Z)', 'undo.none': 'Nothing to undo',
   'drop.title': 'Drop files here', 'drop.body': '.txt · .csv · .docx · .doc · .qdpx — the text stays in this browser.',
   // header
+  'multiTab.text': 'This project is also open in another tab or window. Changes made in one are not shown in the other and can overwrite each other: keep working in one tab only.', 'multiTab.dismiss': 'Dismiss',
   'hdr.title': 'Reflexive Thematic Analysis', 'hdr.prototype': 'BETA', 'hdr.projectSetup': 'Project setup', 'hdr.untitled': 'Untitled project',
   'hdr.researcher': 'Researcher', 'hdr.researcherTitle': 'Your name or initials (recorded in the audit trail)', 'hdr.initials': 'Initials',
   'hdr.journal': 'Journal', 'hdr.journalTitle': 'Reflexive journal — write a note from anywhere (Ctrl+J / ⌘J)',
@@ -93,7 +94,7 @@ I18N.en = {
   'theme.addCode': '+ Add a code…', 'prompt.statusBackPh': 'Moving a theme back is part of the recursive process. What made you look again? (optional)',
   'theme.namePh': 'Theme name', 'theme.subNamePh': 'Subtheme name', 'theme.statusTitle': 'Status (can move in either direction)', 'theme.up': 'Move up', 'theme.down': 'Move down',
   'theme.delete': 'Delete theme', 'theme.deleteSub': 'Delete subtheme', 'theme.dropHere': 'Drop codes here', 'theme.dragToMove': 'Drag to another theme to move', 'theme.removeCode': 'Remove from this theme',
-  'theme.phase4': 'Phase 4 · Review against the data', 'theme.chkExtracts': 'Checked against all coded extracts (do they cohere?)', 'theme.chkDataset': 'Checked against the full dataset (does it capture the data?)',
+  'theme.phase4': 'Phase 4 · Review against the data', 'theme.reviewQExtracts': 'Read its coded extracts together: do they cohere around a shared meaning?', 'theme.reviewQDataset': 'Go back to the whole dataset: does the theme capture something meaningful there, and is anything missing or contradicting it?',
   'theme.reviewPh': 'Review notes: what changed, what was split, merged or set aside, and why…',
   'theme.phase5': 'Phase 5 · Define & name', 'theme.defPh': 'Definition: the central organising concept, its scope and boundaries, and how it relates to the other themes…',
   'theme.showExtracts': 'Show extracts ({n})', 'theme.hideExtracts': 'Hide extracts ({n})', 'theme.addSub': '+ Subtheme', 'theme.newSub': 'New subtheme',
@@ -190,12 +191,13 @@ I18N.en = {
   'exp.h.extractsShort': 'Extracts', 'exp.h.participants': 'Participants',
   'exp.appendix.title': 'Appendix A. Audit trail and reflexive journal',
   'exp.appendix.noteAll': 'All entries, including single coding actions.', 'exp.appendix.noteDecisions': 'Interpretive decisions and journal entries (single coding actions omitted).',
+  'exp.appendix.notePurpose': 'This record makes the interpretive process transparent; it is not meant to verify that the analysis is accurate.',
   'exp.appendix.noteWhy': '“Why” is the reason recorded with a decision; “About” links a note to an earlier entry.',
   'exp.h.date': 'Date', 'exp.h.type': 'Type', 'exp.h.entry': 'Entry', 'exp.h.details': 'Details',
   'exp.d.from': 'From', 'exp.d.to': 'To', 'exp.d.removedEntry': '(removed entry)',
   'csv.document': 'Document', 'csv.participant': 'Participant', 'csv.code': 'Code', 'csv.themes': 'Theme(s)', 'csv.extract': 'Extract', 'csv.key': 'Key extract',
   'csv.memo': 'Memo', 'csv.start': 'Start', 'csv.end': 'End', 'csv.codedBy': 'Coded by', 'csv.codedAt': 'Coded at', 'csv.yes': 'yes',
-  'phase.hint6': 'Writing is part of the analysis: tell the analytic story theme by theme, with extracts as evidence.',
+  'phase.hint6': 'Writing is part of the analysis: tell the analytic story theme by theme, illustrated by extracts.',
   'counts.show': 'Show counts',
   'counts.hide': 'Hide counts',
   'counts.title': 'Numbers of extracts and participants. In reflexive TA, how often something appears does not decide what matters, so counts are hidden by default.',
@@ -212,7 +214,7 @@ I18N.en = {
   'exp.codelist.title': 'Code list (analytic record)',
   'exp.codelist.note': 'In reflexive TA, codes are analytic tools that evolve during the analysis rather than a fixed codebook; this list records where the analysis ended.',
   'toast.textCopied': 'Text copied — paste into Word or Google Docs',
-  'narr.intro': '<b>Phase 6 is writing, not tabulating.</b> Writing is part of the analysis. For each theme, tell the analytic story: what it means, how it connects to the other themes and your research question, and how existing research and theory help you make sense of it — weave them in rather than saving them for a separate discussion. Use extracts as evidence for your interpretation, not as a substitute for it, and write in the first person: you made these themes. Click <b>Insert</b> to add an extract at the cursor.',
+  'narr.intro': '<b>Phase 6 is writing, not tabulating.</b> Writing is part of the analysis. For each theme, tell the analytic story: what it means, how it connects to the other themes and your research question, and how existing research and theory help you make sense of it — weave them in rather than saving them for a separate discussion. Use extracts to illustrate and support your interpretation, not as a substitute for it, and write in the first person: you made these themes. Click <b>Insert</b> to add an extract at the cursor.',
   'narr.overview': 'Overview of the analysis (how the themes tell the overall story)',
   'narr.overviewPh': 'The overall story the themes tell together, in relation to your research question…',
   'narr.themePh': 'Analytic narrative for this theme: what it captures and its central organising concept, how the extracts show it, how it relates to the other themes, and what existing research or theory adds…',
@@ -290,9 +292,9 @@ I18N.en = {
   'narr.figureMap': 'Figure 1. Thematic map',
   'narr.figureMd': 'see the map exported as .svg from tab 2',
   'log.conclusions': 'Wrote the general discussion',
-  'hint.themeName': 'This name may only name a topic. A theme name can tell its story — a short quote from the data can work.',
-  'hint.subthemes': '{n} subthemes: use them only where they show an important facet of the theme\'s central concept, to avoid a fragmented structure.',
-  'hint.manyThemes': '{n} themes: many themes for one report can leave each one thin. Could some be combined, or set aside?',
+  'theme.nameQ': 'Does the name tell the theme\'s story rather than only name a topic? A short quote from the data can work.',
+  'hint.subthemesQ': 'Does each subtheme show an important facet of the theme\'s central concept? Too many can fragment the theme.',
+  'hint.themesQ': 'Does each theme have enough depth to be told well in one report? Could some be combined, or set aside?',
   'hint.noDefinition': 'Marked as defined, but no definition is written yet. A few sentences on the central organising concept and its boundaries help the write-up.',
   'hint.smallCells': 'Only one participant has: {list}. Combined with the context of the study, such a value may identify someone: consider merging categories or leaving the characteristic out.',
   'layout.resize': 'Drag to resize this column (all tabs share the width; double-click to reset)',
@@ -309,13 +311,14 @@ I18N.ja = {
   'save.saved': '保存済み {time}', 'save.error': '保存エラー',
   'undo.title': '元に戻す：{label}（Ctrl+Z）', 'undo.none': '元に戻せる操作はありません',
   'drop.title': 'ここにファイルをドロップ', 'drop.body': '.txt・.csv・.docx・.doc・.qdpx — 文章はこのブラウザの中だけで扱われます。',
+  'multiTab.text': 'このプロジェクトは別のタブまたはウィンドウでも開かれています。一方での変更はもう一方に表示されず、上書きし合うことがあります。作業はひとつのタブだけで続けてください。', 'multiTab.dismiss': '閉じる',
   'hdr.title': 'Reflexive Thematic Analysis', 'hdr.prototype': 'ベータ版', 'hdr.projectSetup': 'プロジェクト設定', 'hdr.untitled': '名称未設定のプロジェクト',
   'hdr.researcher': '分析者', 'hdr.researcherTitle': 'あなたの名前またはイニシャル（監査証跡に記録されます）', 'hdr.initials': '名前',
   'hdr.journal': 'ジャーナル', 'hdr.journalTitle': '省察ジャーナル — どこからでもメモを書けます（Ctrl+J / ⌘J）',
   'hdr.lastBackup': '最終バックアップ：{when}', 'hdr.noBackup': 'まだバックアップがありません', 'hdr.lastBackupTitle': '最後にバックアップを保存した日時：{time}（このパソコンで）', 'time.justNow': 'たった今',
   'hdr.undo': '元に戻す', 'hdr.backup': 'バックアップ', 'hdr.backupTitle': 'プロジェクト全体を .json ファイルに保存', 'hdr.menu': '設定',
   'marker.label': 'マーカーの色', 'marker.standard': '標準', 'marker.soft': '控えめ（目に優しい）', 'marker.underline': '下線のみ',
-  'menu.restore': 'バックアップから復元', 'menu.guide': '使い方ガイドと101', 'menu.about': 'このアプリについて・更新情報', 'menu.reset': '新規作成／リセット',
+  'menu.restore': 'バックアップから復元', 'menu.guide': '入門と使い方ガイド', 'menu.about': 'このアプリについて・更新情報', 'menu.reset': '新規作成／リセット',
   'tab.code': '1. データに慣れる・コーディング', 'tab.codeShort': '1 コーディング', 'tab.themes': '2. テーマ', 'tab.themesShort': '2 テーマ',
   'tab.audit': '3. 監査証跡・ジャーナル', 'tab.auditShort': '3 記録', 'tab.export': '4. 執筆', 'tab.exportShort': '4 執筆',
   'phase.1': '1 · データに慣れる', 'phase.2': '2 · コーディング', 'phase.3': '3 · 初期テーマの生成', 'phase.4': '4 · テーマの見直し', 'phase.5': '5 · 定義と命名', 'phase.6': '6 · 執筆',
@@ -373,7 +376,7 @@ I18N.ja = {
   'theme.addCode': '＋ コードを追加…', 'prompt.statusBackPh': 'ステータスを戻すのも、行き来する分析の一部です。何がきっかけで見直しましたか？（任意）',
   'theme.namePh': 'テーマ名', 'theme.subNamePh': 'サブテーマ名', 'theme.statusTitle': 'ステータス（どちらの向きにも動かせます）', 'theme.up': '上へ', 'theme.down': '下へ',
   'theme.delete': 'テーマを削除', 'theme.deleteSub': 'サブテーマを削除', 'theme.dropHere': 'ここにコードをドロップ', 'theme.dragToMove': '別のテーマにドラッグすると移動します', 'theme.removeCode': 'このテーマから外す',
-  'theme.phase4': 'フェーズ4 · データと照らして見直す', 'theme.chkExtracts': 'コーディングしたすべての抜粋と照合した（まとまりがあるか）', 'theme.chkDataset': 'データ全体と照合した（データを捉えているか）',
+  'theme.phase4': 'フェーズ4 · データと照らして見直す', 'theme.reviewQExtracts': 'コーディングした抜粋を通して読む：共有された意味のまわりにまとまっていますか？', 'theme.reviewQDataset': 'データ全体に戻る：このテーマはデータの中の意味のあるものを捉えていますか？ 抜けているものや、反する語りはありませんか？',
   'theme.reviewPh': '見直しメモ：何が変わったか、何を分けたか・統合したか・保留したか、そしてその理由…',
   'theme.phase5': 'フェーズ5 · 定義と命名', 'theme.defPh': '定義：テーマの核となる意味（中心概念）、その範囲と境界、他のテーマとの関係…',
   'theme.showExtracts': '抜粋を表示（{n}）', 'theme.hideExtracts': '抜粋を隠す（{n}）', 'theme.addSub': '＋ サブテーマ', 'theme.newSub': '新しいサブテーマ',
@@ -465,6 +468,7 @@ I18N.ja = {
   'exp.h.extractsShort': '抜粋数', 'exp.h.participants': '参加者数',
   'exp.appendix.title': '付録A. 監査証跡と省察ジャーナル',
   'exp.appendix.noteAll': '個々のコーディング操作を含む、すべての記録です。', 'exp.appendix.noteDecisions': '解釈上の判断とジャーナルの書き込みです（個々のコーディング操作は省略）。',
+  'exp.appendix.notePurpose': 'この記録は、解釈の過程を透明にするためのものであり、分析の正確さを検証するためのものではありません。',
   'exp.appendix.noteWhy': '「理由」は判断に添えて記録したもの、「対象」はメモが関連づけられた以前の記録です。',
   'exp.h.date': '日時', 'exp.h.type': '種類', 'exp.h.entry': '記録', 'exp.h.details': '詳細',
   'exp.d.from': '変更前', 'exp.d.to': '変更後', 'exp.d.removedEntry': '（削除された記録）',
@@ -487,7 +491,7 @@ I18N.ja = {
   'exp.codelist.title': 'コード一覧（分析の記録）',
   'exp.codelist.note': '再帰的テーマ分析のコードは、固定したコードブックではなく分析の途中で変わる道具です。この一覧は分析を終えた時点の記録です。',
   'toast.textCopied': '文章をコピーしました — Word や Google ドキュメントに貼り付けられます',
-  'narr.intro': '<b>フェーズ6は表を作ることではなく、書くことです。</b>書くこと自体が分析の一部です。テーマごとに、それが何を意味し、他のテーマやリサーチクエスチョンとどうつながるか、既存の研究や理論がその理解にどう役立つかという分析的な記述を書いてください。研究や理論は、別の「考察」に回さず記述の中に織り込みます。抜粋は解釈の代わりではなく解釈の根拠として使い、テーマを作ったのは自分なので一人称で書きましょう。<b>挿入</b>を押すと、カーソルの位置に抜粋が入ります。',
+  'narr.intro': '<b>フェーズ6は表を作ることではなく、書くことです。</b>書くこと自体が分析の一部です。テーマごとに、それが何を意味し、他のテーマやリサーチクエスチョンとどうつながるか、既存の研究や理論がその理解にどう役立つかという分析的な記述を書いてください。研究や理論は、別の「考察」に回さず記述の中に織り込みます。抜粋は解釈の代わりではなく、解釈を示し支えるものとして使い、テーマを作ったのは自分なので一人称で書きましょう。<b>挿入</b>を押すと、カーソルの位置に抜粋が入ります。',
   'narr.overview': '分析の全体像（テーマが全体として語る物語）',
   'narr.overviewPh': 'リサーチクエスチョンに照らして、テーマ全体がどんな物語を語るか…',
   'narr.themePh': 'このテーマの分析の記述：何を捉えているか、テーマの核となる意味（中心概念）、抜粋がそれをどう示すか、他のテーマとの関係、既存の研究や理論から何が言えるか…',
@@ -565,9 +569,9 @@ I18N.ja = {
   'narr.figureMap': '図1. テーマの関係図',
   'narr.figureMd': 'タブ2から .svg で出力した関係図を参照',
   'log.conclusions': '全体のまとめを書いた',
-  'hint.themeName': 'この名前は話題を示すだけかもしれません。テーマ名はその物語を伝えられます。データからの短い引用も使えます。',
-  'hint.subthemes': 'サブテーマが {n} 個あります。構造が細切れにならないよう、テーマの中心概念の重要な側面を示す場合にだけ使いましょう。',
-  'hint.manyThemes': 'テーマが {n} 個あります。1本の論文にテーマが多いと、一つひとつが薄くなりがちです。まとめられるもの、保留にできるものはありませんか？',
+  'theme.nameQ': '名前は話題を示すだけでなく、テーマの物語を伝えていますか？ データからの短い引用も使えます。',
+  'hint.subthemesQ': 'どのサブテーマも、テーマの中心概念の重要な側面を示していますか？ 多すぎるとテーマが細切れになります。',
+  'hint.themesQ': 'どのテーマにも、1本の論文で語れるだけの厚みがありますか？ まとめられるもの、保留にできるものはありませんか？',
   'hint.noDefinition': '「定義済み」ですが、まだ定義が書かれていません。中心概念とその境界を数文で書いておくと、執筆のときに役立ちます。',
   'hint.smallCells': '該当者が1人だけの値があります：{list}。研究の文脈と組み合わせると個人が特定される可能性があります。区分をまとめるか、その特性を載せないことも検討してください。',
   'layout.resize': 'ドラッグで列の幅を変更（全タブ共通。ダブルクリックで元に戻す）',
@@ -659,7 +663,7 @@ Object.assign(I18N.ja, {
 const SUPPORTED_LANGS = Object.keys(I18N);
 
 function langSetting() {
-  try { return localStorage.getItem('ta_lang') || 'auto'; } catch (e) { return 'auto'; }
+  return lsGet('ta_lang', 'auto');
 }
 // 'auto': the first supported language in the browser's preference list (set from the OS by default)
 function resolveLang(setting = langSetting()) {
@@ -696,7 +700,7 @@ function applyI18n(root = document) {
 }
 
 function setLanguage(setting) {
-  try { localStorage.setItem('ta_lang', setting); } catch (e) { /* private mode */ }
+  lsSet('ta_lang', setting);
   LANG = resolveLang(setting);
   applyI18n();
   // Dropdowns filled from code

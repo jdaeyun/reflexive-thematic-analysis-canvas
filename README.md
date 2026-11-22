@@ -1,6 +1,6 @@
 # 🏷️ Reflexive Thematic Analysis Canvas
 
-**Version 0.9.0 (beta)**
+**Version 0.9.1 (beta)**
 
 **Reflexive Thematic Analysis Canvas** is an open-source, zero-backend browser workspace for **reflexive thematic analysis** (Braun & Clarke) of qualitative text data. It follows the six phases of reflexive TA and produces tables you can put straight into a manuscript.
 
@@ -36,7 +36,7 @@
 3. **Audit & Journal**
    Every interpretive change (codes created, renamed, merged or deleted; theme changes; status, definitions) is logged automatically, next to a timestamped reflexive journal.
 4. **Writing up (Phase 6)**
-   Writing is part of the analysis, so the first view is a writing space: an overview of the analysis and an analytic narrative for each theme and subtheme, with the theme's extracts at hand to insert as evidence. Supporting tables follow:
+   Writing is part of the analysis, so the first view is a writing space: an overview of the analysis and an analytic narrative for each theme and subtheme, with the theme's extracts at hand to illustrate and support your interpretation. Supporting tables follow:
    * Analysis summary, participants, and themes with definitions and illustrative extracts
    * Optional, off by default: prevalence (participants per theme, theme × participant) and the code list
    * Appendix A: audit trail and reflexive journal
@@ -55,7 +55,7 @@ The app reads and writes the [REFI-QDA](https://www.qdasoftware.org) project exc
 
 ## 🧭 Reporting: RTARG
 
-[`docs/rtarg-mapping.md`](docs/rtarg-mapping.md) ([日本語](docs/rtarg-mapping.ja.md)) maps the Reflexive Thematic Analysis Reporting Guidelines (Braun & Clarke, 2024) to what the app does: what it supports, what stays the researcher's writing, and what still needs work.
+The [RTARG mapping](https://jdaeyun.github.io/reflexive-thematic-analysis-canvas/en/rtarg.html) ([日本語](https://jdaeyun.github.io/reflexive-thematic-analysis-canvas/ja/rtarg.html)) on the website maps the Reflexive Thematic Analysis Reporting Guidelines (Braun & Clarke, 2024) to what the app does: what it supports, what stays the researcher's writing, and what still needs work.
 
 ## 👥 Working with more than one analyst
 
@@ -90,7 +90,8 @@ On import, every file is turned into fixed plain text, one block per line or ans
 ## 🏗️ Architecture
 
 * Single page, classic `<script>` files in a shared global scope (works from `file://`), no build step to run it.
-* `app/js/core.js` (state, IndexedDB, audit log, undo) → `importers.js` → `coding.js` (tab 1) → `themes.js` (tab 2) → `audit.js` (tab 3) → `export.js` (tab 4) → `refi-qda.js` (.qdpx exchange) → `app.js` (startup).
+* `app/js/prefs.js` (per-browser preferences) → `i18n.js` → `core.js` (state, IndexedDB, audit log, undo) → `importers.js` → `coding.js` (tab 1) → `themes.js` + `thematic-map.js` (tab 2) → `audit.js` + `journal.js` (tab 3, journal drawer) → `export.js` (tab 4) → `refi-qda.js` (.qdpx exchange) → `app.js` (startup).
+* Browser tests: `npm test` (Playwright, see `tests/`). Releases: edit `app/version.js` and merge to main; a workflow syncs the version text and publishes the release with the offline ZIP.
 * Bundled libraries in `app/vendor/` (no CDN): Tailwind CSS 3.4.17 (prebuilt), Phosphor Icons 2.1.1, docx 8.5.0, mammoth.js 1.13.0, Papa Parse 5.7.0. See [`app/vendor/THIRD_PARTY_NOTICES.md`](app/vendor/THIRD_PARTY_NOTICES.md).
 * To update libraries or Tailwind classes: `npm install`, then `npm run build`.
 

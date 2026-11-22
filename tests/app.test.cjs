@@ -8,7 +8,7 @@ const { chromium } = require('playwright');
 
 const APP_URL = pathToFileURL(path.join(__dirname, '..', 'ta_canvas.html')).href;
 let browser;
-before(async () => { browser = await chromium.launch(); });
+before(async () => { browser = await chromium.launch(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}); });
 after(async () => { await browser?.close(); });
 
 // A fresh browser context per test = an empty IndexedDB
@@ -19,7 +19,7 @@ async function openApp() {
   page.on('pageerror', e => errors.push(e.message));
   page.on('dialog', d => d.accept());
   await page.goto(APP_URL);
-  await page.waitForFunction(() => typeof state !== 'undefined' && document.getElementById('undoBtn'));
+  await page.waitForFunction(() => window.taReady === true);
   await page.evaluate(() => document.querySelectorAll('.ta-modal').forEach(m => m.classList.add('hidden')));
   return { page, errors, close: () => context.close() };
 }
@@ -261,5 +261,298 @@ test('Escape closes only the top dialog and asks before discarding typed text', 
   await page.keyboard.press('Escape');
   assert.equal(asked.length, 1);
   assert.equal(await page.isVisible('#projectModal'), true);
+  await close();
+});
+
+// ---- Text fields: saved and logged without relying on a blur (closing the tab, re-renders) ----
+
+async function seedTheme(page) {
+  return page.evaluate(async () => {
+    await createTheme('Feeling alone');
+    document.getElementById('notePrompt').classList.add('hidden'); // the gentle prompt after a first theme
+    switchTab('themes');
+    return state.themes[0].id;
+  });
+}
+const logsOf = (page, ak) => page.evaluate(k => state.logs.filter(l => l.ak === k).length, ak);
+
+test('text typed in a theme card is saved and logged when the page is hidden before any blur', async () => {
+  const { page, errors, close } = await openApp();
+  await seedTheme(page);
+  await page.click('.theme-details[data-k="review"] summary');
+  await page.click('.theme-details[data-k="def"] summary');
+  await page.evaluate(() => renderThemeBoard()); // the sections opened by hand stay open
+  await page.fill('.theme-def', 'Being alone as a stage people pass through');
+  await page.fill('.theme-review', 'Checked against all three interviews');
+  await page.evaluate(() => window.dispatchEvent(new Event('pagehide')));
+  await page.waitForTimeout(200);
+  const r = await page.evaluate(async () => {
+    const stored = (await dbGetAll('themes'))[0];
+    return { def: stored.definition, review: stored.reviewNote };
+  });
+  assert.equal(r.def, 'Being alone as a stage people pass through');
+  assert.equal(r.review, 'Checked against all three interviews');
+  assert.equal(await logsOf(page, 'log.definition'), 1);
+  assert.equal(await logsOf(page, 'log.reviewNote'), 1);
+  assert.deepEqual(errors, []);
+  await close();
+});
+
+test('a re-render keeps a theme name being typed and logs it once', async () => {
+  const { page, close } = await openApp();
+  await seedTheme(page);
+  await page.fill('.theme-name', 'Loneliness as a passage');
+  await page.evaluate(() => { renderThemeBoard(); renderThemeBoard(); });
+  await page.waitForTimeout(100);
+  assert.equal(await page.evaluate(() => state.themes[0].name), 'Loneliness as a passage');
+  assert.equal(await page.inputValue('.theme-name'), 'Loneliness as a passage');
+  assert.equal(await logsOf(page, 'log.themeRenamed'), 1);
+  await close();
+});
+
+test('the analytic narrative is logged when the tab is switched, and an inserted extract counts as an edit', async () => {
+  const { page, close } = await openApp();
+  const ids = await seed(page);
+  await page.evaluate(async ({ a }) => {
+    await createTheme('Feeling alone');
+    await addCodeToTheme(a, state.themes[0].id, null);
+    document.getElementById('notePrompt').classList.add('hidden');
+    state.exportTable = 'narrative';
+    switchTab('export');
+  }, ids);
+  await page.fill('#narrOverview', 'Two stories run through the data.');
+  await page.evaluate(() => switchTab('themes'));
+  await page.waitForTimeout(100);
+  assert.equal(await logsOf(page, 'log.storyline'), 1);
+  assert.equal(await page.evaluate(async () => (await dbGetAll('meta'))[0].storyline), 'Two stories run through the data.');
+  await page.evaluate(() => switchTab('export'));
+  await page.click('.narr-section details summary');
+  await page.click('.narr-insert');
+  await page.evaluate(() => window.dispatchEvent(new Event('pagehide')));
+  await page.waitForTimeout(200);
+  assert.equal(await logsOf(page, 'log.narrative'), 1);
+  assert.match(await page.evaluate(async () => (await dbGetAll('themes'))[0].narrative), /felt alone/);
+  await close();
+});
+
+test('a familiarisation note stays with its document when another document is opened', async () => {
+  const { page, close } = await openApp();
+  const first = await seed(page);
+  const second = await page.evaluate(async () => {
+    const { blocks } = textToDoc('P3: Another text.');
+    return (await addDocument({ name: 'e.txt', kind: 'txt', encoding: 'UTF-8', text: 'P3: Another text.', blocks })).id;
+  });
+  await page.evaluate(id => openDocument(id), first.docId);
+  await page.evaluate(() => document.getElementById('docNotePanel').classList.remove('hidden'));
+  await page.fill('#docNote', 'Long pauses before talking about the group.');
+  await page.evaluate(id => openDocument(id), second);
+  await page.waitForTimeout(100);
+  const notes = await page.evaluate(() => Object.fromEntries(state.docs.map(d => [d.name, d.note || ''])));
+  assert.deepEqual(notes, { 'd.txt': 'Long pauses before talking about the group.', 'e.txt': '' });
+  await close();
+});
+
+// ---- Start-up and safety ----
+
+test('the app starts when browser storage (localStorage) is blocked', async () => {
+  const context = await browser.newContext();
+  await context.addInitScript(() => {
+    Object.defineProperty(window, 'localStorage', { get() { throw new DOMException('blocked', 'SecurityError'); } });
+  });
+  const page = await context.newPage();
+  const errors = [];
+  page.on('pageerror', e => errors.push(e.message));
+  await page.goto(APP_URL);
+  await page.waitForFunction(() => window.taReady === true);
+  assert.deepEqual(errors, []);
+  await context.close();
+});
+
+test('a second tab with the same project shows a warning in both tabs, and it clears when one closes', async () => {
+  const context = await browser.newContext();
+  const open = async () => {
+    const p = await context.newPage();
+    p.on('dialog', d => d.accept());
+    await p.goto(APP_URL);
+    await p.waitForFunction(() => window.taReady === true);
+    return p;
+  };
+  const shown = p => p.isVisible('#multiTabBanner');
+  const p1 = await open();
+  await p1.waitForTimeout(200);
+  assert.equal(await shown(p1), false);
+  const p2 = await open();
+  await p2.waitForTimeout(300);
+  assert.equal(await shown(p1), true);
+  assert.equal(await shown(p2), true);
+  await p2.close({ runBeforeUnload: true });
+  await p1.waitForTimeout(300);
+  assert.equal(await shown(p1), false);
+  await context.close();
+});
+
+test('focus moves into a dialog and back to the button that opened it', async () => {
+  const { page, close } = await openApp();
+  await page.focus('#menuBtn');
+  await page.evaluate(() => { document.getElementById('menuBtn').blur(); document.getElementById('backupBtn').focus(); openProjectModal(); });
+  await page.waitForTimeout(50);
+  assert.equal(await page.evaluate(() => document.getElementById('projectModal').contains(document.activeElement)), true);
+  for (let i = 0; i < 30; i++) await page.keyboard.press('Tab');
+  assert.equal(await page.evaluate(() => document.getElementById('projectModal').contains(document.activeElement)), true, 'Tab stays inside');
+  await page.keyboard.press('Escape');
+  assert.equal(await page.isVisible('#projectModal'), false);
+  assert.equal(await page.evaluate(() => document.activeElement.id), 'backupBtn');
+  await close();
+});
+
+// ---- Layout ----
+
+test('the header fits laptop widths without overlap (English and Japanese)', async () => {
+  for (const lang of ['en', 'ja']) {
+    for (const width of [1024, 1280, 1440]) {
+      const context = await browser.newContext({ viewport: { width, height: 800 } });
+      const page = await context.newPage();
+      await page.goto(APP_URL);
+      await page.waitForFunction(() => window.taReady === true);
+      const r = await page.evaluate(async (l) => {
+        setLanguage(l);
+        document.querySelectorAll('.ta-modal').forEach(m => m.classList.add('hidden'));
+        await new Promise(res => setTimeout(res, 50));
+        const hdr = document.querySelector('header');
+        const groups = [...hdr.children].map(c => c.getBoundingClientRect());
+        let overlap = false;
+        for (let i = 1; i < groups.length; i++) if (groups[i].left < groups[i - 1].right - 1) overlap = true;
+        // every visible control inside the header lies within it
+        const outside = [...hdr.querySelectorAll('button, input, a, span')].filter(el => {
+          const b = el.getBoundingClientRect();
+          return b.width > 0 && (b.right > hdr.clientWidth + 1 || b.left < -1);
+        }).length;
+        return { overflow: hdr.scrollWidth > hdr.clientWidth + 1, overlap, outside };
+      }, lang);
+      assert.deepEqual(r, { overflow: false, overlap: false, outside: 0 }, `${lang} @ ${width}px`);
+      await context.close();
+    }
+  }
+});
+
+// ---- Release and wording ----
+
+test('every version marker (CITATION.cff, README, site) matches app/version.js', () => {
+  const r = require('node:child_process').spawnSync(process.execPath, [path.join(__dirname, '..', 'tools', 'sync-version.mjs'), '--check'], { encoding: 'utf8' });
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+});
+
+// Reflexive TA wording (see the table in CLAUDE.md). Only words that have no legitimate use in the app or on the site
+// are blocked here; most wording needs judgement when reading new text.
+const SMALL_Q = {
+  en: [/\bemerg(e|es|ed|ing|ence|ent)\b/i, /\bsaturat\w*/i, /\bdiscover(y|ed|ing)?\b/i, /\btriangulat\w*/i, /\bconsensus\b/i, /\b(themes?|patterns?) (were|was|are|is) (found|identified)\b/i, /\bidentif(y|ied|ying) (the )?themes\b/i],
+  ja: [/浮かび上が/, /浮上/, /飽和/, /発見/, /トライアンギュレーション/, /合意/, /テーマを(抽出|特定)/, /テーマが(抽出|特定)/]
+};
+test('no small-q wording in the interface (both languages)', async () => {
+  const { page, close } = await openApp();
+  const dict = await page.evaluate(() => ({ en: I18N.en, ja: I18N.ja }));
+  const hits = [];
+  for (const lang of ['en', 'ja']) {
+    for (const [k, v] of Object.entries(dict[lang])) for (const re of SMALL_Q[lang]) if (re.test(v)) hits.push(`${lang} ${k}: ${re}`);
+  }
+  assert.deepEqual(hits, []);
+  await close();
+});
+test('no small-q wording on the website or in the README', () => {
+  const fs = require('node:fs');
+  const root = path.join(__dirname, '..');
+  const hits = [];
+  const scan = (file, res) => {
+    const text = fs.readFileSync(path.join(root, file), 'utf8').replace(/<[^>]+>/g, ' ');
+    for (const re of res) if (re.test(text)) hits.push(`${file}: ${re} → “${text.match(re)[0]}”`);
+  };
+  for (const lang of ['en', 'ja']) for (const f of fs.readdirSync(path.join(root, 'site', lang))) if (f.endsWith('.html') && f !== 'rtarg.html') scan(`site/${lang}/${f}`, SMALL_Q[lang]); // rtarg.html quotes what the guidelines advise against
+  scan('README.md', SMALL_Q.en);
+  assert.deepEqual(hits, []);
+});
+
+test('imported text is NFC, and a decomposed search query still finds it', async () => {
+  const { page, close } = await openApp();
+  const r = await page.evaluate(async () => {
+    const raw = 'P1: がんばる'; // か゛ん は゛る (decomposed)
+    const { text, blocks } = textToDoc(raw);
+    await addDocument({ name: 'nfd.txt', kind: 'txt', encoding: 'UTF-8', text, blocks });
+    state.textQuery = 'ばる'; // decomposed query
+    computeSearchHits();
+    return { text, hits: state.searchHits.length };
+  });
+  assert.equal(r.text, 'P1: がんばる');
+  assert.equal(r.hits, 1);
+  await close();
+});
+
+test('the bundled .doc sample is read as text', async () => {
+  const { page, close } = await openApp();
+  const b64 = require('node:fs').readFileSync(path.join(__dirname, '..', 'samples', 'interview_P02.doc')).toString('base64');
+  const text = await page.evaluate((b64) => {
+    const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+    return parseDocBinary(bytes.buffer);
+  }, b64);
+  assert.ok(text.length > 100);
+  assert.doesNotMatch(text, /[\u0000-\u0008\u000e-\u001f]/);
+  await close();
+});
+
+test('participants of a range follow speaker ranges, also right after tagging in the same task', async () => {
+  const { page, close } = await openApp();
+  const ids = await seed(page);
+  const r = await page.evaluate(async ({ docId }) => {
+    const p1 = await ensureParticipant('P1'), p2 = await ensureParticipant('P2');
+    await tagParticipant(p1.id, { docId, s: 0, e: 57 });
+    const before = participantLabels(participantsForRange(docId, 30, 40));
+    // same synchronous run: the cached index must notice the new ranges
+    state.ptags = [
+      { id: 'pt_a', docId, s: 0, e: 30, participantId: p1.id },
+      { id: 'pt_x', docId, s: 30, e: 40, participantId: p2.id },
+      { id: 'pt_b', docId, s: 40, e: 57, participantId: p1.id }
+    ];
+    const after = participantLabels(participantsForRange(docId, 30, 40));
+    const across = participantLabels(participantsForRange(docId, 25, 45));
+    return { before, after, across };
+  }, ids);
+  assert.deepEqual(r, { before: 'P1', after: 'P2', across: 'P1, P2' });
+  await close();
+});
+
+test('re-rendering the viewer replaces only changed lines and shows new coding', async () => {
+  const { page, close } = await openApp();
+  const ids = await seed(page);
+  const r = await page.evaluate(async ({ docId, b }) => {
+    switchTab('code');
+    const lines = [...document.querySelectorAll('#viewerBody .ta-block')];
+    await applyCodeToRange(b, { docId, s: 62, e: 79 }); // third line
+    const now = [...document.querySelectorAll('#viewerBody .ta-block')];
+    return { kept0: now[0] === lines[0], replaced2: now[2] !== lines[2], coded: !!now[2].querySelector('.seg') };
+  }, ids);
+  assert.deepEqual(r, { kept0: true, replaced2: true, coded: true });
+  await close();
+});
+
+test('theme review uses questions: no checkboxes, no counting thresholds', async () => {
+  const { page, close } = await openApp();
+  const ids = await seed(page);
+  const r = await page.evaluate(async () => {
+    for (let i = 0; i < 12; i++) await createTheme('Theme ' + i);
+    const parent = state.themes[0];
+    for (let i = 0; i < 5; i++) await createTheme('Sub ' + i, parent.id);
+    switchTab('themes');
+    const board = () => document.getElementById('themeBoard').textContent;
+    const beforeReview = board().includes(tr('hint.themesQ'));
+    parent.status = 'reviewed';
+    renderThemesView();
+    return {
+      checkboxes: document.querySelectorAll('#themeBoard input[type=checkbox]').length,
+      beforeReview,
+      afterReview: board().includes(tr('hint.themesQ')),
+      subQ: board().includes(tr('hint.subthemesQ')),
+      noNumbersInQuestions: !/\d/.test(tr('hint.themesQ') + tr('hint.subthemesQ') + tr('theme.nameQ'))
+    };
+  });
+  assert.deepEqual(r, { checkboxes: 0, beforeReview: false, afterReview: true, subQ: true, noNumbersInQuestions: true });
   await close();
 });

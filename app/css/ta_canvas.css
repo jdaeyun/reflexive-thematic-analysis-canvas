@@ -2,6 +2,9 @@
 
 /* Document viewer: one row per line / answer — participant gutter | text | coding stripes */
 .ta-block { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr) 11rem; gap: 0.75rem; padding: 0.3rem 0.5rem; border-radius: 6px; }
+/* Lines off screen skip layout and painting until scrolled near: keeps a survey with thousands of answers fast.
+   The remembered size (auto) avoids the scrollbar jumping once a line has been shown. */
+.ta-block { content-visibility: auto; contain-intrinsic-size: auto 2.25rem; }
 .ta-block:hover { background: #f8fafc; }
 .ta-block.drop-target { background: #eef2ff; outline: 2px dashed #6366f1; }
 .ta-gutter, .ta-margin { user-select: none; -webkit-user-select: none; }
@@ -89,3 +92,6 @@ body.col-resizing { cursor: col-resize; user-select: none; }
 .search-hit { background-image: linear-gradient(rgba(250, 204, 21, 0.55), rgba(250, 204, 21, 0.55)); border-radius: 2px; }
 .search-hit-current { background-image: linear-gradient(rgba(249, 115, 22, 0.55), rgba(249, 115, 22, 0.55)); outline: 2px solid #f97316; outline-offset: 1px; }
 .search-mark { background: #fde68a; color: inherit; border-radius: 2px; padding: 0 1px; }
+
+/* Textareas grown by app.js (setupAutoGrowTextareas): cap the height, then scroll inside */
+textarea.auto-grow { max-height: 60vh; overflow-y: auto; }

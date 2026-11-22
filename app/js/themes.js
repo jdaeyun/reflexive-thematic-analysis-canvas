@@ -7,7 +7,7 @@
 // One setting for the codebook and the theme board
 function setShowCounts(on) {
   state.showCounts = on;
-  try { localStorage.setItem('ta_show_counts', on ? 'true' : 'false'); } catch (e) { /* private mode */ }
+  lsSet('ta_show_counts', on ? 'true' : 'false');
   renderCountsToggles();
   if (state.activeTab === 'code') renderCodebook();
   if (state.activeTab === 'themes') renderThemesView();
@@ -96,7 +96,9 @@ function renderCodePool() {
 }
 
 function renderThemeBoard() {
+  flushAllPendingSaves(); // the cards are rebuilt below: commit what was typed in them first
   const el = document.getElementById('themeBoard');
+  rememberThemeDetails(el);
   const f = state.themeStatusFilter;
   const top = sortedThemes(null).filter(t => f === 'all' || t.status === f || sortedThemes(t.id).some(s => s.status === f));
   if (!state.themes.length) {
@@ -106,24 +108,19 @@ function renderThemeBoard() {
     </div>`;
     return;
   }
-  const liveTop = sortedThemes(null).filter(t => t.status !== 'discarded').length;
-  const many = liveTop > 8 ? `<div class="col-span-full text-[11px] text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2"><i class="ph ph-lightbulb"></i> ${escapeHtml(tr('hint.manyThemes', { n: liveTop }))}</div>` : '';
-  el.innerHTML = many + top.map((t, i) => themeCardHtml(t, 0, i, top.length)).join('') || `<div class="col-span-full text-xs text-slate-400 p-6 text-center">${escapeHtml(tr('board.noneWithStatus'))}</div>`;
+  // A reflective question, not a rule: no number of themes counts as too many. Shown once the review has begun.
+  const reviewing = state.themes.some(t => t.status === 'reviewed' || t.status === 'defined');
+  const ask = reviewing ? `<div class="col-span-full text-[11px] text-slate-500 px-1"><i class="ph ph-lightbulb"></i> ${escapeHtml(tr('hint.themesQ'))}</div>` : '';
+  el.innerHTML = ask + top.map((t, i) => themeCardHtml(t, 0, i, top.length)).join('') || `<div class="col-span-full text-xs text-slate-400 p-6 text-center">${escapeHtml(tr('board.noneWithStatus'))}</div>`;
   bindThemeCards(el);
   bindExtractLinks(el);
 }
 
-// Gentle writing hints from the RTARG (never blocking): names that tell the story, judicious subthemes
-function looksLikeTopicLabel(name) {
-  const s = String(name || '').trim();
-  if (/[\u3040-\u30ff\u3400-\u9fff]/.test(s)) return s.replace(/\s/g, '').length <= 4; // Japanese / CJK
-  return s.split(/\s+/).filter(Boolean).length <= 2;
-}
-function themeHintsHtml(t, depth, subs) {
+// Gentle hints (never blocking). Questions about names, subthemes and the number of themes are shown as plain
+// questions where they belong, with no counting thresholds: a number would read as a rule.
+function themeHintsHtml(t) {
   const hints = [];
-  if ((t.status === 'reviewed' || t.status === 'defined') && looksLikeTopicLabel(t.name)) hints.push(tr('hint.themeName'));
   if (t.status === 'defined' && !(t.definition || '').trim()) hints.push(tr('hint.noDefinition'));
-  if (depth === 0 && subs.length > 3) hints.push(tr('hint.subthemes', { n: subs.length }));
   return hints.map(h => `<div class="mx-3 mt-1 text-[10px] text-amber-800 bg-amber-50 border border-amber-100 rounded px-2 py-1 leading-snug"><i class="ph ph-lightbulb"></i> ${escapeHtml(h)}</div>`).join('');
 }
 
@@ -149,7 +146,7 @@ function themeCardHtml(t, depth, idx, total) {
       <button class="theme-delete text-slate-300 hover:text-rose-600 cursor-pointer" title="${escapeHtml(tr(depth ? 'theme.deleteSub' : 'theme.delete'))}"><i class="ph ph-trash"></i></button>
     </div>
     <div class="px-3 text-[10px] text-slate-500 mt-0.5">${escapeHtml(tr('n.codes', { n: ownCodes.length }))}${subs.length ? ` + ${escapeHtml(tr('n.subthemes', { n: subs.length }))}` : ''}${state.showCounts ? ` · ${escapeHtml(tr('n.extracts', { n: segs.length }))} · <b>${escapeHtml(tr('n.participantsOf', { n: cov.participants.size, of: nPart }))}</b> · ${escapeHtml(tr('n.documents', { n: cov.docs.size }))}` : ''}</div>
-    ${themeHintsHtml(t, depth, subs)}
+    ${themeHintsHtml(t)}
 
     <div class="theme-drop mx-3 mt-2 min-h-[38px] rounded-lg border-2 border-dashed border-slate-200 p-1.5 flex flex-wrap gap-1 content-start" title="${escapeHtml(tr('theme.dropHere'))}">
       ${ownCodes.length ? ownCodes.map(c => `<span class="theme-code inline-flex items-center gap-1 text-[11px] pl-1.5 pr-1 py-0.5 rounded border bg-white cursor-grab" draggable="true" data-code="${c.id}" style="border-color:${c.color}" title="${escapeHtml(c.description || tr('theme.dragToMove'))}">
@@ -162,16 +159,16 @@ function themeCardHtml(t, depth, idx, total) {
       return addable.length ? `<div class="px-3 mt-1"><select class="theme-add-code w-full text-[11px] border border-slate-200 rounded px-1.5 py-0.5 bg-white text-slate-600 cursor-pointer" aria-label="${escapeHtml(tr('theme.addCode'))}"><option value="">${escapeHtml(tr('theme.addCode'))}</option>${addable.map(c => `<option value="${c.id}">${escapeHtml(c.name)}${c.themeIds.length ? ' ·' : ''}</option>`).join('')}</select></div>` : '';
     })()}
 
-    <details class="mx-3 mt-2 group" ${t.status !== 'candidate' ? 'open' : ''}>
-      <summary class="text-[11px] font-bold text-sky-700 cursor-pointer select-none">${escapeHtml(tr('theme.phase4'))} ${t.checkedExtracts && t.checkedDataset ? '✓' : ''}</summary>
+    <details class="theme-details mx-3 mt-2 group" data-k="review" data-default="${t.status !== 'candidate' ? 1 : 0}" ${detailsOpen(t.id, 'review', t.status !== 'candidate') ? 'open' : ''}>
+      <summary class="text-[11px] font-bold text-sky-700 cursor-pointer select-none">${escapeHtml(tr('theme.phase4'))} ${(t.reviewNote || '').trim() ? '✓' : ''}</summary>
       <div class="mt-1 space-y-1">
-        <label class="flex items-center gap-1.5 text-[11px] text-slate-600"><input type="checkbox" class="theme-chk-extracts" ${t.checkedExtracts ? 'checked' : ''}> ${escapeHtml(tr('theme.chkExtracts'))}</label>
-        <label class="flex items-center gap-1.5 text-[11px] text-slate-600"><input type="checkbox" class="theme-chk-dataset" ${t.checkedDataset ? 'checked' : ''}> ${escapeHtml(tr('theme.chkDataset'))}</label>
+        <ul class="text-[11px] text-slate-600 leading-snug list-disc ml-4"><li>${escapeHtml(tr('theme.reviewQExtracts'))}</li><li>${escapeHtml(tr('theme.reviewQDataset'))}</li></ul>
         <textarea class="theme-review w-full text-[11px] border border-slate-300 rounded px-2 py-1 resize-y focus:outline-none focus:border-sky-500" rows="2" placeholder="${escapeHtml(tr('theme.reviewPh'))}">${escapeHtml(t.reviewNote || '')}</textarea>
       </div>
     </details>
-    <details class="mx-3 mt-1.5" ${t.status === 'reviewed' || t.status === 'defined' ? 'open' : ''}>
+    <details class="theme-details mx-3 mt-1.5" data-k="def" data-default="${t.status === 'reviewed' || t.status === 'defined' ? 1 : 0}" ${detailsOpen(t.id, 'def', t.status === 'reviewed' || t.status === 'defined') ? 'open' : ''}>
       <summary class="text-[11px] font-bold text-emerald-700 cursor-pointer select-none">${escapeHtml(tr('theme.phase5'))} ${t.definition ? '✓' : ''}</summary>
+      <div class="mt-1 text-[11px] text-slate-600 leading-snug">${escapeHtml(tr('theme.nameQ'))}</div>
       <textarea class="theme-def mt-1 w-full text-[11px] border border-slate-300 rounded px-2 py-1 resize-y focus:outline-none focus:border-emerald-500" rows="3" placeholder="${escapeHtml(tr('theme.defPh'))}">${escapeHtml(t.definition || '')}</textarea>
     </details>
 
@@ -180,8 +177,26 @@ function themeCardHtml(t, depth, idx, total) {
       ${depth === 0 ? `<button class="theme-add-sub text-[11px] text-slate-500 hover:text-slate-800 cursor-pointer">${escapeHtml(tr('theme.addSub'))}</button>` : ''}
     </div>
     ${open ? `<div class="mx-3 mb-3 space-y-1 max-h-72 overflow-y-auto">${keyFirst.map(s => extractLinkHtml(s)).join('')}</div>` : ''}
-    ${subs.length ? `<div class="px-3 pb-3">${subs.map(s => themeCardHtml(s, 1, 0, 0)).join('')}</div>` : ''}
+    ${subs.length ? `<div class="px-3 pb-3"><div class="text-[11px] text-slate-500 leading-snug"><i class="ph ph-lightbulb"></i> ${escapeHtml(tr('hint.subthemesQ'))}</div>${subs.map(s => themeCardHtml(s, 1, 0, 0)).join('')}</div>` : ''}
   </div>`;
+}
+
+// Review / definition sections: open by default once the status asks for them; a section the user opened or closed
+// by hand stays that way across re-renders (until the page is reloaded).
+const themeDetailsState = new Map(); // `${themeId}:${k}` → open
+function rememberThemeDetails(root) {
+  // read from the cards about to be replaced ('toggle' events arrive too late for a re-render straight after a click)
+  root.querySelectorAll('.theme-details').forEach(d => {
+    const card = d.closest('.theme-card');
+    if (!card) return;
+    const byDefault = d.dataset.default === '1'; // as rendered, before a status change that may follow
+    const key = `${card.dataset.theme}:${d.dataset.k}`;
+    if (d.open !== byDefault || themeDetailsState.has(key)) themeDetailsState.set(key, d.open);
+  });
+}
+function detailsOpen(themeId, k, byDefault) {
+  const v = themeDetailsState.get(`${themeId}:${k}`);
+  return v === undefined ? byDefault : v;
 }
 
 function bindThemeCards(root) {
@@ -195,11 +210,15 @@ function bindThemeCards(root) {
     card.addEventListener('pointerdown', mark);
     card.addEventListener('focusin', mark);
 
-    one('.theme-name').addEventListener('change', async (e) => {
-      const v = e.target.value.trim();
-      if (!v || v === t.name) { e.target.value = t.name; return; }
-      await recordLog({ category: 'themes', ak: t.parentId ? 'log.subRenamed' : 'log.themeRenamed', from: t.name, to: v });
-      t.name = v; await dbPut('themes', t); renderThemeToolbar();
+    const nameEl = one('.theme-name');
+    bindPendingCommit(nameEl, async () => {
+      const v = nameEl.value.trim();
+      if (!v || v === t.name) { nameEl.value = t.name; return; }
+      const from = t.name;
+      t.name = v;
+      renderThemeToolbar();
+      await dbPut('themes', t);
+      await recordLog({ category: 'themes', ak: t.parentId ? 'log.subRenamed' : 'log.themeRenamed', from, to: v });
     });
     one('.theme-add-code')?.addEventListener('change', async (e) => {
       if (e.target.value) await addCodeToTheme(e.target.value, tid, null);
@@ -224,24 +243,17 @@ function bindThemeCards(root) {
       if (state.openThemeExtracts.has(tid)) state.openThemeExtracts.delete(tid); else state.openThemeExtracts.add(tid);
       renderThemeBoard();
     });
-    one('.theme-chk-extracts').addEventListener('change', async (e) => {
-      t.checkedExtracts = e.target.checked; await dbPut('themes', t);
-      await recordLog({ category: 'themes', ak: e.target.checked ? 'log.chkExtracts' : 'log.unchkExtracts', ap: { theme: t.name } });
-    });
-    one('.theme-chk-dataset').addEventListener('change', async (e) => {
-      t.checkedDataset = e.target.checked; await dbPut('themes', t);
-      await recordLog({ category: 'themes', ak: e.target.checked ? 'log.chkDataset' : 'log.unchkDataset', ap: { theme: t.name } });
-    });
-    one('.theme-review').addEventListener('change', async (e) => {
-      const v = e.target.value.trim();
-      await recordLog({ category: 'themes', ak: 'log.reviewNote', ap: { theme: t.name }, from: t.reviewNote || '', to: v });
-      t.reviewNote = v; await dbPut('themes', t);
-    });
-    one('.theme-def').addEventListener('change', async (e) => {
-      const v = e.target.value.trim();
-      await recordLog({ category: 'themes', ak: 'log.definition', ap: { theme: t.name }, from: t.definition || '', to: v });
-      t.definition = v; await dbPut('themes', t);
-    });
+    // Review note and definition: saved and logged with before / after, even if the page is closed straight away
+    for (const [cls, key, ak] of [['.theme-review', 'reviewNote', 'log.reviewNote'], ['.theme-def', 'definition', 'log.definition']]) {
+      const box = one(cls);
+      bindPendingCommit(box, async () => {
+        const v = box.value.trim(), from = t[key] || '';
+        if (v === from) return;
+        t[key] = v;
+        await dbPut('themes', t);
+        await recordLog({ category: 'themes', ak, ap: { theme: t.name }, from, to: v });
+      });
+    }
 
     // Codes inside the theme: drag to move, × to remove
     own('.theme-code').forEach(chip => {
@@ -271,7 +283,7 @@ function bindThemeCards(root) {
 async function createTheme(name, parentId = null) {
   const clean = String(name || '').trim();
   if (!clean) return;
-  const t = { id: uid('thm'), name: clean, parentId, status: 'candidate', definition: '', reviewNote: '', checkedExtracts: false, checkedDataset: false, order: sortedThemes(parentId).length, createdAt: Date.now() };
+  const t = { id: uid('thm'), name: clean, parentId, status: 'candidate', definition: '', reviewNote: '', order: sortedThemes(parentId).length, createdAt: Date.now() };
   state.themes.push(t);
   await dbPut('themes', t);
   const parent = parentId ? themeById(parentId) : null;

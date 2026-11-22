@@ -202,7 +202,7 @@ function getTableSpec(id, opts = exportOptions()) {
     const logs = opts.includeCodingActions ? state.logs.filter(l => l.category !== 'system') : filteredLogs('decisions');
     return {
       title: T('exp.appendix.title'),
-      note: T(opts.includeCodingActions ? 'exp.appendix.noteAll' : 'exp.appendix.noteDecisions') + ' ' + T('exp.appendix.noteWhy'),
+      note: [T('exp.appendix.notePurpose'), T(opts.includeCodingActions ? 'exp.appendix.noteAll' : 'exp.appendix.noteDecisions'), T('exp.appendix.noteWhy')].join(L === 'ja' ? '' : ' '),
       headers: [T('exp.h.date'), T('exp.h.type'), T('exp.h.entry'), T('exp.h.details')],
       rows: logs.map(l => {
         const linked = l.linkedLogId ? state.logs.find(x => x.id === l.linkedLogId) : null;
@@ -296,17 +296,8 @@ function narrativeThemes(opts = exportOptions()) {
   return out;
 }
 
-const narrativeSavers = {}; // key → { timer, fn }
-function saveNarrativeSoon(key, fn) {
-  clearTimeout(narrativeSavers[key]?.timer);
-  narrativeSavers[key] = { fn, timer: setTimeout(() => { delete narrativeSavers[key]; fn(); }, 600) };
-}
-// Writes what is still waiting (the tab is being hidden or closed)
-function flushNarrativeSaves() {
-  for (const [key, { timer, fn }] of Object.entries(narrativeSavers)) { clearTimeout(timer); delete narrativeSavers[key]; fn(); }
-}
-
 function renderNarrativeEditor() {
+  flushAllPendingSaves(); // the boxes are rebuilt below: commit what was typed in them first
   const el = document.getElementById('exportPreview');
   const items = narrativeThemes();
   el.innerHTML = `
@@ -336,34 +327,34 @@ function renderNarrativeEditor() {
       <textarea id="narrConclusions" rows="6" class="w-full text-sm leading-relaxed border border-slate-300 rounded-lg px-3 py-2 resize-y focus:outline-none focus:border-emerald-500" placeholder="${escapeHtml(tr('narr.conclusionsPh'))}">${escapeHtml(state.meta.conclusions || '')}</textarea>
     </div>`;
 
-  const cc = el.querySelector('#narrConclusions');
-  const ccStart = state.meta.conclusions || '';
-  cc.addEventListener('input', () => { state.meta.conclusions = cc.value; saveNarrativeSoon('meta', saveMeta); });
-  cc.addEventListener('change', async () => {
-    if ((state.meta.conclusions || '') === ccStart) return;
-    await saveMeta();
-    await recordLog({ category: 'themes', ak: 'log.conclusions', dk: 'log.d.chars', dp: { n: (state.meta.conclusions || '').length } });
-  });
-
-  const ov = el.querySelector('#narrOverview');
-  const ovStart = state.meta.storyline || '';
-  ov.addEventListener('input', () => { state.meta.storyline = ov.value; saveNarrativeSoon('meta', saveMeta); });
-  ov.addEventListener('change', async () => {
-    if ((state.meta.storyline || '') === ovStart) return;
-    await saveMeta();
-    await recordLog({ category: 'themes', ak: 'log.storyline', dk: 'log.d.chars', dp: { n: (state.meta.storyline || '').length } });
-  });
+  // Long texts: written while typing (saveSoon), logged once per editing pass (bindPendingCommit)
+  const bindMetaText = (box, key, ak) => {
+    let logged = state.meta[key] || '';
+    box.addEventListener('input', () => { state.meta[key] = box.value; saveSoon(`meta.${key}`, saveMeta); });
+    bindPendingCommit(box, async () => {
+      state.meta[key] = box.value;
+      await saveMeta();
+      if ((state.meta[key] || '') === logged) return;
+      logged = state.meta[key] || '';
+      await recordLog({ category: 'themes', ak, dk: 'log.d.chars', dp: { n: logged.length } });
+    });
+  };
+  bindMetaText(el.querySelector('#narrConclusions'), 'conclusions', 'log.conclusions');
+  bindMetaText(el.querySelector('#narrOverview'), 'storyline', 'log.storyline');
   el.querySelectorAll('.narr-section').forEach(sec => {
     const t = themeById(sec.dataset.theme);
     const ta = sec.querySelector('.narr-text');
     let caret = ta.value.length;
-    const start = t.narrative || '';
+    let logged = t.narrative || '';
     const remember = () => { caret = ta.selectionStart ?? ta.value.length; };
     ['keyup', 'click', 'blur', 'input'].forEach(ev => ta.addEventListener(ev, remember));
-    ta.addEventListener('input', () => { t.narrative = ta.value; saveNarrativeSoon(t.id, () => dbPut('themes', t)); });
-    ta.addEventListener('change', async () => {
+    ta.addEventListener('input', () => { t.narrative = ta.value; saveSoon(`narr.${t.id}`, () => dbPut('themes', t)); });
+    bindPendingCommit(ta, async () => {
+      t.narrative = ta.value;
       await dbPut('themes', t);
-      if ((t.narrative || '') !== start) await recordLog({ category: 'themes', ak: 'log.narrative', ap: { theme: t.name }, dk: 'log.d.chars', dp: { n: (t.narrative || '').length } });
+      if ((t.narrative || '') === logged) return;
+      logged = t.narrative || '';
+      await recordLog({ category: 'themes', ak: 'log.narrative', ap: { theme: t.name }, dk: 'log.d.chars', dp: { n: logged.length } });
     });
     sec.querySelectorAll('.narr-insert').forEach(b => b.onclick = () => {
       const seg = state.segments.find(s => s.id === b.dataset.seg);
@@ -374,8 +365,7 @@ function renderNarrativeEditor() {
       ta.value = before + pad + quote + after;
       caret = (before + pad + quote).length;
       ta.focus(); ta.setSelectionRange(caret, caret);
-      t.narrative = ta.value;
-      saveNarrativeSoon(t.id, () => dbPut('themes', t));
+      ta.dispatchEvent(new Event('input')); // saved and logged like typed text
     });
   });
   bindExtractLinks(el);

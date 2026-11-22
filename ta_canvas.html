@@ -96,6 +96,12 @@
       <input type="file" id="restoreInput" accept=".json" class="hidden">
     </div>
   </header>
+  <!-- Same project open in another tab or window of this browser: both write to the same storage -->
+  <div id="multiTabBanner" role="status" class="hidden items-center gap-2 bg-amber-50 border-b border-amber-200 text-amber-900 text-xs px-4 py-1.5 shrink-0">
+    <i class="ph ph-warning text-sm shrink-0"></i>
+    <span data-i18n="multiTab.text">This project is also open in another tab or window. Changes made in one are not shown in the other and can overwrite each other: keep working in one tab only.</span>
+    <button id="multiTabDismissBtn" type="button" class="ml-auto shrink-0 font-semibold hover:underline cursor-pointer" data-i18n="multiTab.dismiss">Dismiss</button>
+  </div>
 
   <!-- ============ TAB 1: FAMILIARISE & CODE (phases 1–2) ============ -->
   <main id="viewCode" class="flex-1 flex min-h-0">
@@ -511,6 +517,7 @@
 
   <!-- Load order: version, i18n, then core; later files only call earlier ones at top level -->
   <script src="app/version.js"></script>
+  <script src="app/js/prefs.js"></script>
   <script src="app/js/i18n.js"></script>
   <script src="app/js/core.js"></script>
   <script src="app/js/importers.js"></script>

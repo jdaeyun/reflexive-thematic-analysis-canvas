@@ -26,8 +26,11 @@ function decodeTextBytes(buf) {
 
 // Normalise line breaks, drop empty lines, and build one block per remaining line.
 // Speaker-turn transcripts are line based, and .docx/.doc paragraphs become lines too.
+// Unicode NFC first (e.g. が, not か + combining ゛, as text from macOS sometimes arrives): the text is fixed from
+// here on and every offset points into it, so this is the only moment it can be done. (.qdpx keeps its text as is:
+// its coding positions refer to the original.)
 function textToDoc(raw) {
-  const lines = String(raw)
+  const lines = String(raw).normalize('NFC')
     .replace(/\r\n?/g, '\n')
     .replace(/[\u000b\u000c\u2028\u2029]/g, '\n')
     .replace(/ /g, ' ')
@@ -224,7 +227,7 @@ async function importFiles(fileList) {
       const buf = await f.arrayBuffer();
       if (kind === 'csv') {
         const { text, encoding } = decodeTextBytes(buf);
-        await openCsvImportDialog(f.name, text, encoding);
+        await openCsvImportDialog(f.name, text.normalize('NFC'), encoding); // NFC: see textToDoc
         continue; // the dialog adds the document itself
       }
       let raw = '', encoding = '';

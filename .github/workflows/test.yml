@@ -10,7 +10,9 @@ permissions:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    # Pinned: the Playwright version in package.json must support the runner OS (ubuntu-latest moved to 26.04,
+    # which Playwright 1.56 does not). Move both together.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

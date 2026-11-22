@@ -16,9 +16,10 @@
     <a class="brand" href="index.html"><span class="logo">🏷️</span><span class="name">Reflexive Thematic Analysis Canvas</span></a>
     <nav class="nav" aria-label="サイト内">
       <a href="index.html">ホーム</a>
-      <a href="101.html">101</a>
-      <a href="guide.html" aria-current="page">使い方ガイド</a>
-      <a href="https://github.com/jdaeyun/reflexive-thematic-analysis-canvas">GitHub</a>
+      <a href="101.html">入門</a>
+      <a href="guide.html" aria-current="page"><span class="nav-long">使い方</span>ガイド</a>
+      <a href="rtarg.html">RTARG<span class="nav-long"> 対応表</span></a>
+      <a class="gh" href="https://github.com/jdaeyun/reflexive-thematic-analysis-canvas">GitHub</a>
       <a class="lang" href="../en/guide.html" hreflang="en" lang="en">English</a>
       <a class="open-app" href="../ta_canvas.html">アプリを開く</a>
     </nav>
@@ -47,7 +48,7 @@
 
   <article class="article">
     <h1>使い方ガイド</h1>
-    <p class="muted">すべての機能を、画面の順に説明します。はじめての方は、先に <a href="101.html">101</a> で全体の流れを体験するのがおすすめです。</p>
+    <p class="muted">すべての機能を、画面の順に説明します。はじめての方は、先に<a href="101.html">入門</a>で全体の流れを体験するのがおすすめです。</p>
 
     <h2 id="screen">画面の構成</h2>
     <p>画面上部に4つのタブと、どのタブからでも使えるボタンが並んでいます。</p>
@@ -70,7 +71,7 @@
       <tr><td><code>.txt</code></td><td>UTF-8、UTF-16（BOM 付き）、Shift_JIS を自動で判別します。1行が1つのまとまり（ブロック）になり、空行は除かれます。</td></tr>
       <tr><td><code>.csv</code></td><td>取り込み時に、参加者 ID の列、コーディングする文章の列（複数可）、属性の列を選びます。1行が1人の参加者になります。</td></tr>
       <tr><td><code>.docx</code></td><td>本文の文章を取り出します。段落が1つのまとまりになります。</td></tr>
-      <tr><td><code>.doc</code></td><td>Word 97–2003 形式。パスワード付きのファイルと、Word 95 以前の形式には対応していません。</td></tr>
+      <tr><td><code>.doc</code></td><td>Word 97–2003 形式。パスワード付きのファイルと、Word 95 以前の形式には対応していません。読み込むのは本文だけです（脚注・ヘッダー・テキストボックスは含みません）。うまく読めないときは、Word で <code>.docx</code> 形式で保存し直してから取り込んでください。</td></tr>
       <tr><td><code>.qdpx</code></td><td>他の質的分析ソフトの REFI-QDA プロジェクト（<a href="#refi">後述</a>）。</td></tr>
     </table></div>
     <p>取り込んだ文章は固定され、あとから編集することはできません。コードは文章中の文字の位置を指しているためです。文字起こしの修正や匿名化は、取り込む前に済ませてください。</p>
@@ -123,7 +124,7 @@
       <li><strong>コードを入れる</strong>：左のコード一覧からカードにドラッグするか、カードの<span class="ui">＋ コードを追加…</span>から選びます（キーボードやタッチ操作でも使えます）。カード間のドラッグで移動、× か一覧に戻すと外れます。1つのコードを複数のテーマに入れられます。</li>
       <li><strong>テーマはコードを入れる箱ではありません</strong>：テーマは、抜粋を読み、解釈して作るものです。コードはそのための道具なので、テーマに入れたら抜粋を読み直してください。一部の抜粋だけが別のテーマに属すると感じたら、コードを<a href="#tab1">分割</a>します。</li>
       <li><strong>ステータス</strong>：<span class="ui">候補</span>、<span class="ui">見直し済み</span>、<span class="ui">定義済み</span>、<span class="ui">保留</span>。順番にこなす手順ではなく、前にも後ろにも動かせます。ステータスを変えると、理由を書ける小さな欄が出ます（任意）。定義を書かずに定義済みにすると、カードに控えめなヒントが出ます。</li>
-      <li><strong>フェーズ4 · データと照らして見直す</strong>：2つのチェック（コーディングしたすべての抜粋と照合した／データ全体と照合した）と見直しメモ。</li>
+      <li><strong>フェーズ4 · データと照らして見直す</strong>：2つの水準の問い（抜粋どうしにまとまりがあるか／データ全体の中で意味のあるものを捉えているか）と見直しメモ。チェック欄はありません。見直しメモを書くと見出しに ✓ が付きます。</li>
       <li><strong>フェーズ5 · 定義と命名</strong>：テーマの核となる意味（中心概念）、範囲と境界、他のテーマとの関係を書きます。</li>
       <li><strong>抜粋を表示</strong>：テーマ（とサブテーマ）のすべての抜粋を、代表抜粋を先にして表示します。クリックで本文に戻れます。</li>
       <li><strong>ステータスでの絞り込み</strong>と、テーマの並べ替え（↑↓）。</li>
@@ -131,7 +132,7 @@
     <h3>抜粋の絞り込み</h3>
     <p>タブ1のコード一覧とタブ2のコード一覧の上にある<span class="ui">すべての人の抜粋</span>から、属性（例：職種: 介護福祉士）か参加者1人を選ぶと、コード一覧・テーマカード・全文検索の抜粋がその人たちのものだけになります。グループごとに読み比べるための表示で、数・テーマの構造・出力には影響しません。</p>
     <h3>控えめなヒント</h3>
-    <p>見直し済み・定義済みのテーマ名が話題の見出しのように短いとき、テーマが8個を超えたとき、サブテーマが4個以上のときに、カードに小さなヒントが出ます。作業を止めることはありません。</p>
+    <p>テーマの名前（フェーズ5の欄）、サブテーマ（サブテーマがあるとき）、テーマの数（見直しが始まったら、ボードの上）について、数の目安ではなく問いを添えています。定義を書かずに定義済みにしたときは、カードに小さなヒントが出ます。作業を止めることはありません。</p>
     <h3>関係図</h3>
     <ul>
       <li>テーマをドラッグして配置します（サブテーマも一緒に動きます）。<span class="ui">配置を戻す</span>で自動の配置に戻ります。</li>
@@ -188,6 +189,7 @@
     <ul>
       <li>データは、使っているブラウザの中（IndexedDB）にだけ保存されます。サーバーには何も送られません。変更はその場で自動保存されます（画面上部の<span class="ui">保存済み</span>）。</li>
       <li><strong>1つのブラウザに1つのプロジェクト</strong>です。別のプロジェクトに切り替えるときは、バックアップを取ってから<span class="ui">新規作成／リセット</span>し、戻るときは<span class="ui">バックアップから復元</span>します。</li>
+      <li><strong>作業はひとつのタブで</strong>行ってください。同じプロジェクトを別のタブやウィンドウでも開いていると、両方の画面上部に黄色い帯が出ます。タブはそれぞれ自分の内容を持っていて相手の変更が見えないため、互いに上書きしてしまうことがあります。どちらかを閉じてください。</li>
       <li><strong>開いた場所ごとに保存場所が別</strong>です。オンライン版（このサイト）とオフライン版（ダブルクリックで開いたファイル）、別のブラウザ、プライベートウィンドウは、それぞれ別のデータを持ちます。オフライン版では、ブラウザによっては <code>ta_canvas.html</code> のフォルダを移動するだけで、以前のデータが見えなくなります。移動する前にバックアップを取ってください。</li>
       <li>ブラウザの「サイトデータ（Cookie など）の削除」をすると、プロジェクトも消えます。<strong>こまめにバックアップ</strong>してください。最終バックアップからの時間は、画面上部に小さく表示されます（データがあって1週間以上バックアップがないと、文字が琥珀色になります）。</li>
       <li>バックアップ（<code>.json</code>）には文書の全文が含まれます。生データと同じように、安全な場所に保管してください。</li>
@@ -215,7 +217,7 @@
     </div>
 
     <h2 id="rtarg">報告ガイドライン（RTARG）</h2>
-    <p>再帰的テーマ分析の報告ガイドライン（Reflexive Thematic Analysis Reporting Guidelines; Braun &amp; Clarke, 2024）の各項目について、アプリが支えていること、研究者が自分で書くこと、まだ課題のあることを <a href="https://github.com/jdaeyun/reflexive-thematic-analysis-canvas/blob/main/docs/rtarg-mapping.ja.md">対応表</a> にまとめています。論文を書くときの確認に使ってください。</p>
+    <p>再帰的テーマ分析の報告ガイドライン（Reflexive Thematic Analysis Reporting Guidelines; Braun &amp; Clarke, 2024）の各項目について、アプリが支えていること、研究者が自分で書くこと、まだ課題のあることを <a href="rtarg.html">対応表</a> にまとめています。論文を書くときの確認に使ってください。</p>
 
     <h2 id="faq">よくある質問</h2>
     <details class="faq"><summary>データはどこかに送信されますか？</summary><p>いいえ。オンライン版でも、アプリを読み込むだけで、データは一切送信されません。保存先はあなたのブラウザの中だけです。</p></details>
@@ -230,8 +232,8 @@
     <details class="faq"><summary>不具合の報告や要望は？</summary><p><a href="https://github.com/jdaeyun/reflexive-thematic-analysis-canvas/issues">GitHub の Issues</a> へどうぞ。質的研究者からのフィードバックを特に歓迎しています。</p></details>
 
     <div class="pager">
-      <a href="101.html"><span class="label">← 前へ</span><span class="title">101 — はじめての再帰的テーマ分析</span></a>
-      <a href="../ta_canvas.html"><span class="label">はじめる →</span><span class="title">アプリを開く</span></a>
+      <a href="101.html"><span class="label">← 前へ</span><span class="title">入門 — はじめての再帰的テーマ分析</span></a>
+      <a href="rtarg.html"><span class="label">次へ →</span><span class="title">RTARG 対応表</span></a>
     </div>
   </article>
 </div>
@@ -240,7 +242,7 @@
 <footer class="site-footer">
   <div class="inner">
     <div>Reflexive Thematic Analysis Canvas · MIT License · © 2026 Jeong, Dae Yun</div>
-    <div><a href="index.html">ホーム</a> · <a href="101.html">101</a> · <a href="https://github.com/jdaeyun/reflexive-thematic-analysis-canvas">GitHub</a> · <a href="../en/guide.html" lang="en">English</a></div>
+    <div><a href="index.html">ホーム</a> · <a href="101.html">入門</a> · <a href="rtarg.html">RTARG 対応表</a> · <a href="https://github.com/jdaeyun/reflexive-thematic-analysis-canvas">GitHub</a> · <a href="../en/guide.html" lang="en">English</a></div>
   </div>
 </footer>
 </body>
