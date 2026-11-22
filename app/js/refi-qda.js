@@ -240,7 +240,10 @@ function buildQdpx() {
     const name = parent ? `${parent.name}${SUBTHEME_SEP}${t.name}` : t.name;
     const members = codesForTheme(t.id, false).map(c => `<MemberCode targetGUID="${G('code', c.id)}"/>`).join('');
     const narr = (t.narrative || '').trim() ? `<MemberNote targetGUID="${addNote(`narr:${t.id}`, `${tr('refi.narrative', {}, 'en')}: ${name}`, t.narrative, t.createdAt)}"/>` : '';
-    return `<Set guid="${G('theme', t.id)}" name="${xmlEsc(name)}">${t.definition ? `<Description>${xmlEsc(t.definition)}</Description>` : ''}${members}${narr}</Set>`;
+    // A set can only hold codes: extracts the researcher left out of the theme are written into a note instead
+    const leftOut = setAsideSegmentsForTheme(t.id);
+    const outNote = leftOut.length ? `<MemberNote targetGUID="${addNote(`out:${t.id}`, `${tr('refi.leftOut', {}, 'en')}: ${name}`, leftOut.map(s => `• “${s.text}” (${docById(s.docId)?.name || ''})`).join('\n'), t.createdAt)}"/>` : '';
+    return `<Set guid="${G('theme', t.id)}" name="${xmlEsc(name)}">${t.definition ? `<Description>${xmlEsc(t.definition)}</Description>` : ''}${members}${narr}${outNote}</Set>`;
   }).join('');
 
   // Project-level notes: overview, general discussion, journal entries
@@ -275,6 +278,9 @@ function buildQdpx() {
 
 async function downloadQdpx() {
   if (!state.docs.length) { showToast(tr('refi.nothing')); return; }
+  // For moving coded data to other software, not the analysis itself; it also contains every document in full
+  if (!confirm(tr('refi.exportConfirm'))) return;
+  flushAllPendingSaves();
   downloadBlob(buildQdpx(), `${safeFileStem()}.qdpx`);
   await recordLog({ category: 'system', ak: 'log.refiExported' });
   showToast(tr('refi.exported'), 'success');

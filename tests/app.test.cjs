@@ -768,3 +768,37 @@ test('a backup without texts also reconnects to the original .txt file, whatever
   assert.equal(r.seg, 'I felt alone at first.');
   await close();
 });
+
+test('REFI-QDA export asks first and writes extracts left out of a theme into a note on its set', async () => {
+  const { page, close } = await openApp();
+  const asked = [];
+  page.removeAllListeners('dialog');
+  page.on('dialog', d => { asked.push(d.message()); d.accept(); });
+  const ids = await seed(page);
+  const r = await page.evaluate(async ({ a }) => {
+    await createTheme('Feeling alone');
+    document.getElementById('notePrompt').classList.add('hidden');
+    const t = state.themes[0];
+    await addCodeToTheme(a, t.id, null);
+    await setAsideExtract(t.id, state.segments.find(s => s.codeIds.includes(a)).id);
+    document.getElementById('notePrompt').classList.add('hidden');
+    let saved = null;
+    const orig = downloadBlob;
+    downloadBlob = (blob) => { saved = blob; };
+    await downloadQdpx();
+    downloadBlob = orig;
+    const entries = zipEntries(await saved.arrayBuffer());
+    const qde = [...entries.values()].find(e => /\.qde$/.test(e.name));
+    const xml = new DOMParser().parseFromString(new TextDecoder().decode(await qde.read()), 'application/xml');
+    const set = xml.getElementsByTagName('Set')[0];
+    const order = [...set.children].map(c => c.localName);
+    const noteGuids = [...set.getElementsByTagName('MemberNote')].map(n => n.getAttribute('targetGUID'));
+    const notes = [...xml.getElementsByTagName('Note')].filter(n => noteGuids.includes(n.getAttribute('guid'))).map(n => n.textContent);
+    return { order, notes };
+  }, ids);
+  assert.equal(asked.length, 1);
+  assert.match(asked[0], /moving the coded data|移す/);
+  assert.deepEqual(r.order, ['MemberCode', 'MemberNote']); // Description? MemberCode* MemberSource* MemberNote* (schema order)
+  assert.ok(r.notes.some(n => n.includes('I felt alone at first.')));
+  await close();
+});

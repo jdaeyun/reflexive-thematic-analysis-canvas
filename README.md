@@ -1,6 +1,6 @@
 # 🏷️ Reflexive Thematic Analysis Canvas
 
-**Version 0.9.1 (beta)**
+**Version 0.9.2 (beta)**
 
 **Reflexive Thematic Analysis Canvas** is an open-source, zero-backend browser workspace for **reflexive thematic analysis** (Braun & Clarke) of qualitative text data. It follows the six phases of reflexive TA and produces tables you can put straight into a manuscript.
 
@@ -47,7 +47,7 @@
 
 The app reads and writes the [REFI-QDA](https://www.qdasoftware.org) project exchange format (`.qdpx`), supported by ATLAS.ti, MAXQDA, NVivo, QDA Miner, Quirkos and others. Exported files validate against the REFI-QDA Project 1.0 schema.
 
-* **Export** (*Writing up → REFI-QDA project (.qdpx)*): documents, codes, coded extracts and their memos, participants (cases) with attributes, themes and subthemes (as sets of codes, with the definition as description and the analytic narrative as a note), familiarisation notes, and journal entries (as notes).
+* **Export** (*Writing up → REFI-QDA project (.qdpx)*) moves the coded data, not the analysis: documents (in full), codes, coded extracts and their memos, participants (cases) with attributes, themes and subthemes (as sets of codes, with the definition as description and the analytic narrative as a note; extracts left out of a theme are listed in a further note), familiarisation notes, and journal entries (as notes). The app asks before saving, since the file contains every document in full.
 * **Import** (*Import*, or drop the file): everything is **added** to the current project. Codes and participants with the same name are joined. Code folders from other software and sets of codes become **candidate** themes, for you to review. Memos not attached to a document or extract go into the reflexive journal, marked as imported. One click on Undo removes the whole import.
 * **Not included:** the analysis record, theme status and review notes, and the thematic map have no place in the standard. Keep using **Backup** (`.json`) for a complete copy of the project.
 

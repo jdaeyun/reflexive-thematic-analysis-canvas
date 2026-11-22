@@ -113,7 +113,9 @@ Renamed from Thematic Analysis Canvas in the v0.1 beta: Restore still accepts ba
 - Exports are built from `getTableSpec(id)`; change the spec, not the renderers separately.
 - The extract filter (`state.extractFilter`, `filterSegments()`) only narrows what is read: never apply it to counts,
   the theme structure or exports.
-- `.qdpx` export must keep validating against the REFI-QDA Project 1.0 schema (element order matters). Import always
+- `.qdpx` export must keep validating against the REFI-QDA Project 1.0 schema (element order matters: in a Set,
+  Description? MemberCode* MemberSource* MemberNote*). It is for moving coded data, not the analysis: it asks first (full
+  texts inside), themes are sets of codes, and extracts left out of a theme go into a MemberNote. Import always
   adds to the current project, behind one `pushUndo`.
 - Write class names in full (no string concatenation such as `'bg-' + color`) so the Tailwind scanner can see them.
 
