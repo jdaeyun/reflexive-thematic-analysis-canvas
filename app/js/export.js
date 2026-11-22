@@ -202,7 +202,7 @@ function getTableSpec(id, opts = exportOptions()) {
     const logs = opts.includeCodingActions ? state.logs.filter(l => l.category !== 'system') : filteredLogs('decisions');
     return {
       title: T('exp.appendix.title'),
-      note: T(opts.includeCodingActions ? 'exp.appendix.noteAll' : 'exp.appendix.noteDecisions') + ' ' + T('exp.appendix.noteWhy'),
+      note: [T('exp.appendix.notePurpose'), T(opts.includeCodingActions ? 'exp.appendix.noteAll' : 'exp.appendix.noteDecisions'), T('exp.appendix.noteWhy')].join(L === 'ja' ? '' : ' '),
       headers: [T('exp.h.date'), T('exp.h.type'), T('exp.h.entry'), T('exp.h.details')],
       rows: logs.map(l => {
         const linked = l.linkedLogId ? state.logs.find(x => x.id === l.linkedLogId) : null;

@@ -70,7 +70,7 @@
       <tr><td><code>.txt</code></td><td>UTF-8, UTF-16 (with BOM) and Shift_JIS are detected automatically. Each line becomes a block; empty lines are dropped.</td></tr>
       <tr><td><code>.csv</code></td><td>On import, choose the participant ID column, the text column(s) to code and the attribute columns. Each row becomes a participant.</td></tr>
       <tr><td><code>.docx</code></td><td>The body text is extracted; each paragraph becomes a block.</td></tr>
-      <tr><td><code>.doc</code></td><td>Word 97–2003. Password-protected files and Word 95 or older are not supported.</td></tr>
+      <tr><td><code>.doc</code></td><td>Word 97–2003. Password-protected files and Word 95 or older are not supported. Only the main text is read (no footnotes, headers or text boxes). If a file does not come out right, save it as <code>.docx</code> in Word and import that instead.</td></tr>
       <tr><td><code>.qdpx</code></td><td>A REFI-QDA project from other QDA software (<a href="#refi">see below</a>).</td></tr>
     </table></div>
     <p>Imported text is fixed and cannot be edited afterwards, because codes point at character positions in it. Finish correcting and anonymising transcripts before you import them.</p>
@@ -123,7 +123,7 @@
       <li><strong>Add codes</strong>: drag from the code pool onto a card, or pick one from <span class="ui">+ Add a code…</span> on the card (works with a keyboard or touch). Drag between cards to move; click × or drop it back on the pool to remove. A code can sit in several themes.</li>
       <li><strong>A theme is not a box of codes</strong>: themes are built by reading and interpreting extracts, and codes are a tool for that. Re-read the extracts once codes are in a theme; if only some of a code's extracts belong to another theme, <a href="#tab1">split the code</a>.</li>
       <li><strong>Status</strong>: <span class="ui">Candidate</span>, <span class="ui">Reviewed</span>, <span class="ui">Defined</span>, <span class="ui">Set aside</span>. Not a sequence of steps: a status moves back as well as forward. Changing the status offers a small, optional box to say why. A theme marked defined without a definition gets a gentle hint on its card.</li>
-      <li><strong>Phase 4 · Review against the data</strong>: two checks (all coded extracts / the full dataset) and review notes.</li>
+      <li><strong>Phase 4 · Review against the data</strong>: questions at two levels (do the coded extracts cohere / does the theme capture something meaningful in the whole dataset) and review notes. There are no checkboxes; writing a review note puts a ✓ on the heading.</li>
       <li><strong>Phase 5 · Define &amp; name</strong>: the central organising concept, scope and boundaries, and relation to other themes.</li>
       <li><strong>Show extracts</strong>: every extract of the theme and its subthemes, key extracts first. Click one to go back to the text.</li>
       <li>Filter by status, and reorder themes with ↑ ↓.</li>
@@ -131,7 +131,7 @@
     <h3>Extract filter</h3>
     <p><span class="ui">Extracts from everyone</span>, above the code list in tab 1 and the code pool in tab 2, narrows extracts to one attribute value (e.g. Role: Care worker) or one participant, in the code list, theme cards and full-text search. It is for reading across groups: counts, the theme structure and exports are not affected.</p>
     <h3>Gentle hints</h3>
-    <p>A small hint appears when a reviewed or defined theme has a short, topic-like name, when there are more than eight themes, and when a theme has four or more subthemes. Hints never block anything.</p>
+    <p>Theme names (in the phase 5 section), subthemes (when a theme has them) and the number of themes (above the board, once reviewing has begun) come with questions rather than numerical rules of thumb. A theme marked defined without a definition gets a small hint on its card. Hints never block anything.</p>
     <h3>Map</h3>
     <ul>
       <li>Drag themes to arrange them (subthemes follow). <span class="ui">Reset layout</span> returns to the automatic layout.</li>

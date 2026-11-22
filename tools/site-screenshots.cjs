@@ -199,12 +199,12 @@ async function buildProject(page, lang) {
       await createTheme(t.name);
       const th = state.themes[state.themes.length - 1];
       made.push(th);
-      Object.assign(th, { status: t.status, definition: t.definition || '', narrative: t.narrative || '', checkedExtracts: t.status !== 'candidate', checkedDataset: t.status === 'defined' });
+      Object.assign(th, { status: t.status, definition: t.definition || '', narrative: t.narrative || '' });
       for (const c of t.codes) await addCodeToTheme(codeId(c), th.id, null);
       for (const s of t.subs || []) {
         await createTheme(s.name, th.id);
         const st = state.themes[state.themes.length - 1];
-        Object.assign(st, { status: s.status, definition: s.definition || '', checkedExtracts: true });
+        Object.assign(st, { status: s.status, definition: s.definition || '' });
         for (const c of s.codes) await addCodeToTheme(codeId(c), st.id, null);
         await dbPut('themes', st);
       }

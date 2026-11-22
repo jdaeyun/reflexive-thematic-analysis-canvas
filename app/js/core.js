@@ -117,7 +117,7 @@ const state = {
   segments: [],     // { id, docId, s, e, text, codeIds: [], memo, key: bool, createdBy, createdAt }
   ptags: [],        // { id, docId, s, e, participantId }
   codes: [],        // { id, name, description, color, themeIds: [], createdAt, order }
-  themes: [],       // { id, name, parentId, status: 'candidate'|'reviewed'|'defined'|'discarded', definition, reviewNote, checkedExtracts, checkedDataset, order, createdAt }
+  themes: [],       // { id, name, parentId, status: 'candidate'|'reviewed'|'defined'|'discarded', definition, reviewNote, order, createdAt } (checkedExtracts / checkedDataset: older data, no longer used)
   participants: [], // { id, label, role: 'participant'|'interviewer', attributes: { key: value }, color, createdAt }
   logs: [],         // { id, ts, category, action, detail, from, to, by }
   activeTab: 'code',
@@ -182,6 +182,16 @@ function uid(prefix) {
 function escapeHtml(v) {
   return String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
+// Sets innerHTML only when the markup differs from what this element last got through here, so long lists (a survey
+// with thousands of respondents) are not rebuilt on every coding action. Returns true when the DOM was replaced.
+// Every write to such an element must go through here.
+function setHtml(el, html) {
+  if (el._taHtml === html) return false;
+  el.innerHTML = html;
+  el._taHtml = html;
+  return true;
+}
+const LABEL_ORDER = new Intl.Collator(undefined, { numeric: true });
 function clip(str, n = 80) {
   const s = String(str || '').replace(/\s+/g, ' ').trim();
   return s.length > n ? s.slice(0, n - 1) + '…' : s;
@@ -215,8 +225,20 @@ function safeFileStem() {
   return (state.meta.name || 'thematic-analysis').replace(/[^\p{L}\p{N}_-]+/gu, '_').slice(0, 40) || 'thematic-analysis';
 }
 
-// Lookups
-const byId = (coll, id) => state[coll].find(x => x.id === id);
+// Lookups. Positions by id are cached per array and checked on every hit (the item at that position must still
+// carry the id), so the cache can never return a stale item; a miss rebuilds it once. Keeps large projects fast.
+const ID_POS = new WeakMap(); // array → Map(id → index)
+function byId(coll, id) {
+  const arr = state[coll];
+  let pos = ID_POS.get(arr);
+  let i = pos?.get(id);
+  if (i !== undefined && arr[i]?.id === id) return arr[i];
+  pos = new Map();
+  arr.forEach((x, k) => pos.set(x.id, k));
+  ID_POS.set(arr, pos);
+  i = pos.get(id);
+  return i === undefined ? undefined : arr[i];
+}
 const codeById = id => byId('codes', id);
 const themeById = id => byId('themes', id);
 const docById = id => byId('docs', id);
@@ -232,11 +254,39 @@ function nextCodeColor() {
   return CODE_COLORS[state.codes.length % CODE_COLORS.length];
 }
 
+// Participant ranges per document, sorted by start, with the running maximum of their ends (so a lookup is a binary
+// search even if ranges overlap). Built once per task: dropped at the next microtask, and rebuilt at once if
+// state.ptags was replaced or changed length.
+let ptagIndex = null;
+function ptagsIndex() {
+  if (ptagIndex && ptagIndex.arr === state.ptags && ptagIndex.len === state.ptags.length) return ptagIndex.byDoc;
+  const byDoc = new Map();
+  for (const t of state.ptags) { if (!byDoc.has(t.docId)) byDoc.set(t.docId, []); byDoc.get(t.docId).push(t); }
+  for (const [docId, list] of byDoc) {
+    list.sort((a, b) => a.s - b.s);
+    const maxE = []; let m = -Infinity;
+    for (const t of list) { m = Math.max(m, t.e); maxE.push(m); }
+    byDoc.set(docId, { list, maxE });
+  }
+  ptagIndex = { arr: state.ptags, len: state.ptags.length, byDoc };
+  queueMicrotask(() => { ptagIndex = null; });
+  return byDoc;
+}
+// Index of the last item in a list sorted by `s` whose s < e (−1 if none)
+function lastStartingBefore(list, e) {
+  let lo = 0, hi = list.length - 1, ans = -1;
+  while (lo <= hi) { const mid = (lo + hi) >> 1; if (list[mid].s < e) { ans = mid; lo = mid + 1; } else hi = mid - 1; }
+  return ans;
+}
+
 // Participants of a coded segment: participant ranges overlapping it, else the document default.
 function participantsForRange(docId, s, e) {
   const ids = [];
-  for (const p of state.ptags) {
-    if (p.docId === docId && p.s < e && p.e > s && !ids.includes(p.participantId)) ids.push(p.participantId);
+  const idx = ptagsIndex().get(docId);
+  if (idx) {
+    const found = [];
+    for (let k = lastStartingBefore(idx.list, e); k >= 0 && idx.maxE[k] > s; k--) if (idx.list[k].e > s) found.push(idx.list[k]);
+    for (let k = found.length - 1; k >= 0; k--) if (!ids.includes(found[k].participantId)) ids.push(found[k].participantId); // document order
   }
   if (!ids.length) {
     const d = docById(docId);

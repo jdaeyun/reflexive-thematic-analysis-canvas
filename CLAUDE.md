@@ -55,7 +55,8 @@ Renamed from Thematic Analysis Canvas in the v0.1 beta: Restore still accepts ba
 - `participants`: `{ label, role: 'participant'|'interviewer', attributes }`. Interviewers are excluded from
   counts (`countedParticipants()`, `coverage()`).
 - `codes`: `{ name, description, color, themeIds[] }` (a code may sit in several themes).
-- `themes`: `{ name, parentId, status: candidate|reviewed|defined|discarded, definition, reviewNote, checkedExtracts, checkedDataset, order, narrative }`.
+- `themes`: `{ name, parentId, status: candidate|reviewed|defined|discarded, definition, reviewNote, order, narrative }`
+  (`checkedExtracts` / `checkedDataset` may exist in older data; no longer shown or used).
   `narrative` = the phase 6 analytic write-up for the theme; `mapX`/`mapY` = position on the thematic map (layout only).
 - `meta` (project setup): `{ name, question, approach: 'reflexive', theory, orientInductive, orientLatent, dataPrep,
   storyline (overview), conclusions (general discussion), mapLinks: [{ id, from, to, label }], lastBackupAt }`.
@@ -89,6 +90,12 @@ Renamed from Thematic Analysis Canvas in the v0.1 beta: Restore still accepts ba
   (before awaiting any writes). Undo keeps only the items that change touched and puts back just those, merging with
   later edits, then `repairReferences()` drops dangling ids — so work done after the change is never rolled back.
   `'meta'` can be listed as a collection (compared field by field, e.g. `mapLinks`).
+- Large projects (a survey with thousands of answers and respondents) must stay fast: no scan of all segments / ptags
+  per line, code or participant inside a render. `byId` and `participantsForRange()` use cached indexes (checked on
+  use, ptag index dropped at the next microtask); the viewer sorts items into lines once and replaces only lines whose
+  HTML changed; long lists and selects are written with `setHtml()` (skips unchanged markup — every write to such an
+  element must go through it); `.ta-block` has `content-visibility: auto`.
+- Imported text is Unicode NFC (`textToDoc`, CSV) — never normalise afterwards (offsets); `.qdpx` text is kept as is.
 - Update `state` and re-render first, then persist (`await dbPut…`). A render that lands after the user has
   started a new text selection would wipe it.
 - Escape every user value interpolated into HTML with `escapeHtml()`. Data from outside (Restore) goes through
@@ -135,7 +142,8 @@ Renamed from Thematic Analysis Canvas in the v0.1 beta: Restore still accepts ba
   tables second; the participant table summarises the group unless `optParticipantRows` (RTARG: no line-by-line
   demographics); every count in a table follows `optCounts`. Illustrative extracts are only the key extracts the
   researcher marked (★), never filled in automatically. Statuses are not a sequence (no phase numbers on them; moving
-  back is normal). Hints are gentle and never block (no `alert` gates). Do not add features that treat frequency,
+  back is normal). No numerical rules of thumb (how many themes / subthemes, name length) and no tick-box review:
+  ask questions instead. Hints are gentle and never block (no `alert` gates). Do not add features that treat frequency,
   agreement or a fixed codebook as markers of quality.
 - Wording (Big Q, reflexive TA), in UI text (both languages), logs, exports, samples, the site, the README and the RTARG mapping.
   Read new text for these before committing; the test "no small-q wording" blocks some of them, but most need judgement:
