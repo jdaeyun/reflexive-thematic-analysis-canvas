@@ -466,7 +466,7 @@ test('no small-q wording on the website or in the README', () => {
     const text = fs.readFileSync(path.join(root, file), 'utf8').replace(/<[^>]+>/g, ' ');
     for (const re of res) if (re.test(text)) hits.push(`${file}: ${re} → “${text.match(re)[0]}”`);
   };
-  for (const lang of ['en', 'ja']) for (const f of fs.readdirSync(path.join(root, 'site', lang))) if (f.endsWith('.html')) scan(`site/${lang}/${f}`, SMALL_Q[lang]);
+  for (const lang of ['en', 'ja']) for (const f of fs.readdirSync(path.join(root, 'site', lang))) if (f.endsWith('.html') && f !== 'rtarg.html') scan(`site/${lang}/${f}`, SMALL_Q[lang]); // rtarg.html quotes what the guidelines advise against
   scan('README.md', SMALL_Q.en);
   assert.deepEqual(hits, []);
 });

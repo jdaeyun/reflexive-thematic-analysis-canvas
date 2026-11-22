@@ -32,13 +32,14 @@ app/js/refi-qda.js     REFI-QDA .qdpx export / import (built-in zip writer/reade
 app/js/app.js          startup (DOMContentLoaded → window.taReady), tabs, project setup, backup / restore / reset, drag & drop,
                        shortcuts, dialogs (focus, Esc), other-tab warning, auto-growing textareas
 samples/               fictional test files in every supported format; samples/tutorial/{ja,en}: practice data for the 101
-site/                  website (GitHub Pages): {ja,en}/index.html (landing), 101.html (tutorial), guide.html (reference);
+site/                  website (GitHub Pages): {ja,en}/index.html (landing), 101.html (tutorial; 入門 in Japanese), guide.html (reference),
+                       rtarg.html (how the app maps to the RTARG, Braun & Clarke 2024: update it when a change affects reporting);
                        assets/site.css; assets/img/{ja,en}/*.webp screenshots. Plain HTML, no build step
 tests/app.test.cjs     browser tests (Playwright, file://): undo, restore, exports, text commits, other tabs, dialogs, layout,
                        wording, version text; `npm test`, CI: .github/workflows/test.yml
 tools/sync-version.mjs copies app/version.js into CITATION.cff, README.md and the site (`npm run sync-version`; --check only reports)
 tools/site-screenshots.cjs  rebuilds the screenshots from samples/tutorial (needs Playwright + Python Pillow)
-docs/rtarg-mapping*.md how the app maps to the RTARG (Braun & Clarke 2024); update it when a change affects reporting
+docs/rtarg-mapping*.md stubs pointing to site/{en,ja}/rtarg.html (kept so old links still lead somewhere)
 ```
 
 ## Data model (IndexedDB `ReflexiveThematicAnalysisCanvasDB`)
@@ -145,7 +146,7 @@ Renamed from Thematic Analysis Canvas in the v0.1 beta: Restore still accepts ba
   back is normal). No numerical rules of thumb (how many themes / subthemes, name length) and no tick-box review:
   ask questions instead. Hints are gentle and never block (no `alert` gates). Do not add features that treat frequency,
   agreement or a fixed codebook as markers of quality.
-- Wording (Big Q, reflexive TA), in UI text (both languages), logs, exports, samples, the site, the README and the RTARG mapping.
+- Wording (Big Q, reflexive TA), in UI text (both languages), logs, exports, samples, the site (including rtarg.html) and the README.
   Read new text for these before committing; the test "no small-q wording" blocks some of them, but most need judgement:
 
   | Avoid | Write instead |
@@ -185,7 +186,8 @@ Re-run `npm run css` after using a Tailwind class that appears nowhere else. `np
 zip per language on every push to main; pages link to the app as `../ta_canvas.html`. When a change is visible in the
 UI or changes how something works, update BOTH languages of the 101 and the guide, and re-run
 `node tools/site-screenshots.cjs` if screenshots are affected. UI labels quoted on the site must match `I18N` exactly
-(`<span class="ui">`). The app's gear menu links to `{ja,en}/guide.html` (TA_SITE_URL in app.js).
+(`<span class="ui">`). The Japanese pages call the tutorial 入門 (never "101", which few Japanese readers know);
+the file name stays 101.html. Every page has the same nav and footer: Home / 101 (入門) / Guide / RTARG. The app's gear menu links to `{ja,en}/guide.html` (TA_SITE_URL in app.js).
 Version text on the site sits in elements marked `data-ta="version"` / `data-ta="year"`, written by tools/sync-version.mjs:
 mark new occurrences the same way instead of typing a version number.
 

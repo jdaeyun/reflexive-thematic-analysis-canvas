@@ -91,8 +91,10 @@ kbd { font-family: var(--mono); font-size: 0.82em; background: var(--surface); b
 .nav .open-app:hover { background: #0f766e; color: #fff; }
 @media (max-width: 720px) {
   .brand .name { display: none; }
-  .nav a { font-size: 0.85rem; padding: 0.35rem 0.45rem; }
+  .nav a { font-size: 0.85rem; padding: 0.35rem 0.35rem; }
+  .nav .gh, .nav .nav-long { display: none; } /* GitHub stays in the footer */
 }
+.brand { flex-shrink: 0; }
 
 /* ---------- Layout ---------- */
 main { display: block; }
@@ -212,3 +214,11 @@ details.faq p:last-child { margin-bottom: 0.3rem; }
 .site-footer a { color: var(--muted); }
 .cite { font-family: var(--mono); font-size: 0.82rem; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 0.8rem 1rem; overflow-x: auto; white-space: pre-wrap; word-break: break-word; }
 @media (max-width: 480px) { .nav a[href^="https://github.com"], .nav > a:first-child { display: none; } }
+
+/* RTARG mapping (rtarg.html): item number and status mark stay narrow, the advice and the app columns share the rest */
+.rtarg table td.num { white-space: nowrap; color: var(--faint); font-variant-numeric: tabular-nums; width: 2.2em; }
+.rtarg table td.mark { text-align: center; white-space: nowrap; width: 3.5em; }
+.rtarg .rtarg-table th:nth-child(3) { text-align: center; }
+.rtarg .rtarg-legend { width: auto; }
+.rtarg blockquote { margin: 1rem 0 1.4rem; padding: 0.6rem 1rem; border-left: 3px solid var(--border); color: var(--muted); font-size: 0.93rem; }
+.rtarg tr:target td { background: var(--surface-2); }

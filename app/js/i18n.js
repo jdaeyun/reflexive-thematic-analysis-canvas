@@ -318,7 +318,7 @@ I18N.ja = {
   'hdr.lastBackup': '最終バックアップ：{when}', 'hdr.noBackup': 'まだバックアップがありません', 'hdr.lastBackupTitle': '最後にバックアップを保存した日時：{time}（このパソコンで）', 'time.justNow': 'たった今',
   'hdr.undo': '元に戻す', 'hdr.backup': 'バックアップ', 'hdr.backupTitle': 'プロジェクト全体を .json ファイルに保存', 'hdr.menu': '設定',
   'marker.label': 'マーカーの色', 'marker.standard': '標準', 'marker.soft': '控えめ（目に優しい）', 'marker.underline': '下線のみ',
-  'menu.restore': 'バックアップから復元', 'menu.guide': '使い方ガイドと101', 'menu.about': 'このアプリについて・更新情報', 'menu.reset': '新規作成／リセット',
+  'menu.restore': 'バックアップから復元', 'menu.guide': '入門と使い方ガイド', 'menu.about': 'このアプリについて・更新情報', 'menu.reset': '新規作成／リセット',
   'tab.code': '1. データに慣れる・コーディング', 'tab.codeShort': '1 コーディング', 'tab.themes': '2. テーマ', 'tab.themesShort': '2 テーマ',
   'tab.audit': '3. 監査証跡・ジャーナル', 'tab.auditShort': '3 記録', 'tab.export': '4. 執筆', 'tab.exportShort': '4 執筆',
   'phase.1': '1 · データに慣れる', 'phase.2': '2 · コーディング', 'phase.3': '3 · 初期テーマの生成', 'phase.4': '4 · テーマの見直し', 'phase.5': '5 · 定義と命名', 'phase.6': '6 · 執筆',

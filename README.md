@@ -55,7 +55,7 @@ The app reads and writes the [REFI-QDA](https://www.qdasoftware.org) project exc
 
 ## 🧭 Reporting: RTARG
 
-[`docs/rtarg-mapping.md`](docs/rtarg-mapping.md) ([日本語](docs/rtarg-mapping.ja.md)) maps the Reflexive Thematic Analysis Reporting Guidelines (Braun & Clarke, 2024) to what the app does: what it supports, what stays the researcher's writing, and what still needs work.
+The [RTARG mapping](https://jdaeyun.github.io/reflexive-thematic-analysis-canvas/en/rtarg.html) ([日本語](https://jdaeyun.github.io/reflexive-thematic-analysis-canvas/ja/rtarg.html)) on the website maps the Reflexive Thematic Analysis Reporting Guidelines (Braun & Clarke, 2024) to what the app does: what it supports, what stays the researcher's writing, and what still needs work.
 
 ## 👥 Working with more than one analyst
 
