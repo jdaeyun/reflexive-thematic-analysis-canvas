@@ -3,6 +3,6 @@
 // (tools/sync-version.mjs; locally `npm run sync-version`), then publishes the GitHub release vX.Y.Z with the offline ZIP.
 // A version with a hyphen (e.g. 1.0.0-beta.1) becomes a pre-release. Nothing happens if that release already exists.
 window.TA_CANVAS = {
-  version: '0.9.0',
-  released: '2026-11-15'
+  version: '0.9.1',
+  released: '2026-11-22'
 };

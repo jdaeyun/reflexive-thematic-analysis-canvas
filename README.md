@@ -1,6 +1,6 @@
 # 🏷️ Reflexive Thematic Analysis Canvas
 
-**Version 0.9.0 (beta)**
+**Version 0.9.1 (beta)**
 
 **Reflexive Thematic Analysis Canvas** is an open-source, zero-backend browser workspace for **reflexive thematic analysis** (Braun & Clarke) of qualitative text data. It follows the six phases of reflexive TA and produces tables you can put straight into a manuscript.
 
