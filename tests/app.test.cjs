@@ -802,3 +802,150 @@ test('REFI-QDA export asks first and writes extracts left out of a theme into a 
   assert.ok(r.notes.some(n => n.includes('I felt alone at first.')));
   await close();
 });
+
+// ---- Replacing a document with a corrected version (samples/revision: real .docx pairs) ----
+
+const sampleB64 = (lang, name) => require('node:fs').readFileSync(path.join(__dirname, '..', 'samples', 'revision', lang, name)).toString('base64');
+// Imports the original .docx and codes four passages: one with a name, one with a name and a typo, one that is
+// deleted in the corrected version, and one that does not change
+async function importRevisionSample(page, lang) {
+  return page.evaluate(async ({ o }) => {
+    const file = (b, name) => new File([Uint8Array.from(atob(b), x => x.charCodeAt(0))], name);
+    await importFiles([file(o, 'interview_P04.docx')]);
+    const doc = state.docs.find(d => d.name === 'interview_P04.docx');
+    const L = doc.text.split('\n');
+    const body = l => l.replace(/^P04[:：]\s*/, '');
+    const code = async (line, name) => {
+      const t = body(L[line]); const s = doc.text.indexOf(t);
+      await applyCodeToRange(makeCode(name).code.id, { docId: doc.id, s, e: s + t.length });
+      return state.segments.find(x => x.docId === doc.id && x.s === s);
+    };
+    const named = await code(1, 'Alone'), typo = await code(3, 'No help'), gone = await code(6, 'Small things'), same = await code(7, 'Asking');
+    return { docId: doc.id, ids: { named: named.id, typo: typo.id, gone: gone.id, same: same.id }, sameText: same.text, sameS: same.s };
+  }, { o: sampleB64(lang, 'interview_P04.docx') });
+}
+async function startSampleRevision(page, lang) {
+  await page.evaluate(async ({ c }) => {
+    const f = new File([Uint8Array.from(atob(c), x => x.charCodeAt(0))], 'interview_P04_corrected.docx');
+    await startRevision(f);
+  }, { c: sampleB64(lang, 'interview_P04_corrected.docx') });
+  await page.waitForSelector('#reviseModal:not(.hidden)');
+}
+
+test('a missed pseudonym (.docx, English): coding is carried over and the old names are gone from the project', async () => {
+  const { page, errors, close } = await openApp();
+  const s = await importRevisionSample(page, 'en');
+  await page.evaluate(async ({ ids }) => {
+    state.segments.find(x => x.id === ids.named).memo = 'Mr Tanaka left her alone';
+    const { blocks } = textToDoc('P05: Mr Tanaka was there too.');
+    await addDocument({ name: 'other.txt', kind: 'txt', encoding: 'UTF-8', text: 'P05: Mr Tanaka was there too.', blocks });
+    state.activeDocId = state.docs.find(d => d.name === 'interview_P04.docx').id;
+  }, s);
+  await startSampleRevision(page, 'en');
+  assert.equal(await page.isDisabled('#reviseOk'), true, 'a reason is required');
+  await page.check('input[name="reviseReason"][value="pseudonym"]');
+  assert.match(await page.textContent('#revisePseudo'), /other\.txt/); // the same name in another document is pointed out
+  await page.click('#reviseOk');
+  await page.waitForSelector('#reviseModal.hidden', { state: 'attached' });
+  const r = await page.evaluate(async ({ ids }) => {
+    const doc = state.docs.find(d => d.name === 'interview_P04.docx');
+    const seg = id => state.segments.find(x => x.id === id);
+    const mine = JSON.stringify({ doc: doc.text, segs: state.segments.filter(x => x.docId === doc.id), logs: state.logs, memo: seg(ids.named)?.memo });
+    const stored = JSON.stringify({ segs: await dbGetAll('segments'), logs: await dbGetAll('logs'), docs: (await dbGetAll('docs')).filter(d => d.name !== 'other.txt') });
+    return {
+      named: seg(ids.named)?.text, typo: seg(ids.typo)?.text, gone: !!seg(ids.gone), same: seg(ids.same)?.text, sameS: seg(ids.same)?.s,
+      consistent: state.segments.filter(x => x.docId === doc.id).every(x => doc.text.slice(x.s, x.e) === x.text),
+      leftover: ['Tanaka', 'Yamamoto', 'Kita Hospital'].filter(n => mine.includes(n) || stored.includes(n)),
+      memo: seg(ids.named)?.memo, undo: state.undoStack.length,
+      log: state.logs.filter(l => l.ak === 'log.docRevised').map(l => [logAction(l, 'en'), l.to])
+    };
+  }, s);
+  assert.equal(r.named, 'Honestly, I felt completely alone. [Senior nurse], the charge nurse, had gone home early.');
+  assert.equal(r.typo, 'I called [Doctor A] twice, but nobody came. I just kept on going.');
+  assert.equal(r.gone, false);
+  assert.equal(r.same, s.sameText);
+  assert.ok(r.sameS < s.sameS, 'the unchanged extract moved up with the deleted line');
+  assert.ok(r.consistent);
+  assert.deepEqual(r.leftover, []);
+  assert.equal(r.memo, '[Senior nurse] left her alone');
+  assert.equal(r.undo, 0);
+  assert.deepEqual(r.log, [['Replaced “interview_P04.docx” with a corrected version (A pseudonym was missed)', '']]);
+  assert.deepEqual(errors, []);
+  await close();
+});
+
+test('a transcription error (.docx, Japanese): the change is recorded before → after, and undo brings the old text back', async () => {
+  const { page, close } = await openApp();
+  const s = await importRevisionSample(page, 'ja');
+  const before = await page.evaluate(() => ({ text: state.docs[0].text, segs: state.segments.map(x => [x.s, x.e, x.text]) }));
+  await startSampleRevision(page, 'ja');
+  await page.check('input[name="reviseReason"][value="transcription"]');
+  await page.click('#reviseOk');
+  await page.waitForSelector('#reviseModal.hidden', { state: 'attached' });
+  const r = await page.evaluate(async ({ ids }) => {
+    const doc = state.docs[0];
+    const out = {
+      typo: state.segments.find(x => x.id === ids.typo)?.text,
+      log: state.logs.find(l => l.ak === 'log.docRevised')?.to || '',
+      consistent: state.segments.every(x => doc.text.slice(x.s, x.e) === x.text)
+    };
+    await performUndo();
+    return { ...out, afterUndo: { text: state.docs[0].text, segs: state.segments.map(x => [x.s, x.e, x.text]) } };
+  }, s);
+  assert.equal(r.typo, '［医師B］に二回電話したんですが、誰も来なくて。とにかく続けるしかありませんでした。');
+  assert.match(r.log, /“山本先生” → “［医師B］”/);
+  assert.match(r.log, /なかったです/);
+  assert.ok(r.consistent);
+  assert.equal(r.afterUndo.text, before.text);
+  assert.deepEqual(r.afterUndo.segs.sort(), before.segs.sort());
+  await close();
+});
+
+test('offsets: an insertion at an extract boundary is not pulled in; a replaced name inside an extract is', async () => {
+  const { page, close } = await openApp();
+  const r = await page.evaluate(() => {
+    const run = (a, b, s, e) => { const m = offsetMapper(textEditScript(a, b)); const ns = m.start(s), ne = m.end(e); return b.slice(ns, ne); };
+    return [
+      run('abc def', 'abc XX def', 4, 7),               // inserted before the extract
+      run('abc def', 'abc defXX', 4, 7),                // inserted right after it
+      run('I met Tanaka today', 'I met [P2] today', 2, 18),
+      run('前置き。😀 山田さんが来た。', '前置き。😀 ［A］が来た。', 7, 15),
+      run('one\ntwo\nthree', 'one\nthree', 4, 7)        // a deleted line collapses
+    ];
+  });
+  assert.deepEqual(r, ['def', 'def', 'met [P2] today', '［A］が来た。', '']);
+  await close();
+});
+
+test('a CSV document is corrected with the same column choices, keeping its speaker tags', async () => {
+  const { page, close } = await openApp();
+  const r = await page.evaluate(async () => {
+    const csv = 'id,answer\nR1,I trust Ms Sato completely\nR2,Nights are long\n';
+    const p = importFiles([new File([csv], 'survey.csv')]);
+    await new Promise(x => setTimeout(x, 100));
+    document.getElementById('csvImportOk').click();
+    await p;
+    const doc = state.docs[0];
+    state.activeDocId = doc.id;
+    const s = doc.text.indexOf('I trust');
+    await applyCodeToRange(makeCode('Trust').code.id, { docId: doc.id, s, e: s + 'I trust Ms Sato completely'.length });
+    const fixed = 'id,answer\nR1,I trust [nurse C] completely\nR2,Nights are long\n';
+    const q = startRevision(new File([fixed], 'survey_fixed.csv'));
+    await new Promise(x => setTimeout(x, 100));
+    document.getElementById('csvImportOk').click();
+    await q;
+    await new Promise(x => setTimeout(x, 100));
+    document.querySelector('input[name="reviseReason"][value="pseudonym"]').checked = true;
+    document.querySelector('input[name="reviseReason"][value="pseudonym"]').dispatchEvent(new Event('change'));
+    document.getElementById('reviseOk').click();
+    await new Promise(x => setTimeout(x, 300));
+    const d = state.docs[0];
+    return { text: d.text, seg: state.segments[0].text, who: participantLabels(participantsForRange(d.id, 0, 5)), blocks: d.blocks.map(b => b.label), parts: state.participants.length };
+  });
+  assert.equal(r.text, 'I trust [nurse C] completely\nNights are long');
+  assert.equal(r.seg, 'I trust [nurse C] completely');
+  assert.equal(r.who, 'R1');
+  assert.equal(r.parts, 2); // no participants created again
+  assert.ok(r.blocks[0].startsWith('R1'));
+  await close();
+});

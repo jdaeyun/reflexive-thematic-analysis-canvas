@@ -209,6 +209,18 @@ function fileKind(name) {
   return ['txt', 'csv', 'docx', 'doc', 'qdpx'].includes(ext) ? ext : null;
 }
 
+// Raw text of a .txt / .docx / .doc file (before textToDoc). Shared by import, reconnecting a backup without texts
+// and replacing a document with a corrected version, so all three read a file the same way.
+async function readPlainText(buf, kind) {
+  if (kind === 'txt') { const { text, encoding } = decodeTextBytes(buf); return { raw: text, encoding }; }
+  if (kind === 'docx') {
+    if (typeof mammoth === 'undefined') throw new Error(tr('err.mammoth'));
+    return { raw: (await mammoth.extractRawText({ arrayBuffer: buf })).value, encoding: 'Word (.docx)' };
+  }
+  if (kind === 'doc') return { raw: parseDocBinary(buf), encoding: 'Word 97–2003 (.doc)' };
+  throw new Error(tr('imp.noText'));
+}
+
 async function importFiles(fileList) {
   const files = Array.from(fileList || []);
   if (!files.length) return;
@@ -230,15 +242,7 @@ async function importFiles(fileList) {
         await openCsvImportDialog(f.name, text.normalize('NFC'), encoding); // NFC: see textToDoc
         continue; // the dialog adds the document itself
       }
-      let raw = '', encoding = '';
-      if (kind === 'txt') ({ text: raw, encoding } = decodeTextBytes(buf));
-      else if (kind === 'docx') {
-        if (typeof mammoth === 'undefined') throw new Error(tr('err.mammoth'));
-        const res = await mammoth.extractRawText({ arrayBuffer: buf });
-        raw = res.value; encoding = 'Word (.docx)';
-      } else if (kind === 'doc') {
-        raw = parseDocBinary(buf); encoding = 'Word 97–2003 (.doc)';
-      }
+      const { raw, encoding } = await readPlainText(buf, kind);
       const { text, blocks } = textToDoc(raw);
       if (!text) throw new Error(tr('imp.noText'));
       await addDocument({ name: f.name, kind, encoding, text, blocks });
@@ -280,7 +284,9 @@ async function ensureParticipant(label, attributes = {}) {
 // ========================================================
 // CSV IMPORT DIALOG
 // ========================================================
-function openCsvImportDialog(filename, text, encoding) {
+// buildOnly: only build and return { text, blocks } from the chosen columns (no participants, no document added):
+// used to read a corrected version of a CSV document with the same column choices
+function openCsvImportDialog(filename, text, encoding, { buildOnly = false } = {}) {
   return new Promise((resolve) => {
     const parsed = Papa.parse(text.replace(/^﻿/, ''), { skipEmptyLines: 'greedy' });
     const rows = parsed.data;
@@ -326,7 +332,7 @@ function openCsvImportDialog(filename, text, encoding) {
         for (const ci of attrCols) attrs[header[ci]] = String(row[ci] ?? '').trim();
         const cells = textCols.map(ci => ({ ci, v: String(row[ci] ?? '').replace(/\r\n?/g, '\n').replace(/\n+/g, ' ').trim() })).filter(x => x.v);
         if (!cells.length) continue;
-        const part = await ensureParticipant(label, attrs);
+        const part = buildOnly ? { id: null } : await ensureParticipant(label, attrs);
         for (const { ci, v } of cells) {
           if (fullText) fullText += '\n';
           const s = fullText.length;
@@ -337,6 +343,7 @@ function openCsvImportDialog(filename, text, encoding) {
       }
       if (!fullText) { alert(tr('csv.empty')); return; }
       modal.classList.add('hidden');
+      if (buildOnly) { okBtn.onclick = null; cancelBtn.onclick = null; resolve({ text: fullText, blocks, encoding }); return; }
       await addDocument({ name: filename, kind: 'csv', encoding, text: fullText, blocks, ptags });
       showToast(tr('csv.done', { file: filename, n: blocks.length }), 'success');
       okBtn.onclick = null; cancelBtn.onclick = null;
