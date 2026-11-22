@@ -267,7 +267,7 @@ function mapPng(lang = LANG, scale = 2) {
 
 function setThemeView(view) {
   state.themeView = view;
-  try { localStorage.setItem('ta_theme_view', view); } catch (e) { /* private mode */ }
+  lsSet('ta_theme_view', view);
   renderThemesView();
 }
 

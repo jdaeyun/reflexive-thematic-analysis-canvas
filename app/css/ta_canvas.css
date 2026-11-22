@@ -89,3 +89,6 @@ body.col-resizing { cursor: col-resize; user-select: none; }
 .search-hit { background-image: linear-gradient(rgba(250, 204, 21, 0.55), rgba(250, 204, 21, 0.55)); border-radius: 2px; }
 .search-hit-current { background-image: linear-gradient(rgba(249, 115, 22, 0.55), rgba(249, 115, 22, 0.55)); outline: 2px solid #f97316; outline-offset: 1px; }
 .search-mark { background: #fde68a; color: inherit; border-radius: 2px; padding: 0 1px; }
+
+/* Textareas grown by app.js (setupAutoGrowTextareas): cap the height, then scroll inside */
+textarea.auto-grow { max-height: 60vh; overflow-y: auto; }

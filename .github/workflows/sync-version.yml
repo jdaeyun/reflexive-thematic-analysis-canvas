@@ -1,0 +1,55 @@
+# Keeps the version shown as text in step with app/version.js (the ONE place to edit at a release), then publishes the release.
+# Edit app/version.js and push to main (usually by merging a pull request): this workflow
+#   1. runs tools/sync-version.mjs (CITATION.cff, README.md, site/{en,ja}/*.html), commits the result and
+#      re-runs the Website workflow (a push made with GITHUB_TOKEN does not start other workflows);
+#   2. creates the GitHub release: tag = "v" + version (a version with a hyphen such as 1.0.0-beta.1 becomes a pre-release),
+#      notes generated from the merged pull requests;
+#   3. starts offline-zip.yml, which attaches the offline ZIP (a release made with GITHUB_TOKEN triggers nothing by itself).
+# If that release already exists nothing happens, so only bump the version when you want a release.
+name: Sync version and publish release
+
+on:
+  push:
+    branches: [main]
+    paths: ['app/version.js']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Update the files
+        run: node tools/sync-version.mjs
+      - name: Commit and redeploy the website
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if git diff --quiet; then echo "Already in sync."; exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "Sync version text with app/version.js"
+          git push
+          gh workflow run pages.yml
+
+      - name: Publish the release and attach the offline ZIP
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION=$(sed -n "s/.*version: '\([^']*\)'.*/\1/p" app/version.js | head -1)
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]]; then
+            echo "Unexpected version '$VERSION' in app/version.js"; exit 1
+          fi
+          TAG="v$VERSION"
+          if gh release view "$TAG" >/dev/null 2>&1; then echo "Release $TAG already exists: nothing to do."; exit 0; fi
+          FLAGS=""
+          if [[ "$VERSION" == *-* ]]; then FLAGS="--prerelease"; fi
+          gh release create "$TAG" --target "$(git rev-parse HEAD)" --title "$TAG" --generate-notes $FLAGS
+          gh workflow run offline-zip.yml -f tag="$TAG"

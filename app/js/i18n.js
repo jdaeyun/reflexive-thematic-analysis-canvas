@@ -20,6 +20,7 @@ I18N.en = {
   'undo.title': 'Undo: {label} (Ctrl+Z)', 'undo.none': 'Nothing to undo',
   'drop.title': 'Drop files here', 'drop.body': '.txt · .csv · .docx · .doc · .qdpx — the text stays in this browser.',
   // header
+  'multiTab.text': 'This project is also open in another tab or window. Changes made in one are not shown in the other and can overwrite each other: keep working in one tab only.', 'multiTab.dismiss': 'Dismiss',
   'hdr.title': 'Reflexive Thematic Analysis', 'hdr.prototype': 'BETA', 'hdr.projectSetup': 'Project setup', 'hdr.untitled': 'Untitled project',
   'hdr.researcher': 'Researcher', 'hdr.researcherTitle': 'Your name or initials (recorded in the audit trail)', 'hdr.initials': 'Initials',
   'hdr.journal': 'Journal', 'hdr.journalTitle': 'Reflexive journal — write a note from anywhere (Ctrl+J / ⌘J)',
@@ -309,6 +310,7 @@ I18N.ja = {
   'save.saved': '保存済み {time}', 'save.error': '保存エラー',
   'undo.title': '元に戻す：{label}（Ctrl+Z）', 'undo.none': '元に戻せる操作はありません',
   'drop.title': 'ここにファイルをドロップ', 'drop.body': '.txt・.csv・.docx・.doc・.qdpx — 文章はこのブラウザの中だけで扱われます。',
+  'multiTab.text': 'このプロジェクトは別のタブまたはウィンドウでも開かれています。一方での変更はもう一方に表示されず、上書きし合うことがあります。作業はひとつのタブだけで続けてください。', 'multiTab.dismiss': '閉じる',
   'hdr.title': 'Reflexive Thematic Analysis', 'hdr.prototype': 'ベータ版', 'hdr.projectSetup': 'プロジェクト設定', 'hdr.untitled': '名称未設定のプロジェクト',
   'hdr.researcher': '分析者', 'hdr.researcherTitle': 'あなたの名前またはイニシャル（監査証跡に記録されます）', 'hdr.initials': '名前',
   'hdr.journal': 'ジャーナル', 'hdr.journalTitle': '省察ジャーナル — どこからでもメモを書けます（Ctrl+J / ⌘J）',
@@ -659,7 +661,7 @@ Object.assign(I18N.ja, {
 const SUPPORTED_LANGS = Object.keys(I18N);
 
 function langSetting() {
-  try { return localStorage.getItem('ta_lang') || 'auto'; } catch (e) { return 'auto'; }
+  return lsGet('ta_lang', 'auto');
 }
 // 'auto': the first supported language in the browser's preference list (set from the OS by default)
 function resolveLang(setting = langSetting()) {
@@ -696,7 +698,7 @@ function applyI18n(root = document) {
 }
 
 function setLanguage(setting) {
-  try { localStorage.setItem('ta_lang', setting); } catch (e) { /* private mode */ }
+  lsSet('ta_lang', setting);
   LANG = resolveLang(setting);
   applyI18n();
   // Dropdowns filled from code

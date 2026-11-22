@@ -111,7 +111,7 @@ async function dbReplaceAll(store, items) {
 // STATE
 // ========================================================
 const state = {
-  researcherId: localStorage.getItem('ta_researcher_id') || '',
+  researcherId: lsGet('ta_researcher_id', ''),
   meta: { id: 'project', name: '', question: '', approach: 'reflexive', createdAt: Date.now() }, // = defaultMeta()
   docs: [],         // { id, name, kind: 'txt'|'csv'|'docx'|'doc', encoding, text, blocks: [{ s, e, label }], defaultParticipantId, note, createdAt }
   segments: [],     // { id, docId, s, e, text, codeIds: [], memo, key: bool, createdBy, createdAt }
@@ -132,15 +132,15 @@ const state = {
   // For reading across groups only: counts, the theme structure and exports ignore it.
   extractFilter: null,
   themeStatusFilter: 'all',
-  themeView: (() => { try { return localStorage.getItem('ta_theme_view') === 'map' ? 'map' : 'board'; } catch (e) { return 'board'; } })(),
+  themeView: lsGet('ta_theme_view') === 'map' ? 'map' : 'board',
   openThemeExtracts: new Set(),
   openCodeExtracts: new Set(),
   exportTable: 'narrative',
   // Prevalence counts (extracts / participants per code and theme) are hidden by default: in reflexive TA
   // frequency does not decide what matters, and constant numbers nudge "more = more important"
-  showCounts: (() => { try { return localStorage.getItem('ta_show_counts') === 'true'; } catch (e) { return false; } })(),
+  showCounts: lsGet('ta_show_counts') === 'true',
   // How coded text is highlighted in the viewer (display preference, per browser): standard | soft | underline
-  markerStyle: (() => { try { return localStorage.getItem('ta_marker_style') || 'standard'; } catch (e) { return 'standard'; } })(),
+  markerStyle: lsGet('ta_marker_style', 'standard'),
   auditFilter: 'decisions', // single coding actions are hidden by default so journal notes stay visible
   lastThemeId: null,        // theme card the user last worked on (journal context)
   undoStack: []
@@ -325,6 +325,50 @@ async function recordLog({ category, ak, ap = {}, dk = null, dp = {}, action = '
   await dbPut('logs', entry);
   return entry;
 }
+// ========================================================
+// TEXT FIELDS: SAVE AND LOG WITHOUT EVER SKIPPING THE COMMIT
+// ========================================================
+// A bare `change` handler misses text typed right before the tab is closed, a re-render or an undo, so a text
+// could be saved without its audit entry, or not saved at all. Every text field that writes an audit entry (or
+// that the user would expect to be kept) uses bindPendingCommit(el, commitFn): the commit runs once after typing,
+// on whichever comes first: change, blur, flushAllPendingSaves() (tab switch, re-render of that view, undo,
+// backup, export) or the page being hidden. commitFn must update `state` before its first await.
+// saveSoon(key, fn) is a short debounce for writing while typing (long texts); it is flushed the same way.
+const pendingCommits = new Set();
+function flushAllPendingSaves() {
+  for (const fn of [...pendingCommits]) {
+    try { fn(); } catch (e) { console.error('pending save', e); }
+  }
+}
+function bindPendingCommit(el, commitFn) {
+  let dirty = false;
+  const run = () => {
+    if (!dirty) return;
+    dirty = false;
+    pendingCommits.delete(run);
+    return Promise.resolve(commitFn()).catch(e => console.error('commit', e));
+  };
+  el.addEventListener('input', () => { dirty = true; pendingCommits.add(run); });
+  el.addEventListener('change', run);
+  el.addEventListener('blur', run);
+  return run;
+}
+const soonTimers = new Map(); // key → { timer, run }
+function saveSoon(key, fn, delay = 600) {
+  const prev = soonTimers.get(key);
+  if (prev) { clearTimeout(prev.timer); pendingCommits.delete(prev.run); }
+  const run = () => {
+    const cur = soonTimers.get(key);
+    if (cur?.run !== run) return;
+    clearTimeout(cur.timer); soonTimers.delete(key); pendingCommits.delete(run);
+    return Promise.resolve(fn()).catch(e => console.error('save', e));
+  };
+  soonTimers.set(key, { run, timer: setTimeout(run, delay) });
+  pendingCommits.add(run);
+}
+window.addEventListener('pagehide', flushAllPendingSaves);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushAllPendingSaves(); });
+
 function updateAuditBadge() {
   const b = document.getElementById('auditCountBadge');
   if (b) b.textContent = String(state.logs.length);
@@ -389,6 +433,7 @@ function undoMergeItem(before, after, current) {
   return out;
 }
 async function performUndo() {
+  flushAllPendingSaves(); // text typed just before Ctrl+Z is a later edit: keep it
   commitUndo();
   const last = state.undoStack.pop();
   updateUndoButton();

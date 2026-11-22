@@ -28,6 +28,7 @@ function renderDocList() {
 }
 
 function openDocument(docId, flashSegId = null) {
+  flushAllPendingSaves(); // e.g. the familiarisation note of the document being left
   state.activeDocId = docId;
   state.pendingSel = null;
   if (!flashSegId) state.activeSegId = null;
@@ -146,6 +147,7 @@ function renderDocHeader() {
   sel.innerHTML = `<option value="">${escapeHtml(tr('doc.noneOption'))}</option>` + state.participants.map(p => `<option value="${p.id}" ${doc.defaultParticipantId === p.id ? 'selected' : ''}>${escapeHtml(p.label)}</option>`).join('');
   const note = document.getElementById('docNote');
   if (document.activeElement !== note) note.value = doc.note || '';
+  note.dataset.doc = doc.id; // the note belongs to this document even if the commit runs after switching
   document.getElementById('docNoteDot').classList.toggle('hidden', !doc.note);
 }
 
@@ -662,6 +664,7 @@ async function deleteCode(codeId, reason = '') {
 }
 
 function renderSegmentPanel() {
+  flushAllPendingSaves(); // the memo box is rebuilt below
   if (typeof refreshJournalContext === 'function') refreshJournalContext();
   const el = document.getElementById('segmentPanel');
   const seg = state.segments.find(s => s.id === state.activeSegId);
@@ -706,7 +709,12 @@ function renderSegmentPanel() {
   const add = el.querySelector('#segAddCode');
   if (add) add.onchange = () => add.value && applyCodeToRange(add.value, seg);
   const memo = el.querySelector('#segMemo');
-  memo.onchange = async () => { seg.memo = memo.value.trim(); await dbPut('segments', seg); };
+  bindPendingCommit(memo, async () => {
+    const v = memo.value.trim();
+    if (v === (seg.memo || '')) return;
+    seg.memo = v;
+    await dbPut('segments', seg);
+  });
   el.querySelector('#segDelete').onclick = () => deleteSegment(seg);
   const whole = wholeLineRange(seg);
   const wl = el.querySelector('#segWholeLine');
@@ -743,11 +751,14 @@ function setupCodingEvents() {
     renderViewer(); renderParticipantList();
   };
   document.getElementById('docNoteToggle').onclick = () => document.getElementById('docNotePanel').classList.toggle('hidden');
-  document.getElementById('docNote').addEventListener('change', async (e) => {
-    const doc = docById(state.activeDocId);
+  const docNote = document.getElementById('docNote');
+  bindPendingCommit(docNote, async () => {
+    const doc = docById(docNote.dataset.doc);
     if (!doc) return;
+    const v = docNote.value.trim();
+    if (v === (doc.note || '')) return;
     const had = !!doc.note;
-    doc.note = e.target.value.trim();
+    doc.note = v;
     await dbPut('docs', doc);
     if (!had && doc.note) await recordLog({ category: 'familiarisation', ak: 'log.famNotes', ap: { doc: doc.name } });
     renderDocHeader();

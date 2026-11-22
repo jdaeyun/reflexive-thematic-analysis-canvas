@@ -10,6 +10,7 @@ const TABS = {
 };
 
 function switchTab(tab) {
+  flushAllPendingSaves();
   state.activeTab = tab;
   for (const [k, t] of Object.entries(TABS)) {
     const on = k === tab;
@@ -19,12 +20,13 @@ function switchTab(tab) {
       ? 'px-2.5 py-1.5 text-xs font-bold rounded-md bg-white text-indigo-700 shadow-sm cursor-pointer transition flex items-center gap-1.5'
       : 'px-2.5 py-1.5 text-xs font-medium rounded-md text-slate-500 hover:text-slate-800 cursor-pointer transition flex items-center gap-1.5';
   }
-  try { localStorage.setItem('ta_active_tab', tab); } catch (e) { /* private mode */ }
+  lsSet('ta_active_tab', tab);
   TABS[tab].render();
   if (typeof refreshJournalContext === 'function') refreshJournalContext();
 }
 
 function renderAll() {
+  flushAllPendingSaves();
   renderHeader();
   updateAuditBadge();
   updateUndoButton();
@@ -105,6 +107,7 @@ async function saveProjectModal() {
 // BACKUP / RESTORE / RESET
 // ========================================================
 async function backupProject() {
+  flushAllPendingSaves(); // the backup includes what was typed a moment ago
   state.meta.lastBackupAt = Date.now(); // saved in the backup too: a restored project shows when that copy was made
   const payload = { app: 'reflexive-thematic-analysis-canvas', schema: 1, appVersion: window.TA_CANVAS?.version || '', exportedAt: new Date().toISOString(), exportedBy: state.researcherId || '', meta: state.meta };
   for (const c of COLLECTIONS) payload[c] = state[c];
@@ -157,8 +160,7 @@ function applyLeftWidth(px) {
   return w;
 }
 function setupColumnResize() {
-  let saved = LEFT_W.def;
-  try { saved = Number(localStorage.getItem('ta_left_w')) || LEFT_W.def; } catch (e) { /* private mode */ }
+  const saved = Number(lsGet('ta_left_w')) || LEFT_W.def;
   applyLeftWidth(saved);
   document.querySelectorAll('.col-resizer').forEach(h => {
     h.addEventListener('pointerdown', (e) => {
@@ -173,13 +175,13 @@ function setupColumnResize() {
         h.removeEventListener('pointermove', move); h.removeEventListener('pointerup', up);
         h.classList.remove('dragging'); document.body.classList.remove('col-resizing');
         const w = applyLeftWidth(startW + ev.clientX - startX);
-        try { localStorage.setItem('ta_left_w', String(w)); } catch (err) { /* private mode */ }
+        lsSet('ta_left_w', w);
       };
       h.addEventListener('pointermove', move); h.addEventListener('pointerup', up);
     });
     h.addEventListener('dblclick', () => {
       applyLeftWidth(LEFT_W.def);
-      try { localStorage.removeItem('ta_left_w'); } catch (e) { /* private mode */ }
+      lsRemove('ta_left_w');
     });
   });
 }
@@ -189,6 +191,94 @@ function setupColumnResize() {
 // ========================================================
 // Icon-only buttons and links are named by their tooltip for screen readers (kept in step when the tooltip
 // changes, e.g. after switching language). Elements with their own aria-label are left alone.
+// Same project open in two tabs: each tab keeps its own copy in memory and writes it back, so the tabs would
+// silently overwrite each other. Warn in every tab while another one is open (nothing is blocked).
+function watchOtherTabs() {
+  if (!('BroadcastChannel' in window)) return;
+  const banner = document.getElementById('multiTabBanner');
+  if (!banner) return;
+  const ch = new BroadcastChannel(`ta-tabs-${TA_DB_NAME}`);
+  const me = uid('tab');
+  const others = new Set();
+  let dismissed = false;
+  const refresh = () => {
+    const show = others.size > 0 && !dismissed;
+    banner.classList.toggle('hidden', !show);
+    banner.classList.toggle('flex', show);
+  };
+  ch.onmessage = (e) => {
+    const m = e.data;
+    if (!m || m.from === me) return;
+    if (m.type === 'hello') { if (!others.has(m.from)) dismissed = false; others.add(m.from); ch.postMessage({ type: 'present', from: me }); }
+    else if (m.type === 'present') others.add(m.from);
+    else if (m.type === 'bye') others.delete(m.from);
+    refresh();
+  };
+  ch.postMessage({ type: 'hello', from: me });
+  window.addEventListener('pagehide', () => { try { ch.postMessage({ type: 'bye', from: me }); } catch (err) { /* channel closed */ } });
+  document.getElementById('multiTabDismissBtn').onclick = () => { dismissed = true; refresh(); };
+}
+
+// Dialogs: focus moves into a dialog when it opens and back to where it was when it closes; Tab stays inside.
+const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+function topModal() {
+  const open = [...document.querySelectorAll('.ta-modal:not(.hidden)')];
+  return open[open.length - 1] || null;
+}
+function visibleFocusables(root) {
+  return [...root.querySelectorAll(FOCUSABLE)].filter(el => el.getClientRects().length > 0);
+}
+function trapTab(e) {
+  const m = topModal();
+  if (!m || e.key !== 'Tab') return;
+  const items = visibleFocusables(m);
+  if (!items.length) return;
+  const first = items[0], last = items[items.length - 1];
+  if (!m.contains(document.activeElement)) { e.preventDefault(); first.focus(); }
+  else if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+}
+
+// Long-text boxes (definitions, analytic narratives, memos …) grow with what is typed, up to 60% of the window
+// height (textarea.auto-grow in ta_canvas.css), then scroll. Boxes are measured in batches (read, then write),
+// and hidden ones only once they become visible, so a long write-up does not cost one layout pass per box.
+// growTextarea(el): re-measure a box whose value was set by code (typing is picked up by itself)
+let growTextarea = () => {};
+function setupAutoGrowTextareas() {
+  const queue = new Set();
+  let scheduled = false;
+  const growMany = (els) => {
+    const live = els.filter(el => el.isConnected && el.getClientRects().length > 0);
+    const fresh = live.filter(el => el._minH === undefined);
+    fresh.forEach(el => { el._minH = el.offsetHeight; });                                          // read
+    fresh.forEach(el => { el.style.minHeight = `${el._minH}px`; el.classList.add('auto-grow'); }); // write
+    live.forEach(el => { el.style.height = 'auto'; });                                             // write
+    const sizes = live.map(el => el.scrollHeight + el.offsetHeight - el.clientHeight);             // read
+    live.forEach((el, i) => { el.style.height = `${sizes[i]}px`; });                               // write
+  };
+  const flush = () => { scheduled = false; const els = [...queue]; queue.clear(); growMany(els); };
+  const schedule = (el) => { queue.add(el); if (!scheduled) { scheduled = true; requestAnimationFrame(flush); } };
+  const visibility = new IntersectionObserver(entries => entries.forEach(e => { if (e.isIntersecting) schedule(e.target); }));
+  const widths = new ResizeObserver(entries => entries.forEach(e => { // only a change of width re-wraps the text
+    const w = Math.round(e.contentRect.width);
+    if (e.target._lastW !== w) { e.target._lastW = w; schedule(e.target); }
+  }));
+  const init = (el) => {
+    if (el._autoGrow) return;
+    el._autoGrow = true;
+    visibility.observe(el); widths.observe(el); schedule(el);
+  };
+  const initIn = (root) => {
+    if (root.nodeType !== 1) return;
+    if (root.tagName === 'TEXTAREA') init(root);
+    root.querySelectorAll('textarea').forEach(init);
+  };
+  growTextarea = (el) => { if (el) { init(el); schedule(el); } };
+  document.addEventListener('input', e => { if (e.target.tagName === 'TEXTAREA') growTextarea(e.target); });
+  initIn(document.body);
+  new MutationObserver(muts => muts.forEach(m => m.addedNodes.forEach(initIn))).observe(document.body, { childList: true, subtree: true });
+}
+
 function setupAccessibleNames() {
   const label = (el) => {
     if (!el.matches('button[title], a[title]')) return;
@@ -223,15 +313,15 @@ function setupShellEvents() {
   menuMarker.addEventListener('click', e => e.stopPropagation());
   menuMarker.onchange = () => {
     state.markerStyle = menuMarker.value;
-    try { localStorage.setItem('ta_marker_style', state.markerStyle); } catch (e) { /* private mode */ }
+    lsSet('ta_marker_style', state.markerStyle);
     if (state.activeTab === 'code') renderViewer();
   };
   document.getElementById('projSave').onclick = saveProjectModal;
   document.getElementById('projCancel').onclick = () => document.getElementById('projectModal').classList.add('hidden');
   const rid = document.getElementById('researcherIdInput');
-  rid.addEventListener('change', () => {
+  rid.addEventListener('input', () => { // kept at once: entries made before leaving the field carry the name
     state.researcherId = rid.value.trim();
-    try { localStorage.setItem('ta_researcher_id', state.researcherId); } catch (e) { /* private mode */ }
+    lsSet('ta_researcher_id', state.researcherId);
   });
   document.getElementById('backupBtn').onclick = backupProject;
   document.getElementById('restoreBtn').onclick = () => document.getElementById('restoreInput').click();
@@ -265,19 +355,33 @@ function setupShellEvents() {
     m.addEventListener('change', mark);
     m.setAttribute('role', 'dialog');
     m.setAttribute('aria-modal', 'true');
+    let wasOpen = !m.classList.contains('hidden'), returnTo = null;
     new MutationObserver(() => {
-      if (m.classList.contains('hidden')) return;
+      const open = !m.classList.contains('hidden');
+      if (open === wasOpen) return;
+      wasOpen = open;
+      if (!open) {
+        // Focus goes back to what opened the dialog (if it is still there and nothing else took it)
+        if (returnTo && document.contains(returnTo) && (!document.activeElement || document.activeElement === document.body || m.contains(document.activeElement))) {
+          try { returnTo.focus(); } catch (err) { /* element gone */ }
+        }
+        returnTo = null;
+        return;
+      }
+      returnTo = document.activeElement;
       m.dataset.dirty = '';
       const title = m.querySelector('.font-bold');
       if (title) m.setAttribute('aria-label', title.textContent.trim());
+      // Into the dialog, unless the code that opened it already focused a field inside
+      setTimeout(() => { if (!m.contains(document.activeElement)) visibleFocusables(m)[0]?.focus(); }, 0);
     }).observe(m, { attributes: true, attributeFilter: ['class'] });
   });
   setupAccessibleNames();
+  watchOtherTabs();
+  setupAutoGrowTextareas();
 
-  // Text typed in the last moment before closing the tab is written straight away
-  window.addEventListener('pagehide', flushNarrativeSaves);
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushNarrativeSaves(); });
 
+  document.addEventListener('keydown', trapTab);
   document.addEventListener('keydown', (e) => {
     const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName);
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !typing) { e.preventDefault(); performUndo(); }
@@ -323,12 +427,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
   state.activeDocId = state.docs[0]?.id || null;
-  let tab = 'code';
-  try { tab = localStorage.getItem('ta_active_tab') || 'code'; } catch (e) { /* private mode */ }
+  const tab = lsGet('ta_active_tab', 'code');
   switchTab(TABS[tab] ? tab : 'code');
   renderHeader();
   updateAuditBadge();
   updateUndoButton();
   setInterval(renderLastBackup, 60000); // keep "… ago" current
   if (!state.meta.name && !state.docs.length) openProjectModal();
+  window.taReady = true; // start-up finished (the browser tests wait for this)
 });

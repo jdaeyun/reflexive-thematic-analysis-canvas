@@ -159,7 +159,7 @@ function openJournal({ linkedLogId = null, type = null, text = '' } = {}) {
     journalDraft.linkedLogId = linkedLogId;
   }
   if (type) document.getElementById('jdType').value = type;
-  if (text) ta.value = text;
+  if (text) { ta.value = text; growTextarea(ta); }
   applyJournalTemplate(document.getElementById('jdType'), ta);
   renderJournalDrawer();
   drawer.classList.remove('hidden');
@@ -232,6 +232,7 @@ async function saveJournalFromDrawer() {
     linkedLogId: journalDraft.linkedLogId
   });
   ta.value = '';
+  growTextarea(ta);
   journalDraft.linkedLogId = null;
   journalDraft.ctx = captureContext();
   renderJournalDrawer();

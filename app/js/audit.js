@@ -41,6 +41,7 @@ function applyJournalTemplate(sel, ta) {
   } else if (isUntouchedTemplate(ta.value)) {
     ta.value = '';
   }
+  growTextarea(ta);
 }
 
 // Text of a log entry in a language (entries from older versions only have English `action` / `detail`)
@@ -126,6 +127,7 @@ async function addJournalEntry() {
   if (!journalHasText(ta)) { ta.focus(); return; }
   await recordLog({ category: 'journal', ak: `jt.${type}`, detail: text, snapshot: takeSnapshot() });
   ta.value = '';
+  growTextarea(ta);
   renderAuditView();
   showToast(tr('toast.journalAdded'), 'success');
 }

@@ -90,7 +90,8 @@ On import, every file is turned into fixed plain text, one block per line or ans
 ## 🏗️ Architecture
 
 * Single page, classic `<script>` files in a shared global scope (works from `file://`), no build step to run it.
-* `app/js/core.js` (state, IndexedDB, audit log, undo) → `importers.js` → `coding.js` (tab 1) → `themes.js` (tab 2) → `audit.js` (tab 3) → `export.js` (tab 4) → `refi-qda.js` (.qdpx exchange) → `app.js` (startup).
+* `app/js/prefs.js` (per-browser preferences) → `i18n.js` → `core.js` (state, IndexedDB, audit log, undo) → `importers.js` → `coding.js` (tab 1) → `themes.js` + `thematic-map.js` (tab 2) → `audit.js` + `journal.js` (tab 3, journal drawer) → `export.js` (tab 4) → `refi-qda.js` (.qdpx exchange) → `app.js` (startup).
+* Browser tests: `npm test` (Playwright, see `tests/`). Releases: edit `app/version.js` and merge to main; a workflow syncs the version text and publishes the release with the offline ZIP.
 * Bundled libraries in `app/vendor/` (no CDN): Tailwind CSS 3.4.17 (prebuilt), Phosphor Icons 2.1.1, docx 8.5.0, mammoth.js 1.13.0, Papa Parse 5.7.0. See [`app/vendor/THIRD_PARTY_NOTICES.md`](app/vendor/THIRD_PARTY_NOTICES.md).
 * To update libraries or Tailwind classes: `npm install`, then `npm run build`.
 
