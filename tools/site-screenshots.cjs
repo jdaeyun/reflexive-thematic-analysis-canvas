@@ -233,7 +233,7 @@ async function shot(page, lang, name, clip) {
 }
 
 (async () => {
-  const browser = await chromium.launch();
+  const browser = await chromium.launch(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {});
   for (const lang of ['ja', 'en']) {
     fs.mkdirSync(path.join(OUT, lang), { recursive: true });
     const P = PLAN[lang];

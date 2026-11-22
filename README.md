@@ -36,7 +36,7 @@
 3. **Audit & Journal**
    Every interpretive change (codes created, renamed, merged or deleted; theme changes; status, definitions) is logged automatically, next to a timestamped reflexive journal.
 4. **Writing up (Phase 6)**
-   Writing is part of the analysis, so the first view is a writing space: an overview of the analysis and an analytic narrative for each theme and subtheme, with the theme's extracts at hand to insert as evidence. Supporting tables follow:
+   Writing is part of the analysis, so the first view is a writing space: an overview of the analysis and an analytic narrative for each theme and subtheme, with the theme's extracts at hand to illustrate and support your interpretation. Supporting tables follow:
    * Analysis summary, participants, and themes with definitions and illustrative extracts
    * Optional, off by default: prevalence (participants per theme, theme × participant) and the code list
    * Appendix A: audit trail and reflexive journal
